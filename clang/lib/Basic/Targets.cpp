@@ -303,6 +303,14 @@ TargetInfo *AllocateTarget(const llvm::Triple &Triple,
       return new MipsTargetInfo(Triple, Opts);
     }
 
+  case llvm::Triple::nanomips:
+    switch (os) {
+    case llvm::Triple::Linux:
+      return new LinuxTargetInfo<MipsTargetInfo>(Triple, Opts);
+    default:
+      return new MipsTargetInfo(Triple, Opts);
+    }
+
   case llvm::Triple::le32:
     switch (os) {
     case llvm::Triple::NaCl:

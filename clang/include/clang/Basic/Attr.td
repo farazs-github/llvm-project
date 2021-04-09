@@ -366,7 +366,7 @@ def TargetAnyArm : TargetArch<!listconcat(TargetARM.Arches, TargetAArch64.Arches
 def TargetAVR : TargetArch<["avr"]>;
 def TargetBPF : TargetArch<["bpfel", "bpfeb"]>;
 def TargetMips32 : TargetArch<["mips", "mipsel"]>;
-def TargetAnyMips : TargetArch<["mips", "mipsel", "mips64", "mips64el"]>;
+def TargetAnyMips : TargetArch<["mips", "mipsel", "mips64", "mips64el", "nanomips"]>;
 def TargetMSP430 : TargetArch<["msp430"]>;
 def TargetRISCV : TargetArch<["riscv32", "riscv64"]>;
 def TargetX86 : TargetArch<["x86"]>;

@@ -6911,6 +6911,7 @@ static void handleInterruptAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     break;
   case llvm::Triple::mipsel:
   case llvm::Triple::mips:
+  case llvm::Triple::nanomips:
     handleMipsInterruptAttr(S, D, AL);
     break;
   case llvm::Triple::x86:

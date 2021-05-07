@@ -37,6 +37,7 @@
 #include "ToolChains/MipsLinux.h"
 #include "ToolChains/Myriad.h"
 #include "ToolChains/NaCl.h"
+#include "ToolChains/NanoMips.h"
 #include "ToolChains/NetBSD.h"
 #include "ToolChains/OpenBSD.h"
 #include "ToolChains/PPCLinux.h"
@@ -5310,6 +5311,9 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
         break;
       case llvm::Triple::ve:
         TC = std::make_unique<toolchains::VEToolChain>(*this, Target, Args);
+        break;
+      case llvm::Triple::nanomips:
+        TC = std::make_unique<toolchains::NanoMips>(*this, Target, Args);
         break;
       default:
         if (Target.getVendor() == llvm::Triple::Myriad)

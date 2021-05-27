@@ -7923,6 +7923,11 @@ ABIArgInfo MipsABIInfo::classifyReturnType(QualType RetTy) const {
         return ArgInfo;
       }
     }
+    if (getTarget().getTriple().isNanoMips() && Size <= 64) {
+      auto RetInfo = ABIArgInfo::getDirect(returnAggregateInRegs(RetTy, Size));
+      RetInfo.setInReg(true);
+      return RetInfo;
+    }
 
     return getNaturalAlignIndirect(RetTy);
   }

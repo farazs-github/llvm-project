@@ -48,6 +48,10 @@ private:
   void
   PreAnalyzeFormalArgumentsForF128(const SmallVectorImpl<ISD::InputArg> &Ins);
 
+  // Find all arguments which are lower parts of a 64-bit value.
+  void PreAnalyzeFormalArgumentsFor64BitLo(
+      const SmallVectorImpl<ISD::InputArg> &Ins);
+
   void
   PreAnalyzeCallResultForVectorFloat(const SmallVectorImpl<ISD::InputArg> &Ins,
                                      const Type *RetTy);
@@ -75,6 +79,9 @@ private:
   /// See ISD::OutputArg::IsFixed,
   SmallVector<bool, 4> CallOperandIsFixed;
 
+  // Records whether the value is lower part of a 64-bit value.
+  SmallVector<bool, 8> OriginalArgWas64BitLo;
+
   // Used to handle MIPS16-specific calling convention tweaks.
   // FIXME: This should probably be a fully fledged calling convention.
   SpecialCallingConvType SpecialCallingConv;
@@ -93,6 +100,7 @@ public:
     PreAnalyzeCallOperands(Outs, FuncArgs, Func);
     CCState::AnalyzeCallOperands(Outs, Fn);
     OriginalArgWasF128.clear();
+    OriginalArgWas64BitLo.clear();
     OriginalArgWasFloat.clear();
     OriginalArgWasFloatVector.clear();
     CallOperandIsFixed.clear();
@@ -110,9 +118,11 @@ public:
   void AnalyzeFormalArguments(const SmallVectorImpl<ISD::InputArg> &Ins,
                               CCAssignFn Fn) {
     PreAnalyzeFormalArgumentsForF128(Ins);
+    PreAnalyzeFormalArgumentsFor64BitLo(Ins);
     CCState::AnalyzeFormalArguments(Ins, Fn);
     OriginalArgWasFloat.clear();
     OriginalArgWasF128.clear();
+    OriginalArgWas64BitLo.clear();
     OriginalArgWasFloatVector.clear();
   }
 
@@ -121,9 +131,11 @@ public:
                          const char *Func) {
     PreAnalyzeCallResultForF128(Ins, RetTy, Func);
     PreAnalyzeCallResultForVectorFloat(Ins, RetTy);
+    PreAnalyzeCallResultForVectorFloat(Ins, RetTy);
     CCState::AnalyzeCallResult(Ins, Fn);
     OriginalArgWasFloat.clear();
     OriginalArgWasF128.clear();
+    OriginalArgWas64BitLo.clear();
     OriginalArgWasFloatVector.clear();
   }
 
@@ -134,6 +146,7 @@ public:
     CCState::AnalyzeReturn(Outs, Fn);
     OriginalArgWasFloat.clear();
     OriginalArgWasF128.clear();
+    OriginalArgWas64BitLo.clear();
     OriginalArgWasFloatVector.clear();
   }
 
@@ -144,11 +157,13 @@ public:
     bool Return = CCState::CheckReturn(ArgsFlags, Fn);
     OriginalArgWasFloat.clear();
     OriginalArgWasF128.clear();
+    OriginalArgWas64BitLo.clear();
     OriginalArgWasFloatVector.clear();
     return Return;
   }
 
   bool WasOriginalArgF128(unsigned ValNo) { return OriginalArgWasF128[ValNo]; }
+  bool WasOriginalArg64BitLo(unsigned ValNo) { return OriginalArgWas64BitLo[ValNo]; }
   bool WasOriginalArgFloat(unsigned ValNo) {
       return OriginalArgWasFloat[ValNo];
   }

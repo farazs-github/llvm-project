@@ -49,7 +49,7 @@ private:
   PreAnalyzeFormalArgumentsForF128(const SmallVectorImpl<ISD::InputArg> &Ins);
 
   // Find all arguments which are lower parts of a 64-bit value.
-  void PreAnalyzeFormalArgumentsFor64BitLo(
+  void preAnalyzeFormalArgumentsFor64BitLo(
       const SmallVectorImpl<ISD::InputArg> &Ins);
 
   void
@@ -118,7 +118,7 @@ public:
   void AnalyzeFormalArguments(const SmallVectorImpl<ISD::InputArg> &Ins,
                               CCAssignFn Fn) {
     PreAnalyzeFormalArgumentsForF128(Ins);
-    PreAnalyzeFormalArgumentsFor64BitLo(Ins);
+    preAnalyzeFormalArgumentsFor64BitLo(Ins);
     CCState::AnalyzeFormalArguments(Ins, Fn);
     OriginalArgWasFloat.clear();
     OriginalArgWasF128.clear();

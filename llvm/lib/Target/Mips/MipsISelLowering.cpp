@@ -2442,7 +2442,7 @@ SDValue MipsTargetLowering::lowerVACOPY(SDValue Op, SelectionDAG &DAG) const {
                          Align(PtrSize), false, false, false,
                          MachinePointerInfo(DestSV), MachinePointerInfo(SrcSV));
   } else {
-    return SDNode();
+    return SDValue();
   }
 }
 

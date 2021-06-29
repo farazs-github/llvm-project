@@ -195,6 +195,9 @@ MipsTargetMachine::getSubtargetImpl(const Function &F) const {
   bool softFloat =
       F.hasFnAttribute("use-soft-float") &&
       F.getFnAttribute("use-soft-float").getValueAsString() == "true";
+  if (getTargetTriple().isNanoMips()) {
+    softFloat = true;
+  }
 
   if (hasMips16Attr)
     FS += FS.empty() ? "+mips16" : ",+mips16";

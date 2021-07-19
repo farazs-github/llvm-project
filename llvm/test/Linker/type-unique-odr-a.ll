@@ -1,3 +1,5 @@
+; No object emitter on nanomips
+; UNSUPPORTED: nanomips
 ; REQUIRES: default_triple
 ;
 ; RUN: llvm-link %s %p/type-unique-odr-b.ll -S -o - \

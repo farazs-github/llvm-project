@@ -260,6 +260,7 @@ public:
   bool addLegalizeMachineIR() override;
   bool addRegBankSelect() override;
   bool addGlobalInstructionSelect() override;
+  void addPreSched2() override;
 
   std::unique_ptr<CSEConfigBase> getCSEConfig() const override;
 };
@@ -272,6 +273,11 @@ TargetPassConfig *MipsTargetMachine::createPassConfig(PassManagerBase &PM) {
 
 std::unique_ptr<CSEConfigBase> MipsPassConfig::getCSEConfig() const {
   return getStandardCSEConfigForOpt(TM->getOptLevel());
+}
+
+void MipsPassConfig::addPreSched2() {
+  if (getMipsSubtarget().hasNanoMips())
+    addPass(createNanoMipsLoadStoreOptimizerPass());
 }
 
 void MipsPassConfig::addIRPasses() {

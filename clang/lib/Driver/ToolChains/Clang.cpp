@@ -519,6 +519,7 @@ static bool useFramePointerForTargetByDefault(const ArgList &Args,
     return true;
 
   switch (Triple.getArch()) {
+  case llvm::Triple::nanomips:
   case llvm::Triple::xcore:
   case llvm::Triple::wasm32:
   case llvm::Triple::wasm64:
@@ -558,7 +559,6 @@ static bool useFramePointerForTargetByDefault(const ArgList &Args,
     case llvm::Triple::mips64el:
     case llvm::Triple::mips:
     case llvm::Triple::mipsel:
-    case llvm::Triple::nanomips:
     case llvm::Triple::systemz:
     case llvm::Triple::x86:
     case llvm::Triple::x86_64:

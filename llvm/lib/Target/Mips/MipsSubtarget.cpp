@@ -99,7 +99,7 @@ MipsSubtarget::MipsSubtarget(const Triple &TT, StringRef CPU, StringRef FS,
     report_fatal_error("Code generation for MIPS-V is not implemented", false);
 
   // Check if Architecture and ABI are compatible.
-  assert(((!isGP64bit() && isABI_O32()) ||
+  assert(((!isGP64bit() && (isABI_O32() || isABI_P32())) ||
           (isGP64bit() && (isABI_N32() || isABI_N64()))) &&
          "Invalid  Arch & ABI pair.");
 
@@ -276,6 +276,7 @@ Reloc::Model MipsSubtarget::getRelocationModel() const {
 bool MipsSubtarget::isABI_N64() const { return getABI().IsN64(); }
 bool MipsSubtarget::isABI_N32() const { return getABI().IsN32(); }
 bool MipsSubtarget::isABI_O32() const { return getABI().IsO32(); }
+bool MipsSubtarget::isABI_P32() const { return getABI().IsP32(); }
 const MipsABIInfo &MipsSubtarget::getABI() const { return TM.getABI(); }
 
 const CallLowering *MipsSubtarget::getCallLowering() const {

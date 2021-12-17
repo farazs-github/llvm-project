@@ -208,6 +208,7 @@ void TargetLoweringObjectFileELF::Initialize(MCContext &Ctx,
     PersonalityEncoding = dwarf::DW_EH_PE_absptr;
     TTypeEncoding = dwarf::DW_EH_PE_absptr;
     break;
+  case Triple::nanomips:
   case Triple::mips:
   case Triple::mipsel:
   case Triple::mips64:

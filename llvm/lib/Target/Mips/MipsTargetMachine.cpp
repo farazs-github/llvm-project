@@ -51,6 +51,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTarget() {
   RegisterTargetMachine<MipselTargetMachine> Y(getTheMipselTarget());
   RegisterTargetMachine<MipsebTargetMachine> A(getTheMips64Target());
   RegisterTargetMachine<MipselTargetMachine> B(getTheMips64elTarget());
+  RegisterTargetMachine<NanoMipsTargetMachine> C(getTheNanoMipsTarget());
 
   PassRegistry *PR = PassRegistry::getPassRegistry();
   initializeGlobalISel(*PR);
@@ -154,6 +155,16 @@ MipselTargetMachine::MipselTargetMachine(const Target &T, const Triple &TT,
                                          CodeGenOpt::Level OL, bool JIT)
     : MipsTargetMachine(T, TT, CPU, FS, Options, RM, CM, OL, JIT, true) {}
 
+void NanoMipsTargetMachine::anchor() {}
+
+NanoMipsTargetMachine::NanoMipsTargetMachine(const Target &T, const Triple &TT,
+                                             StringRef CPU, StringRef FS,
+                                             const TargetOptions &Options,
+                                             Optional<Reloc::Model> RM,
+                                             Optional<CodeModel::Model> CM,
+                                             CodeGenOpt::Level OL, bool JIT)
+    : MipsTargetMachine(T, TT, CPU, FS, Options, RM, CM, OL, JIT, true) {}
+
 const MipsSubtarget *
 MipsTargetMachine::getSubtargetImpl(const Function &F) const {
   Attribute CPUAttr = F.getFnAttribute("target-cpu");
@@ -172,7 +183,11 @@ MipsTargetMachine::getSubtargetImpl(const Function &F) const {
   // FIXME: This is related to the code below to reset the target options,
   // we need to know whether or not the soft float flag is set on the
   // function, so we can enable it as a subtarget feature.
-  bool softFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
+  bool softFloat =
+      F.hasFnAttribute("use-soft-float") &&
+      F.getFnAttribute("use-soft-float").getValueAsBool();
+  if (getTargetTriple().isNanoMips())
+    softFloat = true;
 
   if (hasMips16Attr)
     FS += FS.empty() ? "+mips16" : ",+mips16";

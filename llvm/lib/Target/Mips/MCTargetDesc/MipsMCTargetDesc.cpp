@@ -53,7 +53,9 @@ StringRef MIPS_MC::selectMipsCPU(const Triple &TT, StringRef CPU) {
       else
         CPU = "mips64r6";
     } else {
-      if (TT.isMIPS32())
+      if (TT.isNanoMips())
+        CPU = "nanomips";
+      else if (TT.isMIPS32())
         CPU = "mips32";
       else
         CPU = "mips64";
@@ -167,8 +169,9 @@ static MCInstrAnalysis *createMipsMCInstrAnalysis(const MCInstrInfo *Info) {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTargetMC() {
-  for (Target *T : {&getTheMipsTarget(), &getTheMipselTarget(),
-                    &getTheMips64Target(), &getTheMips64elTarget()}) {
+  for (Target *T :
+       {&getTheMipsTarget(), &getTheMipselTarget(), &getTheMips64Target(),
+        &getTheMips64elTarget(), &getTheNanoMipsTarget()}) {
     // Register the MC asm info.
     RegisterMCAsmInfoFn X(*T, createMipsMCAsmInfo);
 
@@ -196,11 +199,13 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTargetMC() {
     // Register the MCInstPrinter.
     TargetRegistry::RegisterMCInstPrinter(*T, createMipsMCInstPrinter);
 
-    TargetRegistry::RegisterObjectTargetStreamer(
-        *T, createMipsObjectTargetStreamer);
+    if (T->getName() != std::string("nanomips")) {
+      TargetRegistry::RegisterObjectTargetStreamer(
+          *T, createMipsObjectTargetStreamer);
 
-    // Register the asm backend.
-    TargetRegistry::RegisterMCAsmBackend(*T, createMipsAsmBackend);
+      // Register the asm backend.
+      TargetRegistry::RegisterMCAsmBackend(*T, createMipsAsmBackend);
+    }
   }
 
   // Register the MC Code Emitter

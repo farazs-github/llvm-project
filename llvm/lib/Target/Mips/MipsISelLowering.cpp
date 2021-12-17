@@ -4477,15 +4477,20 @@ MipsTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
       if (VT == MVT::i32 || VT == MVT::i16 || VT == MVT::i8) {
         if (Subtarget.inMips16Mode())
           return std::make_pair(0U, &Mips::CPU16RegsRegClass);
+        if (Subtarget.hasNanoMips())
+          return std::make_pair(0U, &Mips::GPR32NMRegClass);
         return std::make_pair(0U, &Mips::GPR32RegClass);
       }
       if (VT == MVT::i64 && !Subtarget.isGP64bit())
-        return std::make_pair(0U, &Mips::GPR32RegClass);
+        return std::make_pair(0U, Subtarget.hasNanoMips()
+                                      ? &Mips::GPR32NMRegClass
+                                      : &Mips::GPR32RegClass);
       if (VT == MVT::i64 && Subtarget.isGP64bit())
         return std::make_pair(0U, &Mips::GPR64RegClass);
       // This will generate an error message
       return std::make_pair(0U, nullptr);
     case 'f': // FPU or MSA register
+      assert(!Subtarget.hasNanoMips() && "NYI for nanoMIPS");
       if (VT == MVT::v16i8)
         return std::make_pair(0U, &Mips::MSA128BRegClass);
       else if (VT == MVT::v8i16 || VT == MVT::v8f16)
@@ -4503,6 +4508,7 @@ MipsTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
       }
       break;
     case 'c': // register suitable for indirect jump
+      assert(!Subtarget.hasNanoMips() && "NYI for nanoMIPS");
       if (VT == MVT::i32)
         return std::make_pair((unsigned)Mips::T9, &Mips::GPR32RegClass);
       if (VT == MVT::i64)
@@ -4511,6 +4517,7 @@ MipsTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
       return std::make_pair(0U, nullptr);
     case 'l': // use the `lo` register to store values
               // that are no bigger than a word
+      assert(!Subtarget.hasNanoMips() && "NYI for nanoMIPS");
       if (VT == MVT::i32 || VT == MVT::i16 || VT == MVT::i8)
         return std::make_pair((unsigned)Mips::LO0, &Mips::LO32RegClass);
       return std::make_pair((unsigned)Mips::LO0_64, &Mips::LO64RegClass);
@@ -4614,6 +4621,21 @@ void MipsTargetLowering::LowerAsmOperandForConstraint(SDValue Op,
       EVT Type = Op.getValueType();
       int64_t Val = C->getSExtValue();
       if ((Val <= 65535) && (Val >= 1)) {
+        Result = DAG.getTargetConstant(Val, DL, Type);
+        break;
+      }
+    }
+    return;
+  case 'M': // immediate that cannot be loaded using lui, addiu or ori
+    if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Op)) {
+      assert(Subtarget.hasNanoMips());
+      EVT Type = Op.getValueType();
+      int64_t Val = C->getSExtValue();
+      bool IsLui = SignExtend64(Val & 0xfffff000, 32) == Val;
+      bool IsOri = (Val & 0xfff) == Val;
+      bool IsAddiu =
+          ((Val <= 65535) && (Val >= 0)) || ((Val >= -4095) && (Val <= 0));
+      if (!IsLui && !IsOri && !IsAddiu) {
         Result = DAG.getTargetConstant(Val, DL, Type);
         break;
       }

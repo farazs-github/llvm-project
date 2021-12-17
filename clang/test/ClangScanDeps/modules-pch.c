@@ -1,3 +1,4 @@
+// UNSUPPORTED: nanomips
 // RUN: rm -rf %t && mkdir %t
 // RUN: cp %S/Inputs/modules-pch/* %t
 

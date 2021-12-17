@@ -7907,6 +7907,12 @@ MipsABIInfo::classifyArgumentType(QualType Ty, uint64_t &Offset) const {
     if (TySize == 0)
       return ABIArgInfo::getIgnore();
 
+    bool IsNanoMips = getTarget().getTriple().isNanoMips();
+    if (TySize > 64 && IsNanoMips) {
+      Offset = OrigOffset + MinABIStackAlignInBytes;
+      return getNaturalAlignIndirect(Ty, false);
+    }
+
     if (CGCXXABI::RecordArgABI RAA = getRecordArgABI(Ty, getCXXABI())) {
       Offset = OrigOffset + MinABIStackAlignInBytes;
       return getNaturalAlignIndirect(Ty, RAA == CGCXXABI::RAA_DirectInMemory);
@@ -7995,7 +8001,17 @@ ABIArgInfo MipsABIInfo::classifyReturnType(QualType RetTy) const {
     return ABIArgInfo::getIgnore();
 
   if (isAggregateTypeForABI(RetTy) || RetTy->isVectorType()) {
-    if (Size <= 128) {
+    bool IsNanoMips = getTarget().getTriple().isNanoMips();
+    if (IsNanoMips && Size <= 64) {
+      if (RetTy->isAnyComplexType())
+        return ABIArgInfo::getDirect();
+
+      auto RetInfo = ABIArgInfo::getDirect(returnAggregateInRegs(RetTy, Size));
+      RetInfo.setInReg(true);
+      return RetInfo;
+    }
+
+    if (!IsNanoMips && Size <= 128) {
       if (RetTy->isAnyComplexType())
         return ABIArgInfo::getDirect();
 
@@ -11052,6 +11068,7 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
     return SetCGInfo(new M68kTargetCodeGenInfo(Types));
   case llvm::Triple::mips:
   case llvm::Triple::mipsel:
+  case llvm::Triple::nanomips:
     if (Triple.getOS() == llvm::Triple::NaCl)
       return SetCGInfo(new PNaClTargetCodeGenInfo(Types));
     return SetCGInfo(new MIPSTargetCodeGenInfo(Types, true));

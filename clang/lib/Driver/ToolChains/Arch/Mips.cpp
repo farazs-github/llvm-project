@@ -56,6 +56,14 @@ void mips::getMipsCPUAndABI(const ArgList &Args, const llvm::Triple &Triple,
     DefMips64CPU = "mips3";
   }
 
+  if (Triple.isNanoMips()) {
+    DefMips32CPU = "i7200";
+    CPUName = "i7200";
+    if (ABIName.empty()) {
+      ABIName = "p32";
+    }
+  }
+
   if (Arg *A = Args.getLastArg(clang::driver::options::OPT_march_EQ,
                                options::OPT_mcpu_EQ))
     CPUName = A->getValue();
@@ -123,6 +131,7 @@ void mips::getMipsCPUAndABI(const ArgList &Args, const llvm::Triple &Triple,
     CPUName = llvm::StringSwitch<const char *>(ABIName)
                   .Case("o32", DefMips32CPU)
                   .Cases("n32", "n64", DefMips64CPU)
+                  .Case("p32", "nanomips")
                   .Default("");
   }
 
@@ -173,8 +182,9 @@ mips::FloatABI mips::getMipsFloatABI(const Driver &D, const ArgList &Args,
 
   // If unspecified, choose the default based on the platform.
   if (ABI == mips::FloatABI::Invalid) {
-    if (Triple.isOSFreeBSD()) {
+    if (Triple.isOSFreeBSD() || Triple.isNanoMips()) {
       // For FreeBSD, assume "soft" on all flavors of MIPS.
+      // nanoMIPS currently only supports "soft" ABI.
       ABI = mips::FloatABI::Soft;
     } else {
       // Assume "hard", because it's a default value used by gcc.
@@ -185,6 +195,8 @@ mips::FloatABI mips::getMipsFloatABI(const Driver &D, const ArgList &Args,
   }
 
   assert(ABI != mips::FloatABI::Invalid && "must select an ABI");
+  assert((!Triple.isNanoMips() || ABI != mips::FloatABI::Hard) &&
+         "nanoMIPS does not support hard-float ABI");
   return ABI;
 }
 

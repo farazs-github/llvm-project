@@ -27,7 +27,7 @@ class LLVM_LIBRARY_VISIBILITY MipsTargetInfo : public TargetInfo {
 
     if (ABI == "o32")
       Layout = "m:m-p:32:32-i8:8:32-i16:16:32-i64:64-n32-S64";
-    else if (ABI == "n32")
+    else if (ABI == "n32" || ABI == "p32")
       Layout = "m:e-p:32:32-i8:8:32-i16:16:32-i64:64-n32:64-S128";
     else if (ABI == "n64")
       Layout = "m:e-i8:8:32-i16:16:32-i64:64-n32:64-S128";
@@ -44,6 +44,7 @@ class LLVM_LIBRARY_VISIBILITY MipsTargetInfo : public TargetInfo {
   std::string CPU;
   bool IsMips16;
   bool IsMicromips;
+  bool IsNanoMips;
   bool IsNan2008;
   bool IsAbs2008;
   bool IsSingleFloat;
@@ -62,20 +63,23 @@ protected:
 public:
   MipsTargetInfo(const llvm::Triple &Triple, const TargetOptions &)
       : TargetInfo(Triple), IsMips16(false), IsMicromips(false),
-        IsNan2008(false), IsAbs2008(false), IsSingleFloat(false),
-        IsNoABICalls(false), CanUseBSDABICalls(false), FloatABI(HardFloat),
-        DspRev(NoDSP), HasMSA(false), DisableMadd4(false),
+        IsNanoMips(false), IsNan2008(false), IsAbs2008(false),
+        IsSingleFloat(false), IsNoABICalls(false), CanUseBSDABICalls(false),
+        FloatABI(HardFloat), DspRev(NoDSP), HasMSA(false), DisableMadd4(false),
         UseIndirectJumpHazard(false), FPMode(FPXX) {
+
     TheCXXABI.set(TargetCXXABI::GenericMIPS);
 
     if (Triple.isMIPS32())
       setABI("o32");
+    else if (Triple.isNanoMips())
+      setABI("p32");
     else if (Triple.getEnvironment() == llvm::Triple::GNUABIN32)
       setABI("n32");
     else
       setABI("n64");
 
-    CPU = ABI == "o32" ? "mips32r2" : "mips64r2";
+    CPU = ABI == "p32" ? "nanomips" : ABI == "o32" ? "mips32r2" : "mips64r2";
 
     CanUseBSDABICalls = Triple.isOSFreeBSD() ||
                         Triple.isOSOpenBSD();
@@ -98,6 +102,12 @@ public:
   bool setABI(const std::string &Name) override {
     if (Name == "o32") {
       setO32ABITypes();
+      ABI = Name;
+      return true;
+    }
+
+    if (Name == "p32") {
+      setP32ABITypes();
       ABI = Name;
       return true;
     }
@@ -126,6 +136,20 @@ public:
     PtrDiffType = SignedInt;
     SizeType = UnsignedInt;
     SuitableAlign = 64;
+  }
+
+  void setP32ABITypes() {
+    Int64Type = SignedLongLong;
+    IntMaxType = Int64Type;
+    LongDoubleFormat = &llvm::APFloat::IEEEdouble();
+    LongDoubleWidth = LongDoubleAlign = 64;
+    LongWidth = LongAlign = 32;
+    MaxAtomicPromoteWidth = 32;
+    MaxAtomicInlineWidth = 64;
+    PointerWidth = PointerAlign = 32;
+    PtrDiffType = SignedInt;
+    SizeType = UnsignedInt;
+    SuitableAlign = 128;
   }
 
   void setN32N64ABITypes() {
@@ -311,10 +335,12 @@ public:
     IsNan2008 = isIEEE754_2008Default();
     IsAbs2008 = isIEEE754_2008Default();
     IsSingleFloat = false;
-    FloatABI = HardFloat;
+    if (IsNanoMips)
+      FloatABI = SoftFloat;
+    else
+      FloatABI = HardFloat;
     DspRev = NoDSP;
     FPMode = isFP64Default() ? FP64 : FPXX;
-
     for (const auto &Feature : Features) {
       if (Feature == "+single-float")
         IsSingleFloat = true;

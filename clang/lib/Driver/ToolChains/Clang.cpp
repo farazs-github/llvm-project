@@ -318,6 +318,7 @@ static void getTargetFeatures(const Driver &D, const llvm::Triple &Triple,
   case llvm::Triple::mipsel:
   case llvm::Triple::mips64:
   case llvm::Triple::mips64el:
+  case llvm::Triple::nanomips:
     mips::getMIPSTargetFeatures(D, Triple, Args, Features);
     break;
 
@@ -524,6 +525,7 @@ static bool useFramePointerForTargetByDefault(const ArgList &Args,
     return true;
 
   switch (Triple.getArch()) {
+  case llvm::Triple::nanomips:
   case llvm::Triple::xcore:
   case llvm::Triple::wasm32:
   case llvm::Triple::wasm64:
@@ -1456,6 +1458,7 @@ static bool isSignedCharDefault(const llvm::Triple &Triple) {
       return true;
     return false;
 
+  case llvm::Triple::nanomips:
   case llvm::Triple::hexagon:
   case llvm::Triple::ppcle:
   case llvm::Triple::ppc64le:
@@ -1681,6 +1684,7 @@ void Clang::RenderTargetOptions(const llvm::Triple &EffectiveTriple,
   case llvm::Triple::mipsel:
   case llvm::Triple::mips64:
   case llvm::Triple::mips64el:
+  case llvm::Triple::nanomips:
     AddMIPSTargetArgs(Args, CmdArgs);
     break;
 
@@ -2469,6 +2473,7 @@ static void CollectArgsForIntegratedAssembler(Compilation &C,
       case llvm::Triple::mipsel:
       case llvm::Triple::mips64:
       case llvm::Triple::mips64el:
+      case llvm::Triple::nanomips:
         if (Value == "--trap") {
           CmdArgs.push_back("-target-feature");
           CmdArgs.push_back("+use-tcc-in-div");
@@ -7533,6 +7538,7 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   case llvm::Triple::mipsel:
   case llvm::Triple::mips64:
   case llvm::Triple::mips64el:
+  case llvm::Triple::nanomips:
     AddMIPSTargetArgs(Args, CmdArgs);
     break;
 

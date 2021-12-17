@@ -410,3 +410,5 @@ def CSR_Interrupt_64 : CalleeSavedRegs<(add (sequence "A%u_64", 3, 0),
                                             (sequence "V%u_64", 1, 0),
                                             RA_64, FP_64, GP_64, AT_64,
                                             LO0_64, HI0_64)>;
+
+def CSR_P32 : CalleeSavedRegs<(add RA_NM, FP_NM, GP_NM, (sequence "S%u_NM", 7, 0))>;

@@ -220,7 +220,9 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
       MachineBasicBlock &MBB = *MI.getParent();
       DebugLoc DL = II->getDebugLoc();
       const TargetRegisterClass *PtrRC =
-          ABI.ArePtrs64bit() ? &Mips::GPR64RegClass : &Mips::GPR32RegClass;
+          ABI.ArePtrs64bit()
+              ? &Mips::GPR64RegClass
+              : ABI.IsP32() ? &Mips::GPR32NMRegClass : &Mips::GPR32RegClass;
       MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
       Register Reg = RegInfo.createVirtualRegister(PtrRC);
       const MipsSEInstrInfo &TII =

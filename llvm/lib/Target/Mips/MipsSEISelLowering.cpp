@@ -65,7 +65,8 @@ MipsSETargetLowering::MipsSETargetLowering(const MipsTargetMachine &TM,
                                            const MipsSubtarget &STI)
     : MipsTargetLowering(TM, STI) {
   // Set up the register classes
-  addRegisterClass(MVT::i32, &Mips::GPR32RegClass);
+  addRegisterClass(MVT::i32, STI.isABI_P32() ? &Mips::GPR32NMRegClass
+                                             : &Mips::GPR32RegClass);
 
   if (Subtarget.isGP64bit())
     addRegisterClass(MVT::i64, &Mips::GPR64RegClass);

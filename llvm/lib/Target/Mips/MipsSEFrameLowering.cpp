@@ -418,8 +418,10 @@ void MipsSEFrameLowering::emitPrologue(MachineFunction &MF,
   unsigned ADDiu = ABI.GetPtrAddiuOp();
   unsigned AND = ABI.IsN64() ? Mips::AND64 : Mips::AND;
 
-  const TargetRegisterClass *RC = ABI.ArePtrs64bit() ?
-        &Mips::GPR64RegClass : &Mips::GPR32RegClass;
+  const TargetRegisterClass *RC =
+      ABI.ArePtrs64bit()
+          ? &Mips::GPR64RegClass
+          : ABI.IsP32() ? &Mips::GPR32NMRegClass : &Mips::GPR32RegClass;
 
   // First, compute final stack size.
   uint64_t StackSize = MFI.getStackSize();
@@ -717,7 +719,9 @@ void MipsSEFrameLowering::emitEpilogue(MachineFunction &MF,
 
   if (MipsFI->callsEhReturn()) {
     const TargetRegisterClass *RC =
-        ABI.ArePtrs64bit() ? &Mips::GPR64RegClass : &Mips::GPR32RegClass;
+        ABI.ArePtrs64bit()
+            ? &Mips::GPR64RegClass
+            : ABI.IsP32() ? &Mips::GPR32NMRegClass : &Mips::GPR32RegClass;
 
     // Find first instruction that restores a callee-saved register.
     MachineBasicBlock::iterator I = MBBI;
@@ -908,7 +912,9 @@ void MipsSEFrameLowering::determineCalleeSaves(MachineFunction &MF,
     return;
 
   const TargetRegisterClass &RC =
-      ABI.ArePtrs64bit() ? Mips::GPR64RegClass : Mips::GPR32RegClass;
+      ABI.ArePtrs64bit()
+          ? Mips::GPR64RegClass
+          : ABI.IsP32() ? Mips::GPR32NMRegClass : Mips::GPR32RegClass;
   int FI = MF.getFrameInfo().CreateStackObject(TRI->getSpillSize(RC),
                                                TRI->getSpillAlign(RC), false);
   RS->addScavengingFrameIndex(FI);

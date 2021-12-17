@@ -465,7 +465,10 @@ MipsTargetLowering::MipsTargetLowering(const MipsTargetMachine &TM,
 
   setOperationAction(ISD::VASTART,           MVT::Other, Custom);
   setOperationAction(ISD::VAARG,             MVT::Other, Custom);
-  setOperationAction(ISD::VACOPY,            MVT::Other, Expand);
+  if (Subtarget.hasNanoMips())
+    setOperationAction(ISD::VACOPY,            MVT::Other, Custom);
+  else
+    setOperationAction(ISD::VACOPY,            MVT::Other, Expand);
   setOperationAction(ISD::VAEND,             MVT::Other, Expand);
 
   // Use the default for now
@@ -1508,6 +1511,7 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const
   case ISD::SETCC:              return lowerSETCC(Op, DAG);
   case ISD::VASTART:            return lowerVASTART(Op, DAG);
   case ISD::VAARG:              return lowerVAARG(Op, DAG);
+  case ISD::VACOPY:             return lowerVACOPY(Op, DAG);
   case ISD::FCOPYSIGN:          return lowerFCOPYSIGN(Op, DAG);
   case ISD::FABS:               return lowerFABS(Op, DAG);
   case ISD::FRAMEADDR:          return lowerFRAMEADDR(Op, DAG);
@@ -2554,7 +2558,78 @@ lowerConstantPool(SDValue Op, SelectionDAG &DAG) const
  return getAddrLocal(N, SDLoc(N), Ty, DAG, ABI.IsN32() || ABI.IsN64());
 }
 
+SDValue MipsTargetLowering::lowerNM_VASTART(SDValue Op,
+                                            SelectionDAG &DAG) const {
+  MachineFunction &MF = DAG.getMachineFunction();
+  MipsFunctionInfo *FuncInfo = MF.getInfo<MipsFunctionInfo>();
+  unsigned PtrSize = 4;
+  auto PtrMemVT = getPointerMemTy(DAG.getDataLayout());
+  auto PtrVT = getPointerTy(DAG.getDataLayout());
+  SDLoc DL(Op);
+
+  SDValue Chain = Op.getOperand(0);
+  SDValue VAList = Op.getOperand(1);
+  const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
+  SmallVector<SDValue, 4> MemOps;
+
+  // void *__overflow_argptr at offset 0
+  {
+    SDValue Stack = DAG.getFrameIndex(FuncInfo->getVarArgsStackIndex(), PtrVT);
+    Stack = DAG.getZExtOrTrunc(Stack, DL, PtrMemVT);
+    MemOps.push_back(DAG.getStore(Chain, DL, Stack, VAList,
+                                  MachinePointerInfo(SV), Align(PtrSize)));
+  }
+
+  // void *__gpr_top at offset 4
+  int GPRSize = FuncInfo->getVarArgsGPRSize();
+  if (GPRSize > 0) {
+    unsigned Offset = 4;
+    SDValue GPRTopAddr = DAG.getNode(ISD::ADD, DL, PtrVT, VAList,
+                                     DAG.getConstant(Offset, DL, PtrVT));
+
+    SDValue GPRTop = DAG.getFrameIndex(FuncInfo->getVarArgsStackIndex(), PtrVT);
+    GPRTop = DAG.getZExtOrTrunc(GPRTop, DL, PtrMemVT);
+
+    MemOps.push_back(DAG.getStore(Chain, DL, GPRTop, GPRTopAddr,
+                                  MachinePointerInfo(SV, Offset),
+                                  Align(PtrSize)));
+  }
+
+  // void *__fpr_top at offset 8
+  int FPRSize = FuncInfo->getVarArgsGPRSize();
+  if (FPRSize > 0) {
+    unsigned Offset = 8;
+    SDValue FPRTopAddr = DAG.getNode(ISD::ADD, DL, PtrVT, VAList,
+                                     DAG.getConstant(Offset, DL, PtrVT));
+
+    SDValue FPRTop = DAG.getFrameIndex(FuncInfo->getVarArgsStackIndex(), PtrVT);
+    FPRTop = DAG.getZExtOrTrunc(FPRTop, DL, PtrMemVT);
+
+    MemOps.push_back(DAG.getStore(Chain, DL, FPRTop, FPRTopAddr,
+                                  MachinePointerInfo(SV, Offset),
+                                  Align(PtrSize)));
+  }
+
+  // signed char __gpr_offset at offset 12
+  // signed char __fpr_offset at offset 13
+  // 16 bits of struct alignment, zeroed-out.
+  {
+    unsigned Offset = 12;
+    SDValue GPROffsAddr = DAG.getNode(ISD::ADD, DL, PtrVT, VAList,
+                                      DAG.getConstant(Offset, DL, PtrVT));
+    auto ConstGPR = DAG.getConstant(GPRSize, DL, MVT::i32);
+    // In case of adding __fpr_offset it should be merged here with ConstGPR.
+    MemOps.push_back(DAG.getStore(Chain, DL, ConstGPR, GPROffsAddr,
+                                  MachinePointerInfo(SV, Offset), Align(4)));
+  }
+
+  return DAG.getNode(ISD::TokenFactor, DL, MVT::Other, MemOps);
+}
+
 SDValue MipsTargetLowering::lowerVASTART(SDValue Op, SelectionDAG &DAG) const {
+  if (Subtarget.hasNanoMips()) {
+    return lowerNM_VASTART(Op, DAG);
+  }
   MachineFunction &MF = DAG.getMachineFunction();
   MipsFunctionInfo *FuncInfo = MF.getInfo<MipsFunctionInfo>();
 
@@ -2625,6 +2700,25 @@ SDValue MipsTargetLowering::lowerVAARG(SDValue Op, SelectionDAG &DAG) const {
   }
   // Load the actual argument out of the pointer VAList
   return DAG.getLoad(VT, DL, Chain, VAList, MachinePointerInfo());
+}
+
+SDValue MipsTargetLowering::lowerVACOPY(SDValue Op, SelectionDAG &DAG) const {
+  if (Subtarget.hasNanoMips()) {
+    // NanoMips va_list is a 16-byte struct. Copy it.
+    SDLoc DL(Op);
+    unsigned PtrSize = 4;
+    unsigned VaListSize = 16;
+    const Value *DestSV = cast<SrcValueSDNode>(Op.getOperand(3))->getValue();
+    const Value *SrcSV = cast<SrcValueSDNode>(Op.getOperand(4))->getValue();
+
+    return DAG.getMemcpy(Op.getOperand(0), DL, Op.getOperand(1),
+                         Op.getOperand(2),
+                         DAG.getConstant(VaListSize, DL, MVT::i32),
+                         Align(PtrSize), false, false, false,
+                         MachinePointerInfo(DestSV), MachinePointerInfo(SrcSV));
+  } else {
+    return SDValue();
+  }
 }
 
 static SDValue lowerFCOPYSIGN32(SDValue Op, SelectionDAG &DAG,
@@ -4886,6 +4980,15 @@ void MipsTargetLowering::writeVarArgRegs(std::vector<SDValue> &OutChains,
   // which is a value necessary to VASTART.
   int FI = MFI.CreateFixedObject(RegSizeInBytes, VaArgOffset, true);
   MipsFI->setVarArgsFrameIndex(FI);
+
+  if (Subtarget.hasNanoMips()) {
+    unsigned NumGPRArgRegs = 8;
+    unsigned GPRSaveSize = 4 * (NumGPRArgRegs - Idx);
+    MipsFI->setVarArgsGPRSize(GPRSaveSize);
+
+    unsigned StackOffset = State.getNextStackOffset();
+    MipsFI->setVarArgsStackIndex(MFI.CreateFixedObject(4, StackOffset, true));
+  }
 
   // Copy the integer registers that have not been used for argument passing
   // to the argument register save area. For O32, the save area is allocated

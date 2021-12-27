@@ -358,14 +358,14 @@ class TargetRegisterClass;
     /// exception address on entry to an EH pad.
     Register
     getExceptionPointerRegister(const Constant *PersonalityFn) const override {
-      return ABI.IsN64() ? Mips::A0_64 : Mips::A0;
+      return ABI.IsN64() ? Mips::A0_64 : ABI.IsP32() ? Mips::A3_NM : Mips::A0;
     }
 
     /// If a physical register, this returns the register that receives the
     /// exception typeid on entry to a landing pad.
     Register
     getExceptionSelectorRegister(const Constant *PersonalityFn) const override {
-      return ABI.IsN64() ? Mips::A1_64 : Mips::A1;
+      return ABI.IsN64() ? Mips::A1_64 : ABI.IsP32() ? Mips::A2_NM : Mips::A1;
     }
 
     bool isJumpTableRelative() const override {
@@ -484,7 +484,7 @@ class TargetRegisterClass;
       SDValue GPRel = getTargetNode(N, Ty, DAG, MipsII::MO_GPREL);
       return DAG.getNode(
           ISD::ADD, DL, Ty,
-          DAG.getRegister(IsN64 ? Mips::GP_64 : Mips::GP, Ty),
+          DAG.getRegister(ABI.GetGlobalPtr(), Ty),
           DAG.getNode(MipsISD::GPRel, DL, DAG.getVTList(Ty), GPRel));
     }
 

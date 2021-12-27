@@ -114,15 +114,18 @@ MVT MipsTargetLowering::getRegisterTypeForCallingConv(LLVMContext &Context,
   if (!VT.isVector())
     return getRegisterType(Context, VT);
 
-  return Subtarget.isABI_O32() || VT.getSizeInBits() == 32 ? MVT::i32
-                                                           : MVT::i64;
+  return (Subtarget.isABI_P32() || Subtarget.isABI_O32() ||
+          VT.getSizeInBits() == 32)
+             ? MVT::i32
+             : MVT::i64;
 }
 
 unsigned MipsTargetLowering::getNumRegistersForCallingConv(LLVMContext &Context,
                                                            CallingConv::ID CC,
                                                            EVT VT) const {
   if (VT.isVector())
-    return divideCeil(VT.getSizeInBits(), Subtarget.isABI_O32() ? 32 : 64);
+    return divideCeil(VT.getSizeInBits(), (Subtarget.isABI_O32() ||
+                                           Subtarget.isABI_P32()) ? 32 : 64);
   return MipsTargetLowering::getNumRegisters(Context, VT);
 }
 
@@ -516,14 +519,18 @@ MipsTargetLowering::MipsTargetLowering(const MipsTargetMachine &TM,
     setLibcallName(RTLIB::SRA_I128, nullptr);
   }
 
-  setMinFunctionAlignment(Subtarget.isGP64bit() ? Align(8) : Align(4));
+  auto Alignment = Subtarget.isGP64bit()
+                       ? Align(8)
+                       : Subtarget.hasNanoMips() ? Align(2) : Align(4);
+  setMinFunctionAlignment(Alignment);
 
   // The arguments on the stack are defined in terms of 4-byte slots on O32
   // and 8-byte slots on N32/N64.
   setMinStackArgumentAlignment((ABI.IsN32() || ABI.IsN64()) ? Align(8)
                                                             : Align(4));
 
-  setStackPointerRegisterToSaveRestore(ABI.IsN64() ? Mips::SP_64 : Mips::SP);
+  setStackPointerRegisterToSaveRestore(
+      ABI.IsN64() ? Mips::SP_64 : ABI.IsP32() ? Mips::SP_NM : Mips::SP);
 
   MaxStoresPerMemcpy = 16;
 
@@ -2501,8 +2508,8 @@ lowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) const {
   MFI.setFrameAddressIsTaken(true);
   EVT VT = Op.getValueType();
   SDLoc DL(Op);
-  SDValue FrameAddr = DAG.getCopyFromReg(
-      DAG.getEntryNode(), DL, ABI.IsN64() ? Mips::FP_64 : Mips::FP, VT);
+  auto FP = ABI.IsN64() ? Mips::FP_64 : ABI.IsP32() ? Mips::FP_NM : Mips::FP;
+  SDValue FrameAddr = DAG.getCopyFromReg(DAG.getEntryNode(), DL, FP, VT);
   return FrameAddr;
 }
 
@@ -2521,7 +2528,8 @@ SDValue MipsTargetLowering::lowerRETURNADDR(SDValue Op,
   MachineFunction &MF = DAG.getMachineFunction();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   MVT VT = Op.getSimpleValueType();
-  unsigned RA = ABI.IsN64() ? Mips::RA_64 : Mips::RA;
+  unsigned RA =
+      ABI.IsN64() ? Mips::RA_64 : ABI.IsP32() ? Mips::RA_NM : Mips::RA;
   MFI.setReturnAddressIsTaken(true);
 
   // Return RA, which contains the return address. Mark it an implicit live-in.
@@ -2974,6 +2982,32 @@ static bool CC_MipsO32(unsigned ValNo, MVT ValVT, MVT LocVT,
   return false;
 }
 
+// Passing 64-bit values requires register alignment. This function handles the
+// lower part of a 64-bit value which has to be in the even register. The high
+// part will occupy next free register, so it doesn't need any special handling.
+static bool CC_NanoMipsP32_64BitLo(unsigned ValNo, MVT ValVT, MVT LocVT,
+                                 CCValAssign::LocInfo LocInfo,
+                                 ISD::ArgFlagsTy ArgFlags, CCState &State) {
+  static const MCPhysReg Regs[] = {
+      Mips::A0_NM, Mips::A1_NM, Mips::A2_NM, Mips::A3_NM,
+      Mips::A4_NM, Mips::A5_NM, Mips::A6_NM, Mips::A7_NM,
+  };
+  MCPhysReg Reg = State.AllocateReg(Regs);
+  if (Reg == Mips::A1_NM || Reg == Mips::A3_NM || Reg == Mips::A5_NM ||
+      Reg == Mips::A7_NM) {
+    Reg = State.AllocateReg(Regs);
+  }
+
+  if (!Reg) {
+    unsigned Offset = State.AllocateStack(ValVT.getStoreSize(), Align(8));
+    State.addLoc(CCValAssign::getMem(ValNo, ValVT, Offset, LocVT, LocInfo));
+  } else {
+    State.addLoc(CCValAssign::getReg(ValNo, ValVT, Reg, LocVT, LocInfo));
+  }
+
+  return false;
+}
+
 static bool CC_MipsO32_FP32(unsigned ValNo, MVT ValVT,
                             MVT LocVT, CCValAssign::LocInfo LocInfo,
                             ISD::ArgFlagsTy ArgFlags, CCState &State) {
@@ -3248,9 +3282,9 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   if (!(IsTailCall || MemcpyInByVal))
     Chain = DAG.getCALLSEQ_START(Chain, NextStackOffset, 0, DL);
 
+  auto SP = ABI.IsN64() ? Mips::SP_64 : ABI.IsP32() ? Mips::SP_NM : Mips::SP;
   SDValue StackPtr =
-      DAG.getCopyFromReg(Chain, DL, ABI.IsN64() ? Mips::SP_64 : Mips::SP,
-                         getPointerTy(DAG.getDataLayout()));
+      DAG.getCopyFromReg(Chain, DL, SP, getPointerTy(DAG.getDataLayout()));
 
   std::deque<std::pair<unsigned, SDValue>> RegsToPass;
   SmallVector<SDValue, 8> MemOpChains;
@@ -3892,7 +3926,8 @@ MipsTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
       llvm_unreachable("sret virtual register not created in the entry block");
     SDValue Val =
         DAG.getCopyFromReg(Chain, DL, Reg, getPointerTy(DAG.getDataLayout()));
-    unsigned V0 = ABI.IsN64() ? Mips::V0_64 : Mips::V0;
+    unsigned V0 =
+        ABI.IsN64() ? Mips::V0_64 : ABI.IsP32() ? Mips::A0_NM : Mips::V0;
 
     Chain = DAG.getCopyToReg(Chain, DL, V0, Val, Flag);
     Flag = Chain.getValue(1);

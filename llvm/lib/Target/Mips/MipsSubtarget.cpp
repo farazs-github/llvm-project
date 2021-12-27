@@ -249,7 +249,7 @@ MipsSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS,
 
   if (StackAlignOverride)
     stackAlignment = *StackAlignOverride;
-  else if (isABI_N32() || isABI_N64())
+  else if (isABI_N32() || isABI_N64() || isABI_P32())
     stackAlignment = Align(16);
   else {
     assert(isABI_O32() && "Unknown ABI for stack alignment!");

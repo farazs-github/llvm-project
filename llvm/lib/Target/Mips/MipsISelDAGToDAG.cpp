@@ -115,6 +115,12 @@ bool MipsDAGToDAGISel::selectIntAddrLSL2MM(SDValue Addr, SDValue &Base,
   return false;
 }
 
+bool MipsDAGToDAGISel::selectIntAddrSImm9(SDValue Addr, SDValue &Base,
+                                           SDValue &Offset) const {
+  llvm_unreachable("Unimplemented function.");
+  return false;
+}
+
 bool MipsDAGToDAGISel::selectIntAddrSImm10(SDValue Addr, SDValue &Base,
                                            SDValue &Offset) const {
   llvm_unreachable("Unimplemented function.");
@@ -148,6 +154,41 @@ bool MipsDAGToDAGISel::selectAddr16(SDValue Addr, SDValue &Base,
 bool MipsDAGToDAGISel::selectAddr16SP(SDValue Addr, SDValue &Base,
                                       SDValue &Offset) {
   llvm_unreachable("Unimplemented function.");
+  return false;
+}
+
+bool MipsDAGToDAGISel::selectAddrFrameIndexUOffset(SDValue Addr, SDValue &Base,
+                                                   SDValue &Offset,
+                                                   unsigned OffsetBits,
+                                                   unsigned ShiftAmount) const {
+  llvm_unreachable("Unimplemented function.");
+  return false;
+}
+
+bool MipsDAGToDAGISel::selectIntAddrUImm12(SDValue Addr, SDValue &Base,
+                                           SDValue &Offset) const {
+  llvm_unreachable("Unimplemented function.");
+  return false;
+}
+
+bool MipsDAGToDAGISel::selectIntAddrIndexed(SDValue Addr, SDValue &Base,
+                                            SDValue &Offset) const
+{
+  llvm_unreachable("Unimplemented function");
+  return false;
+}
+
+bool MipsDAGToDAGISel::selectIntAddrIndexedLsl1(SDValue Addr, SDValue &Base,
+                                                SDValue &Offset) const
+{
+  llvm_unreachable("Unimplemented function");
+  return false;
+}
+
+bool MipsDAGToDAGISel::selectIntAddrIndexedLsl2(SDValue Addr, SDValue &Base,
+                                                SDValue &Offset) const
+{
+  llvm_unreachable("Unimplemented function");
   return false;
 }
 

@@ -78,6 +78,9 @@ private:
   virtual bool selectIntAddrLSL2MM(SDValue Addr, SDValue &Base,
                                    SDValue &Offset) const;
 
+  virtual bool selectIntAddrSImm9(SDValue Addr, SDValue &Base,
+                                   SDValue &Offset) const;
+
   /// Match addr+simm10 and addr
   virtual bool selectIntAddrSImm10(SDValue Addr, SDValue &Base,
                                    SDValue &Offset) const;
@@ -93,6 +96,19 @@ private:
 
   virtual bool selectAddr16(SDValue Addr, SDValue &Base, SDValue &Offset);
   virtual bool selectAddr16SP(SDValue Addr, SDValue &Base, SDValue &Offset);
+
+  virtual bool selectAddrFrameIndexUOffset(SDValue Addr, SDValue &Base,
+                                           SDValue &Offset, unsigned OffsetBits,
+                                           unsigned ShiftAmount) const;
+
+  virtual bool selectIntAddrUImm12(SDValue Addr, SDValue &Base,
+                                   SDValue &Offset) const;
+
+  virtual bool selectIntAddrIndexed(SDValue Addr, SDValue &Base, SDValue &Offset) const;
+
+  virtual bool selectIntAddrIndexedLsl2(SDValue Addr, SDValue &Base, SDValue &Offset) const;
+
+  virtual bool selectIntAddrIndexedLsl1(SDValue Addr, SDValue &Base, SDValue &Offset) const;
 
   /// Select constant vector splats.
   virtual bool selectVSplat(SDNode *N, APInt &Imm,

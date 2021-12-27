@@ -113,6 +113,21 @@ def : InstRW<[GenericWriteALU], (instrs ADDIUPC_MMR6, ADDIU_MMR6, ADDU16_MMR6,
                                  SUBU_MMR6, SUB_MMR6, WSBH_MMR6, XOR16_MMR6,
 										             XORI_MMR6, XOR_MMR6)>;
 
+// nanoMIPS
+// =============
+
+def : InstRW<[GenericWriteALU], (instrs ADD_NM, ADDu_NM, ADDiu_NM, ADDIU48_NM,
+                                 ALUIPC_NM, AND_NM, AND16_NM, ANDI_NM,
+                                 BITREVW_NM, BYTEREVW_NM, CLO_NM, CLZ_NM,
+                                 DIV_NM, DIVU_NM, EXT_NM, INS_NM, LA_NM, Li_NM,
+                                 LSA_NM, MOVEP_NM, MOVE_NM, MOD_NM, MODU_NM,
+                                 MUH_NM, MUHU_NM, MUL_NM, MULU_NM, NOT_NM,
+                                 NOR_NM, OR_NM, OR16_NM, ORI_NM, ROTRV_NM,
+                                 ROTR_NM, SEB_NM, SEH_NM, SEQI_NM, SLL_NM,
+                                 SLLV_NM, SLT_NM, SLTI_NM, SLTIU_NM, SLTU_NM,
+                                 SRAV_NM, SRA_NM, SRLV_NM, SRL_NM, SUB_NM,
+                                 SUBu_NM, XOR_NM, XOR16_NM, XORI_NM)>;
+
 // MIPS64
 // ======
 
@@ -268,6 +283,12 @@ def : InstRW<[GenericWriteDIV], (instrs DDIV, DMOD)>;
 
 def : InstRW<[GenericWriteDIVU], (instrs DDIVU, DMODU)>;
 
+// nanoMIPS
+// ========
+
+def : InstRW<[GenericWriteALU], (instrs MOVN_NM, MOVZ_NM)>;
+def : InstRW<[GenericWriteMove], (instrs RDHWR_NM)>;
+
 // CTISTD Pipeline
 // ---------------
 
@@ -401,6 +422,11 @@ def : InstRW<[GenericWriteJump], (instrs TAILCALLREG_MMR6, TAILCALL_MMR6)>;
 def : InstRW<[GenericWriteTrap], (instrs BREAK16_MMR6, BREAK_MMR6, SDBBP_MMR6,
                                   SDBBP16_MMR6)>;
 
+// nanoMIPS
+// ======
+
+def : InstRW<[GenericWriteTrap], (instrs TEQ_NM, TNE_NM)>;
+
 // MIPS64
 // ======
 
@@ -427,6 +453,18 @@ def : InstRW<[GenericWriteJumpAndLink], (instrs JIALC64)>;
 def : InstRW<[GenericWriteJump], (instrs JR_HB64_R6, TAILCALL64R6REG,
                                   TAILCALLHB64R6REG, PseudoIndirectBranch64R6,
                                   PseudoIndrectHazardBranch64R6)>;
+
+// nanoMIPS
+// ========
+
+def : InstRW<[GenericWriteJump], (instrs JRC_NM, BC_NM)>;
+
+def : InstRW<[GenericWriteJump], (instrs PseudoReturnNM,
+                                         PseudoIndirectBranchNM, TAILCALL_NM,
+                                         TAILCALLREG_NM)>;
+
+def : InstRW<[GenericWriteJumpAndLink], (instrs BALC_NM, MOVEBALC_NM, JALRC_NM,
+                                                JALRCPseudo)>;
 
 // COP0 Pipeline
 // =============
@@ -661,6 +699,24 @@ def : InstRW<[GenericWriteCache], (instrs CACHE_MM)>;
 
 def : InstRW<[GenericWriteSync], (instrs SYNC_MM, SYNCI_MM)>;
 def : InstRW<[GenericWriteSync], (instrs GINVI_MMR6, GINVT_MMR6)>;
+
+// nanoMIPS
+// ========
+
+def : InstRW<[GenericWriteLoad], (instrs LW_NM, LWGP_NM, LWs9_NM, 
+                                  LHU_NM, LHUs9_NM, LH_NM, LHs9_NM,
+                                  LBU_NM, LBUs9_NM, LB_NM, LBs9_NM,
+                                  LWX_NM, LWXS_NM, LHUX_NM, LHUXS_NM,
+                                  LHX_NM, LHXS_NM, LBUX_NM, LBX_NM,
+                                  RESTOREJRC_NM, RESTORE_NM, SAVE_NM,
+                                  UALH_NM, UALW_NM, LWM_NM, UALWM_NM,
+                                  LWPC_NM)>;
+
+def: InstRW<[GenericWriteStore], (instrs SW_NM, SWs9_NM,
+                                  SH_NM, SHs9_NM,
+                                  SB_NM, SBs9_NM,
+                                  SWX_NM, SWXS_NM, SHX_NM, SHXS_NM, SBX_NM,
+                                  UASH_NM, UASW_NM, SWM_NM, UASWM_NM, SWPC_NM)>;
 
 // microMIPS32r6
 // =============

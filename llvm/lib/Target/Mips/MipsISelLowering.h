@@ -78,6 +78,9 @@ class TargetRegisterClass;
       // No relation with Mips Lo register
       Lo,
 
+      // Get all bits from 32-bit address.
+      FullAddr,
+
       // Get the High 16 bits from a 32 bit immediate for accessing the GOT.
       GotHi,
 
@@ -249,7 +252,13 @@ class TargetRegisterClass;
       LDL,
       LDR,
       SDL,
-      SDR
+      SDR,
+
+      // Unaligned nanoMIPS loads/stores.
+      UALW,
+      UALH,
+      UASW,
+      UASH
     };
 
   } // ene namespace MipsISD

@@ -181,6 +181,7 @@ const char *MipsTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case MipsISD::FIRST_NUMBER:      break;
   case MipsISD::JmpLink:           return "MipsISD::JmpLink";
   case MipsISD::TailCall:          return "MipsISD::TailCall";
+  case MipsISD::FullAddr:          return "MipsISD::FullAddr";
   case MipsISD::Highest:           return "MipsISD::Highest";
   case MipsISD::Higher:            return "MipsISD::Higher";
   case MipsISD::Hi:                return "MipsISD::Hi";
@@ -229,6 +230,10 @@ const char *MipsTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case MipsISD::LDR:               return "MipsISD::LDR";
   case MipsISD::SDL:               return "MipsISD::SDL";
   case MipsISD::SDR:               return "MipsISD::SDR";
+  case MipsISD::UALW:              return "MipsISD::UALW";
+  case MipsISD::UALH:              return "MipsISD::UALH";
+  case MipsISD::UASW:              return "MipsISD::UASW";
+  case MipsISD::UASH:              return "MipsISD::UASH";
   case MipsISD::EXTP:              return "MipsISD::EXTP";
   case MipsISD::EXTPDP:            return "MipsISD::EXTPDP";
   case MipsISD::EXTR_S_H:          return "MipsISD::EXTR_S_H";

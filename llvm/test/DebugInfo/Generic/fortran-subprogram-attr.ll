@@ -5,6 +5,7 @@
 ; -- test the resulting DWARF to make sure we're emitting
 ; DW_AT_{pure,elemental,recursive}.
 
+; REQUIRES: object-emitter
 ; RUN: %llc_dwarf -O0 -filetype=obj < %s > %t.o
 ; RUN: llvm-dwarfdump -v -debug-info %t.o | FileCheck %s
 

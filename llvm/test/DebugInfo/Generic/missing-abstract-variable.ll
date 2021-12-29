@@ -1,3 +1,4 @@
+; REQUIRES: object-emitter
 ; RUN: %llc_dwarf -O0 -filetype=obj < %s | llvm-dwarfdump -v -debug-info - | FileCheck %s
 
 ; The formal parameter 'b' for Function 'x' when inlined within 'a' is lost on

@@ -1,5 +1,6 @@
 ; PR 19261
 
+; REQUIRES: object-emitter
 ; RUN: %llc_dwarf -fast-isel=false -O0 -filetype=obj %s -o %t
 ; RUN: llvm-dwarfdump -a %t | FileCheck %s
 

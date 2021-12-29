@@ -2,6 +2,7 @@
 ; correct DWARF info. Downstream llc is.
 ; XFAIL: hexagon
 
+; REQUIRES: object-emitter
 ; RUN: %llc_dwarf -O0 -filetype=obj %s -o - | llvm-dwarfdump -v -debug-info - | FileCheck %s
 ; Use correct signedness when emitting constants of derived (sugared) types.
 

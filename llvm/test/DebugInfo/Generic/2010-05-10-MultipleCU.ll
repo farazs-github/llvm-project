@@ -1,3 +1,4 @@
+; REQUIRES: object-emitter
 ; RUN: %llc_dwarf -O0 -filetype=obj < %s | llvm-dwarfdump -debug-info - | FileCheck %s
 
 ; Check that two compile units are generated

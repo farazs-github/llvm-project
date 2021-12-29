@@ -1,3 +1,4 @@
+; REQUIRES: object-emitter
 ; RUN: %llc_dwarf %s -o - -filetype=obj | llvm-dwarfdump - | FileCheck %s -implicit-check-not=DW_TAG
 ;
 ; This tests that we do not create concrete variable DIEs for variables that

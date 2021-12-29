@@ -1,5 +1,6 @@
 ; Generate one file with all linkage names, and another with only abstract ones.
 ; Then test both.
+; REQUIRES: object-emitter
 ; RUN: %llc_dwarf -accel-tables=Dwarf -dwarf-linkage-names=All -filetype=obj -o %t.All < %s
 ; RUN: %llc_dwarf -accel-tables=Dwarf -dwarf-linkage-names=Abstract -filetype=obj -o %t.Abstract < %s
 ; RUN: llvm-dwarfdump -debug-info -debug-names %t.All | FileCheck %s --check-prefix=ALL

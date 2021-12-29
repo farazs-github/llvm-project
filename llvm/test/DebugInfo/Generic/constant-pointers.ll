@@ -1,3 +1,4 @@
+; REQUIRES: object-emitter
 ; RUN: %llc_dwarf -O0 -filetype=obj %s -o - | llvm-dwarfdump -v -debug-info - | FileCheck %s
 
 ; Ensure that pointer constants are emitted as unsigned data. Alternatively,

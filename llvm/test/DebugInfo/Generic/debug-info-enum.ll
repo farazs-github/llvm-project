@@ -3,6 +3,7 @@
 ; * test the integer type is as expected
 ; * test the DW_AT_enum_class attribute is present (resp. absent) as expected.
 
+; REQUIRES: object-emitter
 ; RUN: llc -debugger-tune=gdb -dwarf-version=4 -filetype=obj -o %t.o < %s
 ; RUN: llvm-dwarfdump -debug-info %t.o | FileCheck %s --check-prefix=CHECK --check-prefix=CHECK-DW4
 ; RUN: llc -debugger-tune=gdb -dwarf-version=2 -filetype=obj -o %t.o < %s

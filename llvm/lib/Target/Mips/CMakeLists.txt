@@ -59,6 +59,10 @@ add_llvm_target(MipsCodeGen
   MipsTargetMachine.cpp
   MipsTargetObjectFile.cpp
   MicroMipsSizeReduction.cpp
+  NanoMipsLoadStoreOptimizer.cpp
+  NanoMipsMoveOptimizer.cpp
+  NanoMipsRegisterReAllocation.cpp
+  NanoMipsRedundantCopyElimination.cpp
 
   LINK_COMPONENTS
   Analysis

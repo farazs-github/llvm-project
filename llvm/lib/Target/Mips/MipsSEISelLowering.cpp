@@ -64,6 +64,9 @@ static cl::opt<bool> NoDPLoadStore("mno-ldc1-sdc1", cl::init(false),
 MipsSETargetLowering::MipsSETargetLowering(const MipsTargetMachine &TM,
                                            const MipsSubtarget &STI)
     : MipsTargetLowering(TM, STI) {
+  if (Subtarget.hasNanoMips() && UseMipsTailCalls.getNumOccurrences() == 0)
+    UseMipsTailCalls = true;
+
   // Set up the register classes
   addRegisterClass(MVT::i32, STI.isABI_P32() ? &Mips::GPR32NMRegClass
                                              : &Mips::GPR32RegClass);
@@ -831,6 +834,10 @@ static SDValue performMULCombine(SDNode *N, SelectionDAG &DAG,
                                  const TargetLowering::DAGCombinerInfo &DCI,
                                  const MipsSETargetLowering *TL,
                                  const MipsSubtarget &Subtarget) {
+  if (Subtarget.hasNanoMips() &&
+      DAG.getMachineFunction().getFunction().hasOptSize())
+    return SDValue();
+
   EVT VT = N->getValueType(0);
 
   if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(N->getOperand(1)))

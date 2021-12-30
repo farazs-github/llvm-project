@@ -59,6 +59,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTarget() {
   initializeMipsBranchExpansionPass(*PR);
   initializeMicroMipsSizeReducePass(*PR);
   initializeMipsPreLegalizerCombinerPass(*PR);
+  initializeRedundantCopyEliminationPass(*PR);
 }
 
 static std::string computeDataLayout(const Triple &TT, StringRef CPU,
@@ -249,11 +250,14 @@ public:
   bool addInstSelector() override;
   void addPreEmitPass() override;
   void addPreRegAlloc() override;
+  void addPostRegAlloc() override;
   bool addIRTranslator() override;
   void addPreLegalizeMachineIR() override;
   bool addLegalizeMachineIR() override;
   bool addRegBankSelect() override;
   bool addGlobalInstructionSelect() override;
+  void addPreSched2() override;
+  bool addPreRewrite() override;
 
   std::unique_ptr<CSEConfigBase> getCSEConfig() const override;
 };
@@ -266,6 +270,11 @@ TargetPassConfig *MipsTargetMachine::createPassConfig(PassManagerBase &PM) {
 
 std::unique_ptr<CSEConfigBase> MipsPassConfig::getCSEConfig() const {
   return getStandardCSEConfigForOpt(TM->getOptLevel());
+}
+
+void MipsPassConfig::addPreSched2() {
+  if (getMipsSubtarget().hasNanoMips())
+    addPass(createNanoMipsLoadStoreOptimizerPass());
 }
 
 void MipsPassConfig::addIRPasses() {
@@ -287,6 +296,11 @@ bool MipsPassConfig::addInstSelector() {
 
 void MipsPassConfig::addPreRegAlloc() {
   addPass(createMipsOptimizePICCallPass());
+}
+
+void MipsPassConfig::addPostRegAlloc() {
+  if (getMipsSubtarget().hasNanoMips())
+    addPass(createRedundantCopyEliminationPass());
 }
 
 TargetTransformInfo
@@ -311,6 +325,9 @@ void MipsPassConfig::addPreEmitPass() {
   // instructions which can be remapped to a 16 bit instruction.
   addPass(createMicroMipsSizeReducePass());
 
+  if (getMipsSubtarget().hasNanoMips())
+    addPass(createNanoMipsMoveOptimizerPass());
+
   // The delay slot filler pass can potientially create forbidden slot hazards
   // for MIPSR6 and therefore it should go before MipsBranchExpansion pass.
   addPass(createMipsDelaySlotFillerPass());
@@ -323,9 +340,15 @@ void MipsPassConfig::addPreEmitPass() {
   // then we can be sure that all branches are expanded properly and no hazards
   // exists.
   // Any new pass should go before this pass.
-  addPass(createMipsBranchExpansion());
+  if (!getMipsSubtarget().hasNanoMips())
+    addPass(createMipsBranchExpansion());
 
   addPass(createMipsConstantIslandPass());
+}
+
+bool MipsPassConfig::addPreRewrite() {
+  addPass(createNanoMipsRegisterReAllocationPass());
+  return true;
 }
 
 bool MipsPassConfig::addIRTranslator() {

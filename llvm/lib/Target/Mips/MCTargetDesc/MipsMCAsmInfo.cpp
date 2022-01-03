@@ -50,4 +50,6 @@ MipsMCAsmInfo::MipsMCAsmInfo(const Triple &TheTriple,
   ExceptionsType = ExceptionHandling::DwarfCFI;
   DwarfRegNumForCFI = true;
   HasMipsExpressions = true;
+  if (ABI.IsP32())
+    HasLEB128Directives = false;
 }

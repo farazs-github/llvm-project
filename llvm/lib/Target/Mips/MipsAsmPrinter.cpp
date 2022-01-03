@@ -411,12 +411,12 @@ void MipsAsmPrinter::emitFunctionEntryLabel() {
     TS.emitDirectiveSetMicroMips();
     TS.setUsesMicroMips();
     TS.updateABIInfo(*Subtarget);
-  } else
+  } else if (!Subtarget->hasNanoMips())
     TS.emitDirectiveSetNoMicroMips();
 
   if (Subtarget->inMips16Mode())
     TS.emitDirectiveSetMips16();
-  else
+  else if (!Subtarget->hasNanoMips())
     TS.emitDirectiveSetNoMips16();
 
   TS.emitDirectiveEnt(*CurrentFnSym);
@@ -557,7 +557,10 @@ bool MipsAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNum,
     case 'z':
       // $0 if zero, regular printing otherwise
       if (MO.getType() == MachineOperand::MO_Immediate && MO.getImm() == 0) {
-        O << "$0";
+        if (Subtarget->hasNanoMips())
+          O << "$zero";
+        else
+          O << "$0";
         return false;
       }
       // If not, call printOperand as normal.
@@ -791,6 +794,7 @@ void MipsAsmPrinter::emitStartOfAsmFile(Module &M) {
   const MipsSubtarget STI(TT, CPU, FS, MTM.isLittleEndian(), MTM, None);
 
   bool IsABICalls = STI.isABICalls();
+  bool IsNanoMips = STI.hasNanoMips();
   const MipsABIInfo &ABI = MTM.getABI();
   if (IsABICalls) {
     TS.emitDirectiveAbiCalls();
@@ -802,16 +806,20 @@ void MipsAsmPrinter::emitStartOfAsmFile(Module &M) {
       TS.emitDirectiveOptionPic0();
   }
 
-  // Tell the assembler which ABI we are using
-  std::string SectionName = std::string(".mdebug.") + getCurrentABIString();
-  OutStreamer->SwitchSection(
-      OutContext.getELFSection(SectionName, ELF::SHT_PROGBITS, 0));
+  if (!IsNanoMips) {
+    // Tell the assembler which ABI we are using
+    std::string SectionName = std::string(".mdebug.") + getCurrentABIString();
+    OutStreamer->SwitchSection(
+        OutContext.getELFSection(SectionName, ELF::SHT_PROGBITS, 0));
 
-  // NaN: At the moment we only support:
-  // 1. .nan legacy (default)
-  // 2. .nan 2008
-  STI.isNaN2008() ? TS.emitDirectiveNaN2008()
-                  : TS.emitDirectiveNaNLegacy();
+    // NaN: At the moment we only support:
+    // 1. .nan legacy (default)
+    // 2. .nan 2008
+    STI.isNaN2008() ? TS.emitDirectiveNaN2008() : TS.emitDirectiveNaNLegacy();
+  } else {
+    TS.emitDirectiveLinkRelax();
+    TS.emitDirectiveModulePcRel();
+  }
 
   // TODO: handle O64 ABI
 

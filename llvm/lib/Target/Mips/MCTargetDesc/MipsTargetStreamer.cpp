@@ -70,6 +70,7 @@ void MipsTargetStreamer::emitDirectiveEnd(StringRef Name) {}
 void MipsTargetStreamer::emitDirectiveEnt(const MCSymbol &Symbol) {}
 void MipsTargetStreamer::emitDirectiveAbiCalls() {}
 void MipsTargetStreamer::emitDirectiveNaN2008() {}
+void MipsTargetStreamer::emitDirectiveLinkRelax() {}
 void MipsTargetStreamer::emitDirectiveNaNLegacy() {}
 void MipsTargetStreamer::emitDirectiveOptionPic0() {}
 void MipsTargetStreamer::emitDirectiveOptionPic2() {}
@@ -141,6 +142,8 @@ void MipsTargetStreamer::emitDirectiveCpsetup(unsigned RegNo, int RegOrOffset,
 }
 void MipsTargetStreamer::emitDirectiveCpreturn(unsigned SaveLocation,
                                                bool SaveLocationIsRegister) {}
+
+void MipsTargetStreamer::emitDirectiveModulePcRel() {}
 
 void MipsTargetStreamer::emitDirectiveModuleFP() {}
 
@@ -486,6 +489,7 @@ void MipsTargetAsmStreamer::emitDirectiveEnt(const MCSymbol &Symbol) {
 void MipsTargetAsmStreamer::emitDirectiveAbiCalls() { OS << "\t.abicalls\n"; }
 
 void MipsTargetAsmStreamer::emitDirectiveNaN2008() { OS << "\t.nan\t2008\n"; }
+void MipsTargetAsmStreamer::emitDirectiveLinkRelax() { OS << "\t.linkrelax\n"; }
 
 void MipsTargetAsmStreamer::emitDirectiveNaNLegacy() {
   OS << "\t.nan\tlegacy\n";
@@ -712,6 +716,10 @@ void MipsTargetAsmStreamer::emitDirectiveCpreturn(unsigned SaveLocation,
                                                   bool SaveLocationIsRegister) {
   OS << "\t.cpreturn";
   forbidModuleDirective();
+}
+
+void MipsTargetAsmStreamer::emitDirectiveModulePcRel() {
+  OS << "\t.module\tpcrel\n";
 }
 
 void MipsTargetAsmStreamer::emitDirectiveModuleFP() {

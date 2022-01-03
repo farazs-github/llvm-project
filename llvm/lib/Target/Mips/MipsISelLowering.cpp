@@ -2088,13 +2088,18 @@ SDValue MipsTargetLowering::lowerGlobalAddress(SDValue Op,
     const GlobalObject *GO = GV->getBaseObject();
     if (GO && TLOF->IsGlobalInSmallSection(GO, getTargetMachine()))
       // %gp_rel relocation
-      return getAddrGPRel(N, SDLoc(N), Ty, DAG, ABI.IsN64());
+      return getAddrGPRel(N, SDLoc(N), Ty, DAG);
+
+    if (ABI.IsP32())
+      return getNMAddrNonPIC(N, SDLoc(N), Ty, DAG);
 
                                 // %hi/%lo relocation
     return Subtarget.hasSym32() ? getAddrNonPIC(N, SDLoc(N), Ty, DAG)
                                 // %highest/%higher/%hi/%lo relocation
                                 : getAddrNonPICSym64(N, SDLoc(N), Ty, DAG);
   }
+
+  assert(!Subtarget.hasNanoMips() && "No nanoMIPS support yet");
 
   // Every other architecture would use shouldAssumeDSOLocal in here, but
   // mips is special.
@@ -2127,9 +2132,12 @@ SDValue MipsTargetLowering::lowerBlockAddress(SDValue Op,
   BlockAddressSDNode *N = cast<BlockAddressSDNode>(Op);
   EVT Ty = Op.getValueType();
 
-  if (!isPositionIndependent())
+  if (!isPositionIndependent()) {
+    if (ABI.IsP32())
+      return getNMAddrNonPIC(N, SDLoc(N), Ty, DAG);
     return Subtarget.hasSym32() ? getAddrNonPIC(N, SDLoc(N), Ty, DAG)
                                 : getAddrNonPICSym64(N, SDLoc(N), Ty, DAG);
+  }
 
   return getAddrLocal(N, SDLoc(N), Ty, DAG, ABI.IsN32() || ABI.IsN64());
 }
@@ -2203,13 +2211,19 @@ lowerGlobalTLSAddress(SDValue Op, SelectionDAG &DAG) const
   } else {
     // Local Exec TLS Model
     assert(model == TLSModel::LocalExec);
-    SDValue TGAHi = DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0,
-                                               MipsII::MO_TPREL_HI);
-    SDValue TGALo = DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0,
-                                               MipsII::MO_TPREL_LO);
-    SDValue Hi = DAG.getNode(MipsISD::TlsHi, DL, PtrVT, TGAHi);
-    SDValue Lo = DAG.getNode(MipsISD::Lo, DL, PtrVT, TGALo);
-    Offset = DAG.getNode(ISD::ADD, DL, PtrVT, Hi, Lo);
+    if (ABI.IsP32()) {
+      SDValue Addr =
+          DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0, MipsII::MO_NO_FLAG);
+      Offset = DAG.getNode(MipsISD::FullAddr, DL, PtrVT, Addr);
+    } else {
+      SDValue TGAHi =
+          DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0, MipsII::MO_TPREL_HI);
+      SDValue TGALo =
+          DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0, MipsII::MO_TPREL_LO);
+      SDValue Hi = DAG.getNode(MipsISD::TlsHi, DL, PtrVT, TGAHi);
+      SDValue Lo = DAG.getNode(MipsISD::Lo, DL, PtrVT, TGALo);
+      Offset = DAG.getNode(ISD::ADD, DL, PtrVT, Hi, Lo);
+    }
   }
 
   SDValue ThreadPointer = DAG.getNode(MipsISD::ThreadPointer, DL, PtrVT);
@@ -2222,9 +2236,14 @@ lowerJumpTable(SDValue Op, SelectionDAG &DAG) const
   JumpTableSDNode *N = cast<JumpTableSDNode>(Op);
   EVT Ty = Op.getValueType();
 
-  if (!isPositionIndependent())
+  if (!isPositionIndependent()) {
+    if (Subtarget.hasNanoMips())
+      return getNMAddrNonPIC(N, SDLoc(N), Ty, DAG);
     return Subtarget.hasSym32() ? getAddrNonPIC(N, SDLoc(N), Ty, DAG)
                                 : getAddrNonPICSym64(N, SDLoc(N), Ty, DAG);
+  }
+
+  assert(!Subtarget.hasNanoMips() && "No nanoMIPS support yet");
 
   return getAddrLocal(N, SDLoc(N), Ty, DAG, ABI.IsN32() || ABI.IsN64());
 }
@@ -2232,6 +2251,8 @@ lowerJumpTable(SDValue Op, SelectionDAG &DAG) const
 SDValue MipsTargetLowering::
 lowerConstantPool(SDValue Op, SelectionDAG &DAG) const
 {
+  assert(!Subtarget.hasNanoMips() && "No nanoMIPS support yet");
+
   ConstantPoolSDNode *N = cast<ConstantPoolSDNode>(Op);
   EVT Ty = Op.getValueType();
 
@@ -2243,7 +2264,7 @@ lowerConstantPool(SDValue Op, SelectionDAG &DAG) const
     if (TLOF->IsConstantInSmallSection(DAG.getDataLayout(), N->getConstVal(),
                                        getTargetMachine()))
       // %gp_rel relocation
-      return getAddrGPRel(N, SDLoc(N), Ty, DAG, ABI.IsN64());
+      return getAddrGPRel(N, SDLoc(N), Ty, DAG);
 
     return Subtarget.hasSym32() ? getAddrNonPIC(N, SDLoc(N), Ty, DAG)
                                 : getAddrNonPICSym64(N, SDLoc(N), Ty, DAG);
@@ -3426,7 +3447,9 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       if (Subtarget.useLongCalls())
         Callee = Subtarget.hasSym32()
                      ? getAddrNonPIC(N, SDLoc(N), Ty, DAG)
-                     : getAddrNonPICSym64(N, SDLoc(N), Ty, DAG);
+                     : Subtarget.hasNanoMips()
+                           ? getNMAddrNonPIC(N, SDLoc(N), Ty, DAG)
+                           : getAddrNonPICSym64(N, SDLoc(N), Ty, DAG);
     } else if (auto *N = dyn_cast<GlobalAddressSDNode>(Callee)) {
       bool UseLongCalls = Subtarget.useLongCalls();
       // If the function has long-call/far/near attribute
@@ -3440,7 +3463,9 @@ MipsTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
       if (UseLongCalls)
         Callee = Subtarget.hasSym32()
                      ? getAddrNonPIC(N, SDLoc(N), Ty, DAG)
-                     : getAddrNonPICSym64(N, SDLoc(N), Ty, DAG);
+                     : Subtarget.hasNanoMips()
+                           ? getNMAddrNonPIC(N, SDLoc(N), Ty, DAG)
+                           : getAddrNonPICSym64(N, SDLoc(N), Ty, DAG);
     }
   }
 

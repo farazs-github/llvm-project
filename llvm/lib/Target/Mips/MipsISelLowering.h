@@ -444,6 +444,13 @@ class TargetRegisterClass;
                          DAG.getNode(MipsISD::Lo, DL, Ty, Lo));
    }
 
+   template <class NodeTy>
+   SDValue getNMAddrNonPIC(NodeTy *N, const SDLoc &DL, EVT Ty,
+                           SelectionDAG &DAG) const {
+      SDValue Addr = getTargetNode(N, Ty, DAG, MipsII::MO_NO_FLAG);
+      return DAG.getNode(MipsISD::FullAddr, DL, Ty, Addr);
+   }
+
    // This method creates the following nodes, which are necessary for
    // computing a symbol's address in non-PIC mode for N64.
    //
@@ -480,7 +487,7 @@ class TargetRegisterClass;
     // (add $gp, %gp_rel(sym))
     template <class NodeTy>
     SDValue getAddrGPRel(NodeTy *N, const SDLoc &DL, EVT Ty,
-                         SelectionDAG &DAG, bool IsN64) const {
+                         SelectionDAG &DAG) const {
       SDValue GPRel = getTargetNode(N, Ty, DAG, MipsII::MO_GPREL);
       return DAG.getNode(
           ISD::ADD, DL, Ty,

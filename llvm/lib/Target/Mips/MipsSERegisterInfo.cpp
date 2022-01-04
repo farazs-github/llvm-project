@@ -90,6 +90,14 @@ static inline unsigned getLoadStoreOffsetSizeInBits(const unsigned Opcode,
   case Mips::LL_MM:
   case Mips::SCE_MM:
   case Mips::SC_MM:
+  case Mips::LB_NM:
+  case Mips::LBU_NM:
+  case Mips::LH_NM:
+  case Mips::LHU_NM:
+  case Mips::LW_NM:
+  case Mips::SB_NM:
+  case Mips::SH_NM:
+  case Mips::SW_NM:
     return 12;
   case Mips::LL64_R6:
   case Mips::LL_R6:
@@ -99,6 +107,18 @@ static inline unsigned getLoadStoreOffsetSizeInBits(const unsigned Opcode,
   case Mips::SC_R6:
   case Mips::LL_MMR6:
   case Mips::SC_MMR6:
+  case Mips::LWs9_NM:
+  case Mips::LHUs9_NM:
+  case Mips::LHs9_NM:
+  case Mips::LBUs9_NM:
+  case Mips::LBs9_NM:
+  case Mips::SWs9_NM:
+  case Mips::SHs9_NM:
+  case Mips::SBs9_NM:
+  case Mips::UALW_NM:
+  case Mips::UASW_NM:
+  case Mips::UALH_NM:
+  case Mips::UASH_NM:
     return 9;
   case Mips::INLINEASM: {
     unsigned ConstraintID = InlineAsm::getMemoryConstraintID(MO.getImm());
@@ -224,6 +244,8 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
     unsigned OffsetBitSize =
         getLoadStoreOffsetSizeInBits(MI.getOpcode(), MI.getOperand(OpNo - 1));
     const Align OffsetAlign(getLoadStoreOffsetAlign(MI.getOpcode()));
+    // TODO: This doesn't work well for nanoMIPS, because it has both unsigned
+    // and signed offsets and this check assumes signed.
     if (OffsetBitSize < 16 && isInt<16>(Offset) &&
         (!isIntN(OffsetBitSize, Offset) || !isAligned(OffsetAlign, Offset))) {
       // If we have an offset that needs to fit into a signed n-bit immediate

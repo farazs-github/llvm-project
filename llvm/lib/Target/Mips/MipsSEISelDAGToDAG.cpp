@@ -1122,8 +1122,9 @@ bool MipsSEDAGToDAGISel::trySelect(SDNode *Node) {
     unsigned RdhwrOpc, DestReg;
 
     if (PtrVT == MVT::i32) {
-      RdhwrOpc = Mips::RDHWR;
-      DestReg = Mips::V1;
+      bool IsP32 = static_cast<MipsTargetMachine &>(TM).getABI().IsP32();
+      RdhwrOpc = IsP32 ? Mips::RDHWR_NM : Mips::RDHWR;
+      DestReg = IsP32 ? Mips::A1_NM : Mips::V1;
     } else {
       RdhwrOpc = Mips::RDHWR64;
       DestReg = Mips::V1_64;

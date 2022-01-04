@@ -141,7 +141,8 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
 
   if (!hasReservedCallFrame(MF)) {
     int64_t Amount = I->getOperand(0).getImm();
-    if (I->getOpcode() == Mips::ADJCALLSTACKDOWN)
+    if (I->getOpcode() == Mips::ADJCALLSTACKDOWN ||
+        I->getOpcode() == Mips::ADJCALLSTACKDOWN_NM)
       Amount = -Amount;
 
     STI.getInstrInfo()->adjustStackPtr(SP, Amount, MBB, I);

@@ -25,6 +25,8 @@
 using namespace llvm;
 
 static unsigned getUnconditionalBranch(const MipsSubtarget &STI) {
+  if (STI.hasNanoMips())
+    return Mips::BC_NM;
   if (STI.inMicroMipsMode())
     return STI.isPositionIndependent() ? Mips::B_MM : Mips::J_MM;
   return STI.isPositionIndependent() ? Mips::B : Mips::J;
@@ -168,6 +170,10 @@ void MipsSEInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     if (Mips::MSA128BRegClass.contains(SrcReg))
       Opc = Mips::MOVE_V;
   }
+  else if (Mips::GPR32NMRegClass.contains(SrcReg)) {
+    if (Mips::GPR32NMRegClass.contains(DestReg))
+      Opc = Mips::MOVE_NM;
+  }
 
   assert(Opc && "Cannot copy registers");
 
@@ -290,6 +296,8 @@ storeRegToStack(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
     Opc = Mips::SD;
   else if (Mips::DSPRRegClass.hasSubClassEq(RC))
     Opc = Mips::SWDSP;
+  else if (Mips::GPR32NMRegClass.hasSubClassEq(RC))
+    Opc = Mips::SW_NM;
 
   // Hi, Lo are normally caller save but they are callee save
   // for interrupt handling.
@@ -368,6 +376,8 @@ loadRegFromStack(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
     Opc = Mips::LD;
   else if (Mips::DSPRRegClass.hasSubClassEq(RC))
     Opc = Mips::LWDSP;
+  else if (Mips::GPR32NMRegClass.hasSubClassEq(RC))
+    Opc = Mips::LW_NM;
 
   assert(Opc && "Register class not handled!");
 
@@ -493,6 +503,14 @@ bool MipsSEInstrInfo::isBranchWithImm(unsigned Opc) const {
   case Mips::BBIT1:
   case Mips::BBIT032:
   case Mips::BBIT132:
+  case Mips::BEQIC_NM:
+  case Mips::BGEIC_NM:
+  case Mips::BGEIUC_NM:
+  case Mips::BLTIC_NM:
+  case Mips::BLTIUC_NM:
+  case Mips::BNEIC_NM:
+  case Mips::BBNEZC_NM:
+  case Mips::BBEQZC_NM:
     return true;
   }
 }
@@ -582,6 +600,22 @@ unsigned MipsSEInstrInfo::getOppositeBranchOpc(unsigned Opc) const {
   case Mips::BNZ_W:  return Mips::BZ_W;
   case Mips::BNZ_D:  return Mips::BZ_D;
   case Mips::BNZ_V:  return Mips::BZ_V;
+  case Mips::BEQC_NM:   return Mips::BNEC_NM;
+  case Mips::BEQIC_NM:  return Mips::BNEIC_NM;
+  case Mips::BEQZC_NM:  return Mips::BNEZC_NM;
+  case Mips::BGEC_NM:   return Mips::BLTC_NM;
+  case Mips::BGEIC_NM:  return Mips::BLTIC_NM;
+  case Mips::BGEIUC_NM: return Mips::BLTIUC_NM;
+  case Mips::BGEUC_NM:  return Mips::BLTUC_NM;
+  case Mips::BLTC_NM:   return Mips::BGEC_NM;
+  case Mips::BLTIC_NM:  return Mips::BGEIC_NM;
+  case Mips::BLTIUC_NM: return Mips::BGEIUC_NM;
+  case Mips::BLTUC_NM:  return Mips::BGEUC_NM;
+  case Mips::BNEC_NM:   return Mips::BEQC_NM;
+  case Mips::BNEIC_NM:  return Mips::BEQIC_NM;
+  case Mips::BNEZC_NM:  return Mips::BEQZC_NM;
+  case Mips::BBNEZC_NM:  return Mips::BBEQZC_NM;
+  case Mips::BBEQZC_NM:  return Mips::BBNEZC_NM;
   }
 }
 
@@ -596,7 +630,8 @@ void MipsSEInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
   if (Amount == 0)
     return;
 
-  if (isInt<16>(Amount)) {
+  bool IsNanoMips = Subtarget.hasNanoMips();
+  if ((isInt<16>(Amount) && !IsNanoMips) || (isInt<32>(Amount) && IsNanoMips)) {
     // addi sp, sp, amount
     BuildMI(MBB, I, DL, get(ADDiu), SP).addReg(SP).addImm(Amount);
   } else {
@@ -618,6 +653,15 @@ unsigned MipsSEInstrInfo::loadImmediate(int64_t Imm, MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator II,
                                         const DebugLoc &DL,
                                         unsigned *NewImm) const {
+  if (Subtarget.hasNanoMips()) {
+    assert(Imm == (int32_t)Imm);
+    MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
+    const TargetRegisterClass *RC = &Mips::GPR32NMRegClass;
+    Register Reg = RegInfo.createVirtualRegister(RC);
+    BuildMI(MBB, II, DL, get(Mips::Li_NM), Reg).addImm((int32_t)Imm);
+    return Reg;
+  }
+
   MipsAnalyzeImmediate AnalyzeImm;
   const MipsSubtarget &STI = Subtarget;
   MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
@@ -680,7 +724,15 @@ unsigned MipsSEInstrInfo::getAnalyzableBrOpc(unsigned Opc) const {
           Opc == Mips::BLTUC_MMR6 || Opc == Mips::BGEUC_MMR6 ||
           Opc == Mips::BGTZC_MMR6 || Opc == Mips::BLEZC_MMR6 ||
           Opc == Mips::BGEZC_MMR6 || Opc == Mips::BLTZC_MMR6 ||
-          Opc == Mips::BEQZC_MMR6 || Opc == Mips::BNEZC_MMR6) ? Opc : 0;
+          Opc == Mips::BEQZC_MMR6 || Opc == Mips::BNEZC_MMR6 ||
+          Opc == Mips::BEQC_NM || Opc == Mips::BEQIC_NM || Opc == Mips::BEQZC_NM ||
+          Opc == Mips::BNEC_NM || Opc == Mips::BNEIC_NM || Opc == Mips::BNEZC_NM ||
+          Opc == Mips::BBNEZC_NM || Opc == Mips::BBEQZC_NM ||
+          Opc == Mips::BGEC_NM || Opc == Mips::BGEIC_NM ||
+          Opc == Mips::BGEUC_NM || Opc == Mips::BGEIUC_NM ||
+          Opc == Mips::BLTC_NM || Opc == Mips::BLTIC_NM ||
+          Opc == Mips::BLTUC_NM || Opc == Mips::BLTIUC_NM ||
+          Opc == Mips::BC_NM ) ? Opc : 0;
 }
 
 void MipsSEInstrInfo::expandRetRA(MachineBasicBlock &MBB,
@@ -690,6 +742,9 @@ void MipsSEInstrInfo::expandRetRA(MachineBasicBlock &MBB,
   if (Subtarget.isGP64bit())
     MIB = BuildMI(MBB, I, I->getDebugLoc(), get(Mips::PseudoReturn64))
               .addReg(Mips::RA_64, RegState::Undef);
+  else if (Subtarget.hasNanoMips())
+    MIB = BuildMI(MBB, I, I->getDebugLoc(), get(Mips::PseudoReturnNM))
+              .addReg(Mips::RA_NM, RegState::Undef);
   else
     MIB = BuildMI(MBB, I, I->getDebugLoc(), get(Mips::PseudoReturn))
               .addReg(Mips::RA, RegState::Undef);

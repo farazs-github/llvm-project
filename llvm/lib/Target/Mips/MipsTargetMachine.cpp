@@ -295,7 +295,8 @@ bool MipsPassConfig::addInstSelector() {
 }
 
 void MipsPassConfig::addPreRegAlloc() {
-  addPass(createMipsOptimizePICCallPass());
+  if (!getMipsSubtarget().hasNanoMips())
+    addPass(createMipsOptimizePICCallPass());
 }
 
 void MipsPassConfig::addPostRegAlloc() {
@@ -323,7 +324,8 @@ void MipsPassConfig::addPreEmitPass() {
 
   // The microMIPS size reduction pass performs instruction reselection for
   // instructions which can be remapped to a 16 bit instruction.
-  addPass(createMicroMipsSizeReducePass());
+  if (!getMipsSubtarget().hasNanoMips())
+    addPass(createMicroMipsSizeReducePass());
 
   if (getMipsSubtarget().hasNanoMips())
     addPass(createNanoMipsMoveOptimizerPass());
@@ -343,7 +345,8 @@ void MipsPassConfig::addPreEmitPass() {
   if (!getMipsSubtarget().hasNanoMips())
     addPass(createMipsBranchExpansion());
 
-  addPass(createMipsConstantIslandPass());
+  if (!getMipsSubtarget().hasNanoMips())
+    addPass(createMipsConstantIslandPass());
 }
 
 bool MipsPassConfig::addPreRewrite() {

@@ -545,7 +545,12 @@ void MipsSEFrameLowering::emitPrologue(MachineFunction &MF,
              "Function's alignment size requirement is not supported.");
       int64_t MaxAlign = -(int64_t)MFI.getMaxAlign().value();
 
-      BuildMI(MBB, MBBI, dl, TII.get(ADDiu), VR).addReg(ZERO).addImm(MaxAlign);
+      if (ABI.IsP32())
+        BuildMI(MBB, MBBI, dl, TII.get(Mips::Li_NM), VR).addImm(MaxAlign);
+      else
+        BuildMI(MBB, MBBI, dl, TII.get(ADDiu), VR)
+            .addReg(ZERO)
+            .addImm(MaxAlign);
       BuildMI(MBB, MBBI, dl, TII.get(AND), SP).addReg(SP).addReg(VR);
 
       if (hasBP(MF)) {
@@ -754,6 +759,8 @@ void MipsSEFrameLowering::emitInterruptEpilogueStub(
   MipsFunctionInfo *MipsFI = MF.getInfo<MipsFunctionInfo>();
   DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
 
+  assert(!STI.isABI_P32() && "NYI for nanoMIPS");
+
   // Perform ISR handling like GCC
   const TargetRegisterClass *PtrRC = &Mips::GPR32RegClass;
 
@@ -906,9 +913,11 @@ void MipsSEFrameLowering::determineCalleeSaves(MachineFunction &MF,
   // Set scavenging frame index if necessary.
   uint64_t MaxSPOffset = estimateStackSize(MF);
 
+  // nanoMIPS has 9-bit signed offset for loads/stores.
   // MSA has a minimum offset of 10 bits signed. If there is a variable
   // sized object on the stack, the estimation cannot account for it.
-  if (isIntN(STI.hasMSA() ? 10 : 16, MaxSPOffset) &&
+  int SupportedSPOffsetSize = STI.hasMSA() ? 10 : ABI.IsP32() ? 9 : 16;
+  if (isIntN(SupportedSPOffsetSize, MaxSPOffset) &&
       !MF.getFrameInfo().hasVarSizedObjects())
     return;
 

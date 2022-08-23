@@ -88,7 +88,7 @@ def Log2XForm : SDNodeXForm<imm, [{ return CurDAG->getTargetConstant(Log2_32(N->
 //===----------------------------------------------------------------------===//
 
 // 32-bit arithmetic and logical instructions with 3 register operands.
-class ArithLoginR32<string opstr, RegisterOperand RO,
+class ArithLogicR32<string opstr, RegisterOperand RO,
                     SDPatternOperator OpNode = null_frag>:
   InstNM<(outs RO:$rd), (ins RO:$rs, RO:$rt),
          !strconcat(opstr, "\t$rd, $rs, $rt"),
@@ -116,7 +116,7 @@ class ArithLogicI32<string opstr, Operand Od, RegisterOperand RO,
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, InstSize32;
 
 class DivMod<string opstr, SDPatternOperator OpNode = null_frag> :
-    ArithLoginR32<opstr, GPR32NMOpnd, OpNode> {
+    ArithLogicR32<opstr, GPR32NMOpnd, OpNode> {
   // Need to insert TEQ, because DIV(U)/MOD(U) don't trap on division by zero.
   bit usesCustomInserter = 1;
 }
@@ -325,24 +325,24 @@ class ReverseNM<string opstr, RegisterOperand RO, SDNode OpNode>:
 //===----------------------------------------------------------------------===//
 
 // _POOL32A0_0 pool of instructions.
-def SLLV_NM  : ArithLoginR32<"sllv", GPR32NMOpnd, shl>;
-def SRLV_NM  : ArithLoginR32<"srlv", GPR32NMOpnd, srl>;
-def SRAV_NM  : ArithLoginR32<"srav", GPR32NMOpnd, sra>;
-def ROTRV_NM : ArithLoginR32<"rotrv", GPR32NMOpnd, rotr>;
-def ADD_NM   : ArithLoginR32<"add", GPR32NMOpnd>;
-def ADDu_NM  : ArithLoginR32<"addu", GPR32NMOpnd, add>;
-def SUB_NM   : ArithLoginR32<"sub", GPR32NMOpnd>;
-def SUBu_NM  : ArithLoginR32<"subu", GPR32NMOpnd, sub>;
-def AND_NM   : ArithLoginR32<"and", GPR32NMOpnd, and>;
-def OR_NM    : ArithLoginR32<"or", GPR32NMOpnd, or>;
-def NOR_NM   : ArithLoginR32<"nor", GPR32NMOpnd>;
-def XOR_NM   : ArithLoginR32<"xor", GPR32NMOpnd, xor>;
-def SLT_NM   : ArithLoginR32<"slt", GPR32NMOpnd, setlt>;
-def SLTU_NM  : ArithLoginR32<"sltu", GPR32NMOpnd, setult>;
-def MUL_NM   : ArithLoginR32<"mul", GPR32NMOpnd, mul>;
-def MUH_NM   : ArithLoginR32<"muh", GPR32NMOpnd, mulhs>;
-def MULU_NM  : ArithLoginR32<"mulu", GPR32NMOpnd>;
-def MUHU_NM  : ArithLoginR32<"muhu", GPR32NMOpnd, mulhu>;
+def SLLV_NM  : ArithLogicR32<"sllv", GPR32NMOpnd, shl>;
+def SRLV_NM  : ArithLogicR32<"srlv", GPR32NMOpnd, srl>;
+def SRAV_NM  : ArithLogicR32<"srav", GPR32NMOpnd, sra>;
+def ROTRV_NM : ArithLogicR32<"rotrv", GPR32NMOpnd, rotr>;
+def ADD_NM   : ArithLogicR32<"add", GPR32NMOpnd>;
+def ADDu_NM  : ArithLogicR32<"addu", GPR32NMOpnd, add>;
+def SUB_NM   : ArithLogicR32<"sub", GPR32NMOpnd>;
+def SUBu_NM  : ArithLogicR32<"subu", GPR32NMOpnd, sub>;
+def AND_NM   : ArithLogicR32<"and", GPR32NMOpnd, and>;
+def OR_NM    : ArithLogicR32<"or", GPR32NMOpnd, or>;
+def NOR_NM   : ArithLogicR32<"nor", GPR32NMOpnd>;
+def XOR_NM   : ArithLogicR32<"xor", GPR32NMOpnd, xor>;
+def SLT_NM   : ArithLogicR32<"slt", GPR32NMOpnd, setlt>;
+def SLTU_NM  : ArithLogicR32<"sltu", GPR32NMOpnd, setult>;
+def MUL_NM   : ArithLogicR32<"mul", GPR32NMOpnd, mul>;
+def MUH_NM   : ArithLogicR32<"muh", GPR32NMOpnd, mulhs>;
+def MULU_NM  : ArithLogicR32<"mulu", GPR32NMOpnd>;
+def MUHU_NM  : ArithLogicR32<"muhu", GPR32NMOpnd, mulhu>;
 def DIV_NM   : DivMod<"div", sdiv>;
 def MOD_NM   : DivMod<"mod", srem>;
 def DIVU_NM  : DivMod<"divu", udiv>;

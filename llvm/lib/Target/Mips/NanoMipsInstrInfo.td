@@ -92,7 +92,273 @@ class ArithLogicR32<string opstr, RegisterOperand RO,
                     SDPatternOperator OpNode = null_frag>:
   InstNM<(outs RO:$rd), (ins RO:$rs, RO:$rt),
          !strconcat(opstr, "\t$rd, $rs, $rt"),
-         [(set RO:$rd, (OpNode RO:$rs, RO:$rt))]>, InstSize32;
+         [(set RO:$rd, (OpNode RO:$rs, RO:$rt))]>, InstSize32 {
+	 
+}
+
+class _Pool_P32<bits<5> psel> : InstSize32 {
+  let Inst{31-26} = {psel{4...2}, 0b0, psel{1...0}};
+}
+
+class _Pool_P_ADDIU<bits<5> psel> : _Pool_P32<0b00000> {
+  let Inst{25...21} = psel;
+}
+
+class _Pool_P32A<bits<3> psel> : _Pool_P32<0b00100> {
+  let Inst{2...0} = psel;
+}
+
+class _Pool_P_GP_W<bits<2> psel> : _Pool_P32<0b01000> {
+  let Inst{1...0} = psel;
+}
+
+class _Pool_P_U12<bits<4> psel> : _Pool_P32<0b10000> {
+  let Inst{15-12} = psel;
+}
+
+class _Pool_P_LUI<bits<1> psel> : _Pool_P32<0b11100> {
+  let Inst{1} = psel;
+}
+
+class _Pool_P_GP_BH<bits<3> psel> : _Pool_P32<0b01001> {
+  let Inst{20...18} = psel;
+}
+
+class _Pool_P_LS_U12<bits<4> psel> : _Pool_P32<0b10001> {
+  let Inst{15...12} = psel;
+}
+
+class _Pool_P_LS_S9<bits<3> psel> : _Pool_P32<0b10101> {
+  let Inst{10...8} = psel;
+}
+
+// TODO MOVE.BALC
+
+class _Pool_P_BAL<bits<1> psel> : _Pool_P32<0b00110> {
+  let Inst{25} = psel;
+}
+
+class _Pool_P_J<bits<4> psel> : _Pool_P32<0b01010> {
+  let Inst{15...12} = psel;
+}
+
+class _Pool_P_BR1<bits<2> psel> : _Pool_P32<0b10010> {
+  let Inst{15...14} = psel;
+}
+
+class _Pool_P_BR2<bits<2> psel> : _Pool_P32<0b10110> {
+  let Inst{15...14} = psel;
+}
+
+class _Pool_P_BRI<bits<3> psel> : _Pool_P32<0b11010> {
+  let Inst{20...18} = psel;
+}
+
+class _Pool_P_BALRSC<bits<5> psel> : _Pool_P_J<0b1000> {
+  let Inst{25...21} = psel;
+}
+
+// TODO BRSC : _Pool_P_BALRSC<0b00000>
+// TODO BALRSC : _Pool_P_BALRSC<!0b00000>
+
+class _Pool_P_SHIFT<bits<4> psel> : _Pool_P_U12<0b1100> {
+  let Inst{8...5} = psel;
+}
+
+class _Pool_P_ROTX<bits<2> psel> : _Pool_P_U12<0b1101> {
+  let Inst{11} = psel{1};
+  let Inst{5} = psel{0};
+}
+
+class _Pool_P_INS<bits<2> psel> : _Pool_P_U12<0b1110> {
+  let Inst{11} = psel{1};
+  let Inst{5} = psel{0};
+}
+
+class _Pool_P_EXT<bits<2> psel> : _Pool_P_U12<0b1111> {
+  let Inst{11} = psel{1};
+  let Inst{5} = psel{0};
+}
+
+class _Pool_P_PREF_U12<bits<5> psel> : _Pool_P_LS_U12<0b0011> {
+  let Inst{25...21} = psel;
+}
+
+class _Pool_P_LS_S0<bits<4> psel>: _Pool_P_LS_S9<0b000> {
+  let Inst{14...11} = psel;
+}
+
+class _Pool_P_PREF_S9<bits<5> psel>: _Pool_P_LS_S0<0b0011> {
+  let Inst{25...21} = psel;
+}
+
+class _Pool_P_LS_S1<bits<4> psel>: _Pool_P_LS_S9<0b001> {
+  let Inst{14...11} = psel;
+}
+
+class _Pool_P_LL<bits<2> psel>: _Pool_P_LS_S1<0b1010> {
+  let Inst{1...0} = psel;
+}
+
+class _Pool_P_SC<bits<2> psel>: _Pool_P_LS_S1<0b1011> {
+  let Inst{1...0} = psel;
+}
+
+class _Pool_P_LS_E0<bits<4> psel>: _Pool_P_LS_S9<0b010> {
+  let Inst{14...11} = psel;
+}
+
+class _Pool_P_LLE<bits<2> psel>: _Pool_P_LS_E0<0b1010> {
+  let Inst{1...0} = psel;
+}
+
+class _Pool_P_PREFE<bits<5> psel>: _Pool_P_LS_E0<0b0011> {
+  let Inst{25...21} = psel;
+}
+
+class _Pool_P_SCE<bits<2> psel>: _Pool_P_LS_E0<0b1011> {
+  let Inst{1...0} = psel;
+}
+
+class _Pool_P_LS_WM<bits<1> psel>: _Pool_P_LS_S9<0b100> {
+  let Inst{11} = psel;
+}
+
+class _Pool_P_LS_UAWM<bits<1> psel>: _Pool_P_LS_S9<0b101> {
+  let Inst{11} = psel;
+}
+
+class _Pool_P16<bits<5> psel> : InstSize16 {
+  let Inst{15-10} = {psel{4...2}, 0b1, psel{1...0}};
+}
+
+class _Pool_P16_MV<bits<5> psel> : _Pool_P16<0b00000> {
+  let Inst{9...5} = psel;
+}
+
+// TODO LW16<bits<> psel> : _Pool_P16<0b00001>
+
+// TODO BC16 : _Pool_P16<0b00010>
+
+class _Pool_P16_SR<bits<1> psel> : _Pool_P16<0b00011> {
+  let Inst{8} = psel;
+}
+
+class _Pool_P16_SHIFT<bits<1> psel> : _Pool_P16<0b00100> {
+  let Inst{3} = psel;
+}
+
+// TODO LW_SP : _Pool_P16<0b00101>
+
+// TODO BALC16 : _Pool_P16<0b00110>
+
+class _Pool_P16_4X4<bits<2> psel> : _Pool_P16<0b00111> {
+  let Inst{8} = psel{1};
+  let Inst{3} = psel{0};
+}
+
+class _Pool_P16C<bits<1> psel> : _Pool_P16<0b01000> {
+  let Inst{0} = psel;
+}
+
+// TODO LW_GP16 : _Pool_P16<0b01001>
+
+class _Pool_P16_LB<bits<2> psel> : _Pool_P16<0b01011> {
+  let Inst{3...2} = psel;
+}
+
+class _Pool_P16_A1<bits<1> psel> : _Pool_P16<0b01100> {
+  let Inst{6} = psel;
+}
+
+// TODO LW_4X4 : _Pool_P16<0b01101> {
+
+class _Pool_P16_LH<bits<2> psel> : _Pool_P16<0b01111> {
+  let Inst{3} = psel{1};
+  let Inst{0} = psel{0};
+}
+
+class _Pool_P16_A2<bits<1> psel> : _Pool_P16<0b10000> {
+  let Inst{3} = psel;
+}
+
+//TODO SW_16 : _Pool_P16<0b10001>
+
+//TODO BEQZC_16 : _Pool_P16<0b10010>
+
+
+class _Pool_P16_ADDU<bits<1> psel> : _Pool_P16<0b10100> {
+  let Inst{0} = psel;
+}
+
+//TODO SW_SP : _Pool_P16<0b10101>
+
+// TODO BNEZC_16 : _Pool_P16<0b10110>
+
+// TODO MOVEP : _Pool_P16<0b10111>
+
+// TODO LI16 : _Pool_P16<0b11000>
+
+// TODO SW_GP16 : _Pool_P16<0b10001>
+
+class _Pool_P16_BR<bits<4> psel> : _Pool_P16<0b11010> {
+  let Inst{3...0} = psel;
+}
+
+class _Pool_P16_RI<bits<2> psel> : _Pool_P16_MV<0b00000> {
+  let Inst{4...3} = psel;
+}
+
+class _Pool_P16_SYSCALL<bits<1> psel> : _Pool_P16_RI<0b01> {
+  let Inst{2} = psel;
+}
+
+// TODO MOVE_16 : _Pool_P16_RI<!0b0>
+
+// TODO ANDI_16 : _Pool_P16<0b11100>
+
+// TODO SW_4X4 : _Pool_P16<0b11101>
+
+// TODO MOVEP_REV : _Pool_P16<0b11111>
+
+
+
+class _Pool_P_RI<bits<2> psel> : _Pool_P_ADDIU<0b00000> {
+  let Inst{20...19} = psel;
+}
+
+class _Pool_POOL32A0<bits<1> psel> : _Pool_P32A<0b000> {
+  let Inst{5} = psel;
+}
+
+class _Pool_POOL32A0_0<bits<6> psel> : _Pool_POOL32A0<0b0> {
+  let Inst{9...6} = psel{5...2};      
+  let Inst{4...3} = psel{1...0};      
+}
+
+class _Pool_POOL32A0_0a : _Pool_POOL32A0_0<0b000010>;
+
+
+class _Pool_POOL32A7<bits<3> psel> : _Pool_P32A<0b111> {
+  let Inst{5...3} = psel;
+}
+
+// TODO  BC_32 : _Pool_P_BAL<0b0>
+
+
+
+class ArithLogicR32a<string opstr, RegisterOperand RO,
+                    SDPatternOperator OpNode = null_frag>:
+  InstNM<(outs RO:$rd), (ins RO:$rs, RO:$rt),
+         !strconcat(opstr, "\t$rd, $rs, $rt"),
+         [(set RO:$rd, (OpNode RO:$rs, RO:$rt))]> {
+//  bits<5> rd;
+//  bits<5> rs;
+//  bits<5> rt;
+//  let Inst{25...21} = rt;
+//  let Inst{20...16} = rs;
+//  let Inst{15...11} = rd;
+}
 
 // 16-bit arithmetic and logical instructions with 2 register operands.
 class ArithLogicR16<string opstr, RegisterOperand RO,
@@ -214,7 +480,7 @@ class MoveBalcBase : InstNM<(outs GPR32NMOpnd:$rd),
 class IndirectBranchNM<string opstr, RegisterOperand RO,
                        SDPatternOperator operator = null_frag>:
     InstNM<(outs), (ins RO:$rs), !strconcat(opstr, "\t$rs"),
-           [(operator RO:$rs)]>, InstSize16 {
+           [(operator RO:$rs)]>, _Pool_P16_BR<0b0000> {
   let isTerminator = 1;
   let isBarrier = 1;
   let isCTI = 1;
@@ -325,7 +591,7 @@ class ReverseNM<string opstr, RegisterOperand RO, SDNode OpNode>:
 //===----------------------------------------------------------------------===//
 
 // _POOL32A0_0 pool of instructions.
-def SLLV_NM  : ArithLogicR32<"sllv", GPR32NMOpnd, shl>;
+def SLLV_NM  : ArithLogicR32a<"sllv", GPR32NMOpnd, shl>, _Pool_POOL32A0_0a;
 def SRLV_NM  : ArithLogicR32<"srlv", GPR32NMOpnd, srl>;
 def SRAV_NM  : ArithLogicR32<"srav", GPR32NMOpnd, sra>;
 def ROTRV_NM : ArithLogicR32<"rotrv", GPR32NMOpnd, rotr>;

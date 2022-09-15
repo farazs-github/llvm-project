@@ -202,6 +202,9 @@ class MipsSubtarget : public MipsGenSubtargetInfo {
   // Use unaliged loads and stores (nanoMIPS only).
   bool UseUnalignedLoadStore = false;
 
+  // Use linker relaxations
+  bool UseLinkerRelax = true;
+  
   /// The minimum alignment known to hold of the stack frame on
   /// entry to the function and which must be maintained by every function.
   Align stackAlignment;

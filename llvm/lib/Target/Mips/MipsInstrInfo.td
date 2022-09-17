@@ -306,6 +306,10 @@ class ISA_MIPS1_NOT_32R6_64R6 {
   list<Predicate> InsnPredicates = [NotMips32r6, NotMips64r6];
   list<Predicate> EncodingPredicates = [HasStdEnc];
 }
+class ISA_MIPS1_NOT_32R6_64R6_NMIPS {
+  list<Predicate> InsnPredicates = [NotMips32r6, NotMips64r6, NotNanoMips];
+  list<Predicate> EncodingPredicates = [HasStdEnc];
+}
 class ISA_MIPS2 {
   list<Predicate> InsnPredicates = [HasMips2];
   list<Predicate> EncodingPredicates = [HasStdEnc];
@@ -3022,7 +3026,7 @@ def SDivIMacro : MipsAsmPseudoInst<(outs GPR32Opnd:$rd),
 def UDivMacro : MipsAsmPseudoInst<(outs GPR32Opnd:$rd),
                                   (ins GPR32Opnd:$rs, GPR32Opnd:$rt),
                                   "divu\t$rd, $rs, $rt">,
-                ISA_MIPS1_NOT_32R6_64R6;
+                ISA_MIPS1_NOT_32R6_64R6_NMIPS;
 def UDivIMacro : MipsAsmPseudoInst<(outs GPR32Opnd:$rd),
                                    (ins GPR32Opnd:$rs, simm32:$imm),
                                    "divu\t$rd, $rs, $imm">,

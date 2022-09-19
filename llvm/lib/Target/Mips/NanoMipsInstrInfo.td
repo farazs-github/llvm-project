@@ -334,6 +334,11 @@ class _Pool_POOL32A0_0<bits<6> psel> : _Pool_POOL32A0<0b0> {
   let Inst{4...3} = psel{1...0};
 }
 
+class _Pool_P_TRAP<bits<1> isel> : _Pool_POOL32A0_0<0b000000>
+{
+  let Inst{10} = isel;
+}
+
 class _Pool_POOL32A7<bits<3> psel> : _Pool_P32A<0b111> {
   let Inst{5...3} = psel;
 }
@@ -438,11 +443,18 @@ class InsBaseNM<RegisterOperand RO = GPR32NMOpnd> :
   let Constraints = "$src = $rt";
 }
 
-class Trap<string opstr> :
-  InstNM<(outs), (ins GPR32NMOpnd:$rs, GPR32NMOpnd:$rt, uimm5_nm:$imm),
-         !strconcat(opstr, "\t$rt, $rs, $imm"), []>, InstSize32 {
+class Trap<string opstr, RegisterOperand RO, Operand ImmOp, bits<1> isel> :
+  InstNM<(outs), (ins RO:$rs, RO:$rt, ImmOp:$imm),
+         !strconcat(opstr, "\t$rt, $rs, $imm"), []>,
+  _Pool_P_TRAP<isel> {
   let hasSideEffects = 1;
   let isCTI = 1;
+  bits<5> rt;
+  bits<5> rs;
+  bits<5> code;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{15...11} = code;
 }
 
 // Instructions with 1 register (dest) and 1 immediate operand.
@@ -681,8 +693,8 @@ def BITREVW_NM : ReverseNM<"bitrevw", GPR32NMOpnd, bitreverse>;
 def BYTEREVW_NM : ReverseNM<"byterevw", GPR32NMOpnd, bswap>;
 
 // P.TRAP pool of instructions.
-def TEQ_NM : Trap<"teq">;
-def TNE_NM : Trap<"tne">;
+def TEQ_NM : Trap<"teq", GPR32NMOpnd, uimm5_nm, 0b0>;
+def TNE_NM : Trap<"tne", GPR32NMOpnd, uimm5_nm, 0b1>;
 
 def NOT_NM   : ArithLogicR16<"not", GPR3Opnd, not>;
 def XOR16_NM : ArithLogicR16<"xor16", GPR3Opnd>;

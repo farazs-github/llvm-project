@@ -109,6 +109,11 @@ static DecodeStatus DecodeGPR32RegisterClass(MCInst &Inst,
                                              uint64_t Address,
                                              const void *Decoder);
 
+static DecodeStatus DecodeGPR32NMRegisterClass(MCInst &Inst,
+                                             unsigned RegNo,
+                                             uint64_t Address,
+                                             const void *Decoder);
+
 static DecodeStatus DecodePtrRegisterClass(MCInst &Inst,
                                            unsigned Insn,
                                            uint64_t Address,
@@ -1453,6 +1458,13 @@ static DecodeStatus DecodeGPR32RegisterClass(MCInst &Inst,
   unsigned Reg = getReg(Decoder, Mips::GPR32RegClassID, RegNo);
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeGPR32NMRegisterClass(MCInst &Inst,
+                                             unsigned RegNo,
+                                             uint64_t Address,
+                                             const void *Decoder) {
+  return DecodeGPR32RegisterClass(Inst, RegNo, Address, Decoder);
 }
 
 static DecodeStatus DecodePtrRegisterClass(MCInst &Inst,

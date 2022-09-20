@@ -259,6 +259,11 @@ class _Pool_P16C<bits<1> psel> : _Pool_P16<0b01000> {
   let Inst{0} = psel;
 }
 
+class _Pool_POOL16C_00<bits<2> psel> : _Pool_P16<0b01000> {
+  let Inst{3...2} = psel;
+  let Inst{1...0} = 0b00;
+}
+
 // TODO LW_GP16 : _Pool_P16<0b01001>
 
 class _Pool_P16_LB<bits<2> psel> : _Pool_P16<0b01011> {
@@ -361,11 +366,17 @@ class ArithLogicR32<string opstr, RegisterOperand RO,
   let Inst{15...11} = rd;
 }
 
-// 16-bit arithmetic and logical instructions with 2 register operands.
+// 16-bit arithmetic and logical instructions with 2 register operands, POOL16C_0
 class ArithLogicR16<string opstr, RegisterOperand RO,
+		    bits<2> isel,
                     SDPatternOperator OpNode = null_frag>:
     InstNM<(outs RO:$rt), (ins RO:$rs), !strconcat(opstr, "\t$rt, $rs"),
-           [(set RO:$rt, (OpNode RO:$rs))]>, InstSize16;
+           [(set RO:$rt, (OpNode RO:$rs))]>, _Pool_POOL16C_00<isel> {
+  bits<3> rs;
+  bits<3> rt;
+  let Inst{9...7} = rt;
+  let Inst{6...4} = rs;
+}
 
 // Arithmetic and logical instructions with 2 register operands and immediate.
 class ArithLogicINM<string opstr, Operand Od, RegisterOperand RO,
@@ -451,10 +462,10 @@ class Trap<string opstr, RegisterOperand RO, Operand ImmOp, bits<1> isel> :
   let isCTI = 1;
   bits<5> rt;
   bits<5> rs;
-  bits<5> code;
+  bits<5> cd;
   let Inst{25...21} = rt;
   let Inst{20...16} = rs;
-  let Inst{15...11} = code;
+  let Inst{15...11} = cd;
 }
 
 // Instructions with 1 register (dest) and 1 immediate operand.
@@ -696,10 +707,10 @@ def BYTEREVW_NM : ReverseNM<"byterevw", GPR32NMOpnd, bswap>;
 def TEQ_NM : Trap<"teq", GPR32NMOpnd, uimm5_nm, 0b0>;
 def TNE_NM : Trap<"tne", GPR32NMOpnd, uimm5_nm, 0b1>;
 
-def NOT_NM   : ArithLogicR16<"not", GPR3Opnd, not>;
-def XOR16_NM : ArithLogicR16<"xor16", GPR3Opnd>;
-def AND16_NM : ArithLogicR16<"and16", GPR3Opnd>;
-def OR16_NM  : ArithLogicR16<"or16", GPR3Opnd>;
+def NOT_NM   : ArithLogicR16<"not", GPR3Opnd, 0b00, not>;
+def XOR16_NM : ArithLogicR16<"xor16", GPR3Opnd, 0b01>;
+def AND16_NM : ArithLogicR16<"and16", GPR3Opnd, 0b10>;
+def OR16_NM  : ArithLogicR16<"or16", GPR3Opnd, 0b11>;
 
 def JRC_NM : IndirectBranchNM<"jrc", GPR32NMOpnd>;
 

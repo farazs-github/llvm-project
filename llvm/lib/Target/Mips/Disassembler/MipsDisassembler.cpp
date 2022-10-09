@@ -39,12 +39,14 @@ namespace {
 
 class MipsDisassembler : public MCDisassembler {
   bool IsMicroMips;
+  bool IsNanoMips;
   bool IsBigEndian;
 
 public:
   MipsDisassembler(const MCSubtargetInfo &STI, MCContext &Ctx, bool IsBigEndian)
       : MCDisassembler(STI, Ctx),
         IsMicroMips(STI.getFeatureBits()[Mips::FeatureMicroMips]),
+        IsNanoMips(STI.getFeatureBits()[Mips::FeatureNanoMips]),
         IsBigEndian(IsBigEndian) {}
 
   bool hasMips2() const { return STI.getFeatureBits()[Mips::FeatureMips2]; }
@@ -587,6 +589,8 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsDisassembler() {
   TargetRegistry::RegisterMCDisassembler(getTheMips64Target(),
                                          createMipsDisassembler);
   TargetRegistry::RegisterMCDisassembler(getTheMips64elTarget(),
+                                         createMipselDisassembler);
+  TargetRegistry::RegisterMCDisassembler(getTheNanoMipsTarget(),
                                          createMipselDisassembler);
 }
 
@@ -1231,6 +1235,31 @@ static DecodeStatus readInstruction32(ArrayRef<uint8_t> Bytes, uint64_t Address,
   return MCDisassembler::Success;
 }
 
+
+/// Read four bytes from the ArrayRef and return 32 bit word sorted
+/// according to the given endianness.
+static DecodeStatus readInstruction48(ArrayRef<uint8_t> Bytes, uint64_t Address,
+                                      uint64_t &Size, uint32_t &Insn, uint32_t &Insn2,
+                                      bool IsBigEndian = false, bool IsNanoMips = true) {
+  // We want to read exactly 6 Bytes of little-endian data in nanoMIPS mode.
+  if (Bytes.size() < 6 || IsBigEndian || !IsNanoMips) {
+    Size = 0;
+    return MCDisassembler::Fail;
+  }
+
+  // High 16 bits of a 32-bit microMIPS instruction (where the opcode is)
+  // always precede the low 16 bits in the instruction stream (that is, they
+  // are placed at lower addresses in the instruction stream).
+  //
+  // nanoMIPS byte ordering:
+  //   Little-endian: 1 | 0 | 3 | 2 | 5 | 4
+
+  Insn = (Bytes[4] << 0) | (Bytes[5] << 8) | (Bytes[2] << 16) 
+    | (Bytes[3] << 24);
+  Insn2 = (Bytes[0] << 32) | (Bytes[1] << 40);
+  return MCDisassembler::Success;
+}
+
 DecodeStatus MipsDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
                                               ArrayRef<uint8_t> Bytes,
                                               uint64_t Address,
@@ -1238,6 +1267,59 @@ DecodeStatus MipsDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
   uint32_t Insn;
   DecodeStatus Result;
   Size = 0;
+
+  if (IsNanoMips) {
+    uint32_t Insn2;
+    Result = readInstruction16(Bytes, Address, Size, Insn, IsBigEndian);
+    if (Result == MCDisassembler::Fail)
+      return MCDisassembler::Fail;
+
+    LLVM_DEBUG(
+	       dbgs() << "Trying NanoMips16 table (16-bit instructions):\n");
+    // Calling the auto-generated decoder function for microMIPS32R6
+    // 16-bit instructions.
+    Result = decodeInstruction(DecoderTableNanoMips16, Instr, Insn,
+			       Address, this, STI);
+    if (Result != MCDisassembler::Fail) {
+      Size = 2;
+      return Result;
+    }
+
+    Result = readInstruction32(Bytes, Address, Size, Insn, IsBigEndian, IsNanoMips);
+    if (Result == MCDisassembler::Fail)
+      return MCDisassembler::Fail;
+
+    LLVM_DEBUG(
+	       dbgs() << "Trying NanoMips32 table (32-bit instructions):\n");
+    // Calling the auto-generated decoder function.
+    Result = decodeInstruction(DecoderTableNanoMips32, Instr, Insn,
+			       Address, this, STI);
+    if (Result != MCDisassembler::Fail) {
+      Size = 4;
+      return Result;
+    }
+
+    Result = readInstruction48(Bytes, Address, Size, Insn, Insn2, IsBigEndian, IsNanoMips);
+    if (Result == MCDisassembler::Fail)
+      return MCDisassembler::Fail;
+
+    LLVM_DEBUG(dbgs() << "Trying NanoMips48 table (48-bit instructions):\n");
+    // Calling the auto-generated decoder function.
+    Result = decodeInstruction(DecoderTableNanoMips48, Instr, Insn, Address,
+                               this, STI);
+    if (Result != MCDisassembler::Fail) {
+      Size = 6;
+      return Result;
+    }
+
+    // This is an invalid instruction. Claim that the Size is 2 bytes. Since
+    // microMIPS instructions have a minimum alignment of 2, the next 2 bytes
+    // could form a valid instruction. The two bytes we rejected as an
+    // instruction could have actually beeen an inline constant pool that is
+    // unconditionally branched over.
+    Size = 2;
+    return MCDisassembler::Fail;
+  }
 
   if (IsMicroMips) {
     Result = readInstruction16(Bytes, Address, Size, Insn, IsBigEndian);

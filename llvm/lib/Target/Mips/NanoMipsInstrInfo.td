@@ -112,6 +112,11 @@ class _Pool_P_LUI<bits<1> psel> : _Pool_P32<0b11100> {
   let Inst{1} = psel;
 }
 
+class _Pool_P48I<bits<5> psel> : InstSize48 {
+  let Inst{47...42} = 0b011000;
+  let Inst{36...32} = psel;
+}
+
 class _Pool_P_GP_BH<bits<3> psel> : _Pool_P32<0b01001> {
   let Inst{20...18} = psel;
 }
@@ -475,6 +480,19 @@ class RegImmNM<string opstr, Operand Od, RegisterOperand RO,
   InstNM<(outs RO:$rt), (ins Od:$imm), !strconcat(opstr, "\t$rt, $imm"),
          [(set RO:$rt, (OpNode imm_type:$imm))]>;
 
+class RegImm48<string opstr, Operand Od, RegisterOperand RO,
+	       bits<5> isel,
+               SDPatternOperator imm_type = null_frag,
+               SDPatternOperator OpNode = null_frag> :
+  InstNM<(outs RO:$rt), (ins Od:$imm), !strconcat(opstr, "\t$rt, $imm"),
+         [(set RO:$rt, (OpNode imm_type:$imm))]>, _Pool_P48I<isel> {
+  bits<5> rt;
+  bits<32> imm;
+  let Inst{41...37} = rt;
+  let Inst{31...16} = imm{15...0};
+  let Inst{15...0} = imm{31...16};
+}
+
 class LoadMemoryNM<string opstr, DAGOperand RO, DAGOperand MO,
                    SDPatternOperator OpNode = null_frag,
                    ComplexPattern Addr = addr,
@@ -690,7 +708,7 @@ def ADDiu_NM : AddiU32<"addiu", uimm16_simm12, GPR32NMOpnd,
                              imm32SExt12OrZExt16, add>;
 let Constraints = "$rt = $rs" in
 def ADDIU48_NM : ArithLogicINM<"addiu[48]", simm32_relaxed, GPR32NMOpnd,
-                               imm32_NM, add>, InstSize48;
+                               imm32_NM, add>, _Pool_P48I<0b00001>;
 
 def LSA_NM : LoadScaledAddressNM<"lsa", GPR32NMOpnd>;
 
@@ -718,10 +736,10 @@ def BALC_NM : CallNM<"balc", MipsJmpLink, tglobaladdr>, InstSize32;
 def MOVEBALC_NM : MoveBalcBase;
 
 let isReMaterializable = 1 in {
-def Li_NM : RegImmNM<"li", simm32_relaxed, GPR32NMOpnd>, InstSize48;
-def LA_NM : RegImmNM<"la", simm32_relaxed, GPR32NMOpnd>, InstSize48;
+def Li_NM : RegImm48<"li", simm32_relaxed, GPR32NMOpnd, 0b00000>;
+def LA_NM : RegImm48<"la", simm32_relaxed, GPR32NMOpnd, 0b00011>;
 
-def LAGPB_NM : RegImmNM<"addiu.b", simm32_relaxed, GPR32NMOpnd>, InstSize48 {
+def LAGPB_NM : RegImm48<"addiu.b", simm32_relaxed, GPR32NMOpnd, 0b00010> {
     let AsmString = "addiu.b $rt, $$gp, %gprel( $imm )";
     let isReMaterializable = 1;
 }

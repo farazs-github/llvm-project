@@ -923,6 +923,15 @@ public:
     return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
   }
 
+  /// Coerce the register to GPR32 and return the real register for the current
+  /// target.
+  unsigned getGPRNM16Reg() const {
+    assert(isRegIdx() && (RegIdx.Kind & RegKind_GPR) && "Invalid access!");
+    unsigned ClassID = Mips::GPR32RegClassID;
+    return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
+  }
+
+
   /// Coerce the register to GPR64 and return the real register for the current
   /// target.
   unsigned getGPR64Reg() const {
@@ -1081,9 +1090,23 @@ public:
     Inst.addOperand(MCOperand::createReg(getGPR32Reg()));
   }
 
+  void addGPR32NMAsmRegOperands(MCInst &Inst, unsigned N) const {
+    addGPR32AsmRegOperands(Inst, N);
+  }
+
   void addGPRMM16AsmRegOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     Inst.addOperand(MCOperand::createReg(getGPRMM16Reg()));
+  }
+
+  void addGPRNM16AsmRegOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(getGPR32Reg()));
+  }
+
+  void addGPRNM4x4AsmRegOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(getGPR32Reg()));
   }
 
   void addGPRMM16AsmRegZeroOperands(MCInst &Inst, unsigned N) const {
@@ -1693,6 +1716,22 @@ public:
 
   bool isMSACtrlAsmReg() const {
     return isRegIdx() && RegIdx.Kind & RegKind_MSACtrl && RegIdx.Index <= 7;
+  }
+
+  bool isNM16AsmReg() const {
+    if (!(isRegIdx() && RegIdx.Kind))
+      return false;
+    return ((RegIdx.Index >= 4 && RegIdx.Index <= 7)
+            || (RegIdx.Index >= 16 && RegIdx.Index <= 19));
+
+  }
+
+  bool isNM4x4AsmReg() const {
+    if (!(isRegIdx() && RegIdx.Kind))
+      return false;
+    return ((RegIdx.Index >= 4 && RegIdx.Index <= 11)
+            || (RegIdx.Index >= 16 && RegIdx.Index <= 23));
+
   }
 
   /// getStartLoc - Get the location of the first token of this operand.

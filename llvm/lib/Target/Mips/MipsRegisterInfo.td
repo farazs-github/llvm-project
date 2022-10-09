@@ -347,6 +347,11 @@ def GPR3 :
   RegisterClass<"Mips", [i32], 32,
                 (add A0_NM, A1_NM, A2_NM, A3_NM, S0_NM, S1_NM, S2_NM, S3_NM)>;
 
+def GPR4 :
+  RegisterClass<"Mips", [i32], 32,
+                (add A0_NM, A1_NM, A2_NM, A3_NM, A4_NM, A5_NM, A6_NM, A7_NM,
+		 S0_NM, S1_NM, S2_NM, S3_NM, S4_NM, S5_NM, S6_NM, S7_NM)>;
+
 class GPR32Class<list<ValueType> regTypes> :
   RegisterClass<"Mips", regTypes, 32, (add
   // Reserved
@@ -593,14 +598,24 @@ def GPR32AsmOperand : MipsAsmRegOperand {
   let PredicateMethod = "isGPRAsmReg";
 }
 
+def GPRMM16AsmOperand : MipsAsmRegOperand {
+  let Name = "GPRMM16AsmReg";
+  let PredicateMethod = "isMM16AsmReg";
+}
+
+def GPRNM16AsmOperand : MipsAsmRegOperand {
+  let Name = "GPRNM16AsmReg";
+  let PredicateMethod = "isNM16AsmReg";
+}
+
 def GPR32NMAsmOperand : MipsAsmRegOperand {
   let Name = "GPR32NMAsmReg";
   let PredicateMethod = "isGPRAsmReg";
 }
 
-def GPRMM16AsmOperand : MipsAsmRegOperand {
-  let Name = "GPRMM16AsmReg";
-  let PredicateMethod = "isMM16AsmReg";
+def GPRNM4x4AsmOperand : MipsAsmRegOperand {
+  let Name = "GPRNM4x4AsmReg";
+  let PredicateMethod = "isNM4x4AsmReg";
 }
 
 def GPRMM16AsmOperandZero : MipsAsmRegOperand {
@@ -697,11 +712,15 @@ def GPR32Opnd : RegisterOperand<GPR32> {
 }
 
 def GPR32NMOpnd : RegisterOperand<GPR32NM> {
-  let ParserMatchClass = GPR32AsmOperand;
+  let ParserMatchClass = GPR32NMAsmOperand;
 }
 
 def GPR3Opnd : RegisterOperand<GPR3> {
-  let ParserMatchClass = GPR32AsmOperand;
+  let ParserMatchClass = GPRNM16AsmOperand;
+}
+
+def GPR4Opnd : RegisterOperand<GPR4> {
+  let ParserMatchClass = GPRNM4x4AsmOperand;
 }
 
 def GPRMM16Opnd : RegisterOperand<GPRMM16> {

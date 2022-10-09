@@ -355,6 +355,19 @@ class _Pool_POOL32A7<bits<3> psel> : _Pool_P32A<0b111> {
 
 // TODO  BC_32 : _Pool_P_BAL<0b0>
 
+// 16-bit arithmetic and logical instructions with 4x4 register operands, P16_4X4
+class Arith4x4<string opstr, RegisterOperand RO,
+		    bits<2> isel,
+                    SDPatternOperator OpNode = null_frag>:
+    InstNM<(outs RO:$dst), (ins RO:$rs, RO:$rt),
+	!strconcat(opstr, "\t$dst, $rs, $rt"),
+           [(set RO:$dst, (OpNode RO:$rs, RO:$rt))]>, _Pool_P16_4X4<isel> {
+  let Constraints = "$rt = $dst";
+  let isCommutable = 1;
+  Format Form = FrmR;
+  let AddedComplexity = -1;
+}
+
 // 32-bit arithmetic and logical instructions with 3 register operands.
 
 class ArithLogicR32<string opstr, RegisterOperand RO,
@@ -381,6 +394,22 @@ class ArithLogicR16<string opstr, RegisterOperand RO,
   bits<3> rt;
   let Inst{9...7} = rt;
   let Inst{6...4} = rs;
+}
+
+// 16-bit arithmetic and logical instructions with 2 register operands, POOL16C_0
+class AddSubR16<string opstr, RegisterOperand RO,
+		    bits<1> isel,
+                    SDPatternOperator OpNode = null_frag>:
+    InstNM<(outs RO:$rd), (ins RO:$rs, RO:$rt), !strconcat(opstr, "\t$rd, $rs, $rt"),
+           [(set RO:$rd, (OpNode RO:$rs, RO:$rt))]>, _Pool_P16_ADDU<isel> {
+  bits<3> rd;
+  bits<3> rs;
+  bits<3> rt;
+  let Inst{15-10} = 0b101100;
+  let Inst{9...7} = rt;
+  let Inst{6...4} = rs;
+  let Inst{3...1} = rd;
+  let Inst{0} = 0;
 }
 
 // Arithmetic and logical instructions with 2 register operands and immediate.
@@ -663,6 +692,14 @@ class ReverseNM<string opstr, RegisterOperand RO, SDNode OpNode>:
 //
 //===----------------------------------------------------------------------===//
 
+// 16-bit register operations
+let FastISelShouldIgnore = 1 in {
+def ADDu16_NM  : AddSubR16<"addu", GPR3Opnd, 0b0, add>;
+//def SUBu16_NM  : AddSubR16<"subu", GPR3Opnd, 0b1, sub>;
+def ADDu4x4_NM  : Arith4x4<"addu", GPR4Opnd, 0b00>;
+//def MULu4x4_NM  : Arith4x4<"mulu", GPR4Opnd, 0b01, mul>;
+}
+
 // _POOL32A0_0 pool of instructions.
 def SLLV_NM  : ArithLogicR32<"sllv", GPR32NMOpnd, 0b000010, shl>;
 def SRLV_NM  : ArithLogicR32<"srlv", GPR32NMOpnd, 0b000110, srl>;
@@ -670,6 +707,7 @@ def SRAV_NM  : ArithLogicR32<"srav", GPR32NMOpnd, 0b001010, sra>;
 def ROTRV_NM : ArithLogicR32<"rotrv", GPR32NMOpnd, 0b001110, rotr>;
 def ADD_NM   : ArithLogicR32<"add", GPR32NMOpnd, 0b010010>;
 def ADDu_NM  : ArithLogicR32<"addu", GPR32NMOpnd, 0b010110, add>;
+
 def SUB_NM   : ArithLogicR32<"sub", GPR32NMOpnd, 0b011010>;
 def SUBu_NM  : ArithLogicR32<"subu", GPR32NMOpnd, 0b011110, sub>;
 def AND_NM   : ArithLogicR32<"and", GPR32NMOpnd, 0b100110, and>;

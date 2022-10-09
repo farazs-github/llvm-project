@@ -1330,6 +1330,10 @@ public:
     return isConstantImm() ? isInt<Bits>(getConstantImm()) : isImm();
   }
 
+  template <unsigned Bits> bool isNegImm() const {
+    return (isConstantImm() ? isInt<Bits>(getConstantImm()) : isImm()) && getConstantImm() < 0;
+  }
+  
   template <unsigned Bits> bool isUImm() const {
     return isConstantImm() ? isUInt<Bits>(getConstantImm()) : isImm();
   }
@@ -1347,6 +1351,11 @@ public:
   template <unsigned Bottom, unsigned Top> bool isConstantUImmRange() const {
     return isConstantImm() && getConstantImm() >= Bottom &&
            getConstantImm() <= Top;
+  }
+
+  template <signed Bottom, signed Top> bool isConstantNegImmRange() const {
+    return isConstantImm() && getConstantImm() >= -Bottom &&
+           getConstantImm() <= -Top;
   }
 
   bool isToken() const override {

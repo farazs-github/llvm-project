@@ -38,6 +38,7 @@ def imm32ZExt12ANDI :
                             Imm.getZExtValue() == 65535; }]>;
 def imm32ZExt5  : IntImmLeaf<i32, [{ return isUInt<5>(Imm.getZExtValue()); }]>;
 def imm32SExt12  : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue()); }]>;
+def imm32Neg12  : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue()) && Imm.getSExtValue() < 0; }]>;
 // True if (N + 1) fits in 12-bit field.
 def immZExt12Plus1 : PatLeaf<(imm), [{
   return isUInt<13>(N->getZExtValue()) && isUInt<12>(N->getZExtValue() + 1);
@@ -45,12 +46,35 @@ def immZExt12Plus1 : PatLeaf<(imm), [{
 def immZExt7Plus1 : PatLeaf<(imm), [{
   return isUInt<7>(N->getZExtValue()) && isUInt<12>(N->getZExtValue() + 1);
 }]>;
-// Immediate range covering both signed 12-bit and unsigned 16-bit immediates.
+// Immediate range for signed 12-bit
 def imm32SExt12OrZExt16 : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue())
                                            || isUInt<16>(Imm.getZExtValue()); }]>;
 
+
+class ConstantSImmRangeAsmOperandClass<int Bottom, int Top,
+                                       list<AsmOperandClass> Supers = []>
+    : AsmOperandClass {
+  let Name = "ConstantNegImmRange" # Bottom # "_" # Top;
+  let RenderMethod = "addSImmOperands<" # 12 # ">";
+  let PredicateMethod = "isConstantNegImmRange<" # Bottom # ", " # Top # ">";
+  let SuperClasses = Supers;
+  let DiagnosticType = "SImmRange" # Bottom # "_" # Top;
+}
+
+class NegImmAsmOperandClass<int Bits, list<AsmOperandClass> Supers = []>
+    : AsmOperandClass {
+  let Name = "NegImm" # Bits;
+  let RenderMethod = "addSImmOperands<" # Bits # ">";
+  let PredicateMethod = "isNegImm<" # Bits # ">";
+  let SuperClasses = Supers;
+  let DiagnosticType = "SImm" # Bits;
+}
+
 def UImm12AsmOperandClass : UImmAsmOperandClass<12, []>;
 def UImm5AsmOperandClass : UImmAsmOperandClass<5, [UImm12AsmOperandClass]>;
+def SImm12AsmOperandClass : SImmAsmOperandClass<12, []>;
+def NImm12AsmOperandClass : NegImmAsmOperandClass<12, []>;
+def NaImm12AsmOperandClass : ConstantSImmRangeAsmOperandClass<4095, 1, []>;
 def UImm3Plus1AsmOperandClass :
   ConstantUImmAsmOperandClass<3, [UImm5AsmOperandClass], 1>;
 
@@ -65,6 +89,14 @@ def uimm5_nm : Operand<i32> {
 def uimm3plus1_nm : Operand<i32> {
   let PrintMethod = "printUImm<3, 1>";
   let ParserMatchClass = !cast<AsmOperandClass>("UImm3Plus1AsmOperandClass");
+}
+def nimm12_nm : Operand<i32> {
+  let PrintMethod = "printUImm<12>";
+  let ParserMatchClass = !cast<AsmOperandClass>("NaImm12AsmOperandClass");
+}
+def uimm16_nm : Operand<i32> {
+  let PrintMethod = "printUImm<16>";
+  let ParserMatchClass = !cast<AsmOperandClass>("SImm16AsmOperandClass");
 }
 
 def simm32power2 : IntImmLeaf<i32, [{ return isPowerOf2_32(Imm.getSExtValue()); }]>;
@@ -433,11 +465,10 @@ class AddiU32<string opstr, Operand Od, RegisterOperand RO,
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, _Pool_P32<0b00000> {
   bits<5> rt;
   bits<5> rs;
-  bits<12> imm12;
   bits<16> imm16;
   let Inst{25...21} = rt;
   let Inst{20...16} = rs;
-  let Inst{11...0} = imm12;
+  let Inst{15...0} = imm16;
 }
 
 class DivMod<string opstr, bits<6> psel, SDPatternOperator OpNode = null_frag> :

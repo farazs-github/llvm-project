@@ -388,26 +388,26 @@ class _Pool_POOL32A7<bits<3> psel> : _Pool_P32A<0b111> {
 // TODO  BC_32 : _Pool_P_BAL<0b0>
 
 // 16-bit arithmetic and logical instructions with 4x4 register operands, P16_4X4
-class Arith4x4<string opstr, RegisterOperand RO,
-		    bits<2> isel,
-                    SDPatternOperator OpNode = null_frag>:
+class Arith4x4_Desc<string opstr, RegisterOperand RO,
+			SDPatternOperator OpNode = null_frag>:
     InstNM<(outs RO:$dst), (ins RO:$rs, RO:$rt),
 	!strconcat(opstr, "\t$dst, $rs, $rt"),
-           [(set RO:$dst, (OpNode RO:$rs, RO:$rt))]>, _Pool_P16_4X4<isel> {
+	   [(set RO:$dst, (OpNode RO:$rs, RO:$rt))]> {
   let Constraints = "$rt = $dst";
-  let isCommutable = 1;
   Format Form = FrmR;
-  let AddedComplexity = -1;
 }
+
+class Arith4x4_Enc<bits<2> isel>:  _Pool_P16_4X4<isel>;
 
 // 32-bit arithmetic and logical instructions with 3 register operands.
 
-class ArithLogicR32<string opstr, RegisterOperand RO,
-		    bits<6> psel,
-                    SDPatternOperator OpNode = null_frag>:
+class ArithLogicR32_Desc<string opstr, RegisterOperand RO,
+		    SDPatternOperator OpNode = null_frag>:
   InstNM<(outs RO:$rd), (ins RO:$rs, RO:$rt),
-         !strconcat(opstr, "\t$rd, $rs, $rt"),
-         [(set RO:$rd, (OpNode RO:$rs, RO:$rt))]>, _Pool_POOL32A0_0<psel> {
+	 !strconcat(opstr, "\t$rd, $rs, $rt"),
+	 [(set RO:$rd, (OpNode RO:$rs, RO:$rt))]>;
+
+class ArithLogicR32_Enc<bits<6> psel>: _Pool_POOL32A0_0<psel> {
   bits<5> rd;
   bits<5> rs;
   bits<5> rt;
@@ -417,23 +417,35 @@ class ArithLogicR32<string opstr, RegisterOperand RO,
 }
 
 // 16-bit arithmetic and logical instructions with 2 register operands, POOL16C_0
-class ArithLogicR16<string opstr, RegisterOperand RO,
-		    bits<2> isel,
-                    SDPatternOperator OpNode = null_frag>:
-    InstNM<(outs RO:$rt), (ins RO:$rs), !strconcat(opstr, "\t$rt, $rs"),
-           [(set RO:$rt, (OpNode RO:$rs))]>, _Pool_POOL16C_00<isel> {
+class ArithLogicR16_Desc<string opstr, RegisterOperand RO,
+		    SDPatternOperator OpNode = null_frag>:
+    InstNM<(outs RO:$dst), (ins RO:$rs, RO:$rt),
+	!strconcat(opstr, "\t$dst, $rs, $rt"),
+	   [(set RO:$dst, (OpNode RO:$rs, RO:$rt))]> {
+  let Constraints = "$dst = $rt";
+}
+
+class ArithLogicR16U_Desc<string opstr, RegisterOperand RO,
+		    		 SDPatternOperator OpNode = null_frag>:
+    InstNM<(outs RO:$rt), (ins RO:$rs),
+	!strconcat(opstr, "\t$rt, $rs"),
+	   [(set RO:$rt, (OpNode RO:$rs))]> {
+}
+
+class ArithLogicR16_Enc<bits<2> isel>: _Pool_POOL16C_00<isel> {
   bits<3> rs;
   bits<3> rt;
   let Inst{9...7} = rt;
   let Inst{6...4} = rs;
 }
 
-// 16-bit arithmetic and logical instructions with 2 register operands, POOL16C_0
-class AddSubR16<string opstr, RegisterOperand RO,
-		    bits<1> isel,
-                    SDPatternOperator OpNode = null_frag>:
+// 16-bit arithmetic instructions with 2 register operands, POOL16C_0
+class AddSubR16_Desc<string opstr, RegisterOperand RO,
+		    SDPatternOperator OpNode = null_frag>:
     InstNM<(outs RO:$rd), (ins RO:$rs, RO:$rt), !strconcat(opstr, "\t$rd, $rs, $rt"),
-           [(set RO:$rd, (OpNode RO:$rs, RO:$rt))]>, _Pool_P16_ADDU<isel> {
+	   [(set RO:$rd, (OpNode RO:$rs, RO:$rt))]>;
+
+class AddSubR16_Enc<bits<1> isel>: _Pool_P16_ADDU<isel> {
   bits<3> rd;
   bits<3> rs;
   bits<3> rt;
@@ -446,22 +458,22 @@ class AddSubR16<string opstr, RegisterOperand RO,
 
 // Arithmetic and logical instructions with 2 register operands and immediate.
 class ArithLogicINM<string opstr, Operand Od, RegisterOperand RO,
-                    SDPatternOperator imm_type = null_frag,
-                    SDPatternOperator OpNode = null_frag> :
+		    SDPatternOperator imm_type = null_frag,
+		    SDPatternOperator OpNode = null_frag> :
   InstNM<(outs RO:$rt), (ins RO:$rs, Od:$imm),
-         !strconcat(opstr, "\t$rt, $rs, $imm"),
-         [(set RO:$rt, (OpNode RO:$rs, imm_type:$imm))]> {
+	 !strconcat(opstr, "\t$rt, $rs, $imm"),
+	 [(set RO:$rt, (OpNode RO:$rs, imm_type:$imm))]> {
   let isReMaterializable = 1;
 }
 
 class ArithLogicI32<string opstr, Operand Od, RegisterOperand RO,
-                    SDPatternOperator imm_type = null_frag,
-                    SDPatternOperator OpNode = null_frag> :
+		    SDPatternOperator imm_type = null_frag,
+		    SDPatternOperator OpNode = null_frag> :
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>;
 
 class AddiU32<string opstr, Operand Od, RegisterOperand RO,
-                    SDPatternOperator imm_type = null_frag,
-                    SDPatternOperator OpNode = null_frag> :
+		    SDPatternOperator imm_type = null_frag,
+		    SDPatternOperator OpNode = null_frag> :
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, _Pool_P32<0b00000> {
   bits<5> rt;
   bits<5> rs;
@@ -471,17 +483,18 @@ class AddiU32<string opstr, Operand Od, RegisterOperand RO,
   let Inst{15...0} = imm16;
 }
 
-class DivMod<string opstr, bits<6> psel, SDPatternOperator OpNode = null_frag> :
-    ArithLogicR32<opstr, GPR32NMOpnd, psel, OpNode> {
+class DivMod<string opstr, SDPatternOperator OpNode = null_frag> :
+    ArithLogicR32_Desc<opstr, GPR32NMOpnd, OpNode> {
   // Need to insert TEQ, because DIV(U)/MOD(U) don't trap on division by zero.
   bit usesCustomInserter = 1;
 }
 
-class CondLogicI32<string opstr, Operand Od, RegisterOperand RO,
-                    SDPatternOperator imm_type = null_frag,
-		    bits<4> psel,
-                    SDPatternOperator OpNode = null_frag> :
-  ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, _Pool_P_U12<psel> {
+class CondLogicI32_Desc<string opstr, Operand Od, RegisterOperand RO,
+                          SDPatternOperator imm_type = null_frag,
+			  SDPatternOperator OpNode = null_frag> :
+  ArithLogicINM<opstr, Od, RO, imm_type, OpNode>;
+
+class CondLogicI32_Enc<bits<4> psel> : _Pool_P_U12<psel> {
   bits<5> rt;
   bits<5> rs;
   bits<12> u12;
@@ -490,11 +503,12 @@ class CondLogicI32<string opstr, Operand Od, RegisterOperand RO,
   let Inst{11...0} = u12;
 }
 
-class ShiftI32<string opstr, Operand Od, RegisterOperand RO,
+class ShiftI32_Desc<string opstr, Operand Od, RegisterOperand RO,
                     SDPatternOperator imm_type = null_frag,
-		    bits<4> psel,
                     SDPatternOperator OpNode = null_frag> :
-  ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, _Pool_P_SHIFT<psel> {
+  ArithLogicINM<opstr, Od, RO, imm_type, OpNode>;
+
+class ShiftI32_Enc<bits<4> psel> : _Pool_P_SHIFT<psel> {
   bits<5> rt;
   bits<5> rs;
   bits<5> u5;
@@ -507,7 +521,7 @@ class ExtBaseNM<RegisterOperand RO = GPR32NMOpnd> :
   InstNM<(outs RO:$rt), (ins RO:$rs, uimm5:$pos, uimm5_plus1:$size),
          "ext\t$rt, $rs, $pos, $size",
          [(set RO:$rt, (MipsExt RO:$rs, immZExt5:$pos, immZExt5Plus1:$size))],
-         II_EXT>, _Pool_P_EXT_INS<0b1111>;
+         II_EXT>;
 
 class InsBaseNM<RegisterOperand RO = GPR32NMOpnd> :
   InstNM<(outs RO:$rt),
@@ -515,16 +529,30 @@ class InsBaseNM<RegisterOperand RO = GPR32NMOpnd> :
          "ins \t$rt, $rs, $pos, $size",
          [(set RO:$rt,
                (MipsIns RO:$rs, immZExt5:$pos, immZExt5Plus1:$size, RO:$src))],
-         II_INS>, _Pool_P_EXT_INS<0b1110> {
+         II_INS>{
   let Constraints = "$src = $rt";
 }
 
-class Trap<string opstr, RegisterOperand RO, Operand ImmOp, bits<1> isel> :
+class ExtInsBase_Enc<bits<4> isel> : _Pool_P_EXT_INS<isel> {
+  bits<5> rt;
+  bits<5> rs;
+  bits<5> pos;
+  bits<5> size;
+  
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{4...0} = pos;
+  let Inst{10...6} = size;
+}
+
+class Trap_Desc<string opstr, RegisterOperand RO, Operand ImmOp> :
   InstNM<(outs), (ins RO:$rs, RO:$rt, ImmOp:$imm),
-         !strconcat(opstr, "\t$rt, $rs, $imm"), []>,
-  _Pool_P_TRAP<isel> {
+         !strconcat(opstr, "\t$rt, $rs, $imm"), []> {
   let hasSideEffects = 1;
   let isCTI = 1;
+}
+
+class Trap_Enc<bits<1> isel> : _Pool_P_TRAP<isel> {
   bits<5> rt;
   bits<5> rs;
   bits<5> cd;
@@ -540,12 +568,13 @@ class RegImmNM<string opstr, Operand Od, RegisterOperand RO,
   InstNM<(outs RO:$rt), (ins Od:$imm), !strconcat(opstr, "\t$rt, $imm"),
          [(set RO:$rt, (OpNode imm_type:$imm))]>;
 
-class RegImm48<string opstr, Operand Od, RegisterOperand RO,
-	       bits<5> isel,
+class RegImm48_Desc<string opstr, Operand Od, RegisterOperand RO,
                SDPatternOperator imm_type = null_frag,
                SDPatternOperator OpNode = null_frag> :
   InstNM<(outs RO:$rt), (ins Od:$imm), !strconcat(opstr, "\t$rt, $imm"),
-         [(set RO:$rt, (OpNode imm_type:$imm))]>, _Pool_P48I<isel> {
+         [(set RO:$rt, (OpNode imm_type:$imm))]>;
+
+class RegImm48_Enc<bits<5> isel> : _Pool_P48I<isel> {
   bits<5> rt;
   bits<32> imm;
   let Inst{41...37} = rt;
@@ -725,59 +754,94 @@ class ReverseNM<string opstr, RegisterOperand RO, SDNode OpNode>:
 
 // 16-bit register operations
 let FastISelShouldIgnore = 1 in {
-def ADDu16_NM  : AddSubR16<"addu", GPR3Opnd, 0b0, add>;
-//def SUBu16_NM  : AddSubR16<"subu", GPR3Opnd, 0b1, sub>;
-def ADDu4x4_NM  : Arith4x4<"addu", GPR4Opnd, 0b00>;
-//def MULu4x4_NM  : Arith4x4<"mulu", GPR4Opnd, 0b01, mul>;
+def ADDu16_NM : AddSubR16_Desc<"addu16", GPR3Opnd, add>,
+    	      	AddSubR16_Enc<0b0>;
+def SUBu16_NM  : AddSubR16_Desc<"subu", GPR3Opnd, sub>,
+		 AddSubR16_Enc<0b1>;
+def ADDu4x4_NM : Arith4x4_Desc<"addu4 x4", GPR4Opnd, add>,
+		 Arith4x4_Enc<0b00>;
+def MULu4x4_NM  : Arith4x4_Desc<"mulu", GPR4Opnd, mul>,
+    		  Arith4x4_Enc<0b01>;
 }
 
 // _POOL32A0_0 pool of instructions.
-def SLLV_NM  : ArithLogicR32<"sllv", GPR32NMOpnd, 0b000010, shl>;
-def SRLV_NM  : ArithLogicR32<"srlv", GPR32NMOpnd, 0b000110, srl>;
-def SRAV_NM  : ArithLogicR32<"srav", GPR32NMOpnd, 0b001010, sra>;
-def ROTRV_NM : ArithLogicR32<"rotrv", GPR32NMOpnd, 0b001110, rotr>;
-def ADD_NM   : ArithLogicR32<"add", GPR32NMOpnd, 0b010010>;
-def ADDu_NM  : ArithLogicR32<"addu", GPR32NMOpnd, 0b010110, add>;
-
-def SUB_NM   : ArithLogicR32<"sub", GPR32NMOpnd, 0b011010>;
-def SUBu_NM  : ArithLogicR32<"subu", GPR32NMOpnd, 0b011110, sub>;
-def AND_NM   : ArithLogicR32<"and", GPR32NMOpnd, 0b100110, and>;
-def OR_NM    : ArithLogicR32<"or", GPR32NMOpnd, 0b101010, or>;
-def NOR_NM   : ArithLogicR32<"nor", GPR32NMOpnd, 0b101110>;
-def XOR_NM   : ArithLogicR32<"xor", GPR32NMOpnd, 0b110010, xor>;
-def SLT_NM   : ArithLogicR32<"slt", GPR32NMOpnd, 0b110110, setlt>;
-def SLTU_NM  : ArithLogicR32<"sltu", GPR32NMOpnd, 0b111010, setult>;
-def MUL_NM   : ArithLogicR32<"mul", GPR32NMOpnd, 0b000011, mul>;
-def MUH_NM   : ArithLogicR32<"muh", GPR32NMOpnd, 0b000111, mulhs>;
-def MULU_NM  : ArithLogicR32<"mulu", GPR32NMOpnd, 0b001011>;
-def MUHU_NM  : ArithLogicR32<"muhu", GPR32NMOpnd, 0b001111, mulhu>;
-def DIV_NM   : DivMod<"div", 0b010011, sdiv>;
-def MOD_NM   : DivMod<"mod", 0b010111, srem>;
-def DIVU_NM  : DivMod<"divu", 0b011011, udiv>;
-def MODU_NM  : DivMod<"modu", 0b011111, urem>;
+def SLLV_NM  : ArithLogicR32_Desc<"sllv", GPR32NMOpnd, shl>,
+	       ArithLogicR32_Enc<0b000010>;
+def SRLV_NM  : ArithLogicR32_Desc<"srlv", GPR32NMOpnd, srl>,
+	       ArithLogicR32_Enc<0b000110>;
+def SRAV_NM  : ArithLogicR32_Desc<"srav", GPR32NMOpnd, sra>,
+	       ArithLogicR32_Enc<0b001010>;
+def ROTRV_NM : ArithLogicR32_Desc<"rotrv", GPR32NMOpnd, rotr>,
+	       ArithLogicR32_Enc<0b001110>;
+def ADD_NM   : ArithLogicR32_Desc<"add", GPR32NMOpnd>,
+	       ArithLogicR32_Enc<0b001110>;
+def ADDu_NM  : ArithLogicR32_Desc<"addu", GPR32NMOpnd, add>,
+	       ArithLogicR32_Enc<0b010110>;
+def SUB_NM   : ArithLogicR32_Desc<"sub", GPR32NMOpnd>,
+	       ArithLogicR32_Enc<0b011010>;
+def SUBu_NM  : ArithLogicR32_Desc<"subu", GPR32NMOpnd, sub>,
+	       ArithLogicR32_Enc<0b011110>;
+def AND_NM   : ArithLogicR32_Desc<"and", GPR32NMOpnd, and>,
+    	       ArithLogicR32_Enc<0b100110>;
+def OR_NM    : ArithLogicR32_Desc<"or", GPR32NMOpnd, or>,
+	       ArithLogicR32_Enc<0b101010>;
+def NOR_NM   : ArithLogicR32_Desc<"nor", GPR32NMOpnd>,
+	       ArithLogicR32_Enc<0b101110>;
+def XOR_NM   : ArithLogicR32_Desc<"xor", GPR32NMOpnd, xor>,
+	       ArithLogicR32_Enc<0b110010>;
+def SLT_NM   : ArithLogicR32_Desc<"slt", GPR32NMOpnd, setlt>,
+	       ArithLogicR32_Enc<0b110110>;
+def SLTU_NM  : ArithLogicR32_Desc<"sltu", GPR32NMOpnd, setult>,
+	       ArithLogicR32_Enc<0b111010>;
+def MUL_NM   : ArithLogicR32_Desc<"mul", GPR32NMOpnd, mul>,
+	       ArithLogicR32_Enc<0b000011>;
+def MUH_NM   : ArithLogicR32_Desc<"muh", GPR32NMOpnd, mulhs>,
+	       ArithLogicR32_Enc<0b000111>;
+def MULU_NM  : ArithLogicR32_Desc<"mulu", GPR32NMOpnd>,
+	       ArithLogicR32_Enc<0b001011>;
+def MUHU_NM  : ArithLogicR32_Desc<"muhu", GPR32NMOpnd, mulhu>,
+	       ArithLogicR32_Enc<0b001111>;
+def DIV_NM   : DivMod<"div", sdiv>,
+	       ArithLogicR32_Enc<0b010011>;
+def MOD_NM   : DivMod<"mod", srem>,
+	       ArithLogicR32_Enc<0b010111>;
+def DIVU_NM  : DivMod<"divu", udiv>,
+	       ArithLogicR32_Enc<0b011011>;
+def MODU_NM  : DivMod<"modu", urem>,
+	       ArithLogicR32_Enc<0b011111>;
 
 // P.U12 pool of instructions
-def ORI_NM   : CondLogicI32<"ori", uimm12_nm, GPR32NMOpnd, imm32ZExt12, 0b0000, or>;
-def XORI_NM  : CondLogicI32<"xori", uimm12_nm, GPR32NMOpnd, imm32ZExt12, 0b0001, xor>;
-def ANDI_NM  : CondLogicI32<"andi", uimm16, GPR32NMOpnd, imm32ZExt12ANDI, 0b0010, and>;
-def SLTI_NM  : CondLogicI32<"slti", uimm12_nm, GPR32NMOpnd, imm32ZExt12, 0b0100, setlt>;
-def SLTIU_NM : CondLogicI32<"sltiu", uimm12_nm, GPR32NMOpnd, imm32ZExt12, 0b0101, setult>;
-def SEQI_NM  : CondLogicI32<"seqi", uimm12_nm, GPR32NMOpnd, imm32ZExt12, 0b0110, seteq>;
- 
-// P.SHIFT pool of instructions
-def SLL_NM  : ShiftI32<"sll", uimm5_nm, GPR32NMOpnd, imm32ZExt5, 0b0000, shl>;
-def SRL_NM  : ShiftI32<"srl", uimm5_nm, GPR32NMOpnd, imm32ZExt5, 0b0010, srl>;
-def SRA_NM  : ShiftI32<"sra", uimm5_nm, GPR32NMOpnd, imm32ZExt5, 0b0100, sra>;
-def ROTR_NM : ShiftI32<"rotr", uimm5_nm, GPR32NMOpnd, imm32ZExt5, 0b0110, rotr>;
+def ORI_NM   : CondLogicI32_Desc<"ori", uimm12_nm, GPR32NMOpnd, imm32ZExt12, or>,
+	       CondLogicI32_Enc<0b0000>;
+def XORI_NM  : CondLogicI32_Desc<"xori", uimm12_nm, GPR32NMOpnd, imm32ZExt12, xor>,
+	       CondLogicI32_Enc<0b0001>;
+def ANDI_NM  : CondLogicI32_Desc<"andi", uimm16, GPR32NMOpnd, imm32ZExt12ANDI, and>,
+	       CondLogicI32_Enc<0b0010>;
+def SLTI_NM  : CondLogicI32_Desc<"slti", uimm12_nm, GPR32NMOpnd, imm32ZExt12, setlt>,
+	       CondLogicI32_Enc<0b0100>;
+def SLTIU_NM : CondLogicI32_Desc<"sltiu", uimm12_nm, GPR32NMOpnd, imm32ZExt12, setult>,
+	       CondLogicI32_Enc<0b0101>;
+def SEQI_NM  : CondLogicI32_Desc<"seqi", uimm12_nm, GPR32NMOpnd, imm32ZExt12, seteq>,
+	       CondLogicI32_Enc<0b0110>;
 
-def EXT_NM : ExtBaseNM;
-def INS_NM : InsBaseNM;
+// P.SHIFT pool of instructions
+def SLL_NM  : ShiftI32_Desc<"sll", uimm5_nm, GPR32NMOpnd, imm32ZExt5, shl>,
+	      ShiftI32_Enc<0b0000>;
+def SRL_NM  : ShiftI32_Desc<"srl", uimm5_nm, GPR32NMOpnd, imm32ZExt5, srl>,
+	      ShiftI32_Enc<0b0010>;
+def SRA_NM  : ShiftI32_Desc<"sra", uimm5_nm, GPR32NMOpnd, imm32ZExt5, sra>,
+	      ShiftI32_Enc<0b0100>;
+def ROTR_NM : ShiftI32_Desc<"rotr", uimm5_nm, GPR32NMOpnd, imm32ZExt5, rotr>,
+	      ShiftI32_Enc<0b0110>;
+
+def EXT_NM : ExtBaseNM, ExtInsBase_Enc<0b1111>;
+def INS_NM : InsBaseNM, ExtInsBase_Enc<0b1110>;
 
 def ADDiu_NM : AddiU32<"addiu", uimm16_simm12, GPR32NMOpnd,
                              imm32SExt12OrZExt16, add>;
 let Constraints = "$rt = $rs" in
 def ADDIU48_NM : ArithLogicINM<"addiu[48]", simm32_relaxed, GPR32NMOpnd,
-                               imm32_NM, add>, _Pool_P48I<0b00001>;
+                               imm32_NM, add>, RegImm48_Enc<0b00001>;
 
 def LSA_NM : LoadScaledAddressNM<"lsa", GPR32NMOpnd>;
 
@@ -791,13 +855,17 @@ def BITREVW_NM : ReverseNM<"bitrevw", GPR32NMOpnd, bitreverse>;
 def BYTEREVW_NM : ReverseNM<"byterevw", GPR32NMOpnd, bswap>;
 
 // P.TRAP pool of instructions.
-def TEQ_NM : Trap<"teq", GPR32NMOpnd, uimm5_nm, 0b0>;
-def TNE_NM : Trap<"tne", GPR32NMOpnd, uimm5_nm, 0b1>;
+def TEQ_NM : Trap_Desc<"teq", GPR32NMOpnd, uimm5_nm>, Trap_Enc<0b0>;
+def TNE_NM : Trap_Desc<"tne", GPR32NMOpnd, uimm5_nm>, Trap_Enc<0b1>;
 
-def NOT_NM   : ArithLogicR16<"not", GPR3Opnd, 0b00, not>;
-def XOR16_NM : ArithLogicR16<"xor16", GPR3Opnd, 0b01>;
-def AND16_NM : ArithLogicR16<"and16", GPR3Opnd, 0b10>;
-def OR16_NM  : ArithLogicR16<"or16", GPR3Opnd, 0b11>;
+def NOT_NM   : ArithLogicR16U_Desc<"not16", GPR3Opnd, not>,
+	       ArithLogicR16_Enc<0b00>;
+def XOR16_NM : ArithLogicR16_Desc<"xor16", GPR3Opnd>,
+	       ArithLogicR16_Enc<0b01>;
+def AND16_NM : ArithLogicR16_Desc<"and16", GPR3Opnd>,
+	       ArithLogicR16_Enc<0b10>;
+def OR16_NM  : ArithLogicR16_Desc<"or16", GPR3Opnd>,
+	       ArithLogicR16_Enc<0b11>;
 
 def JRC_NM : IndirectBranchNM<"jrc", GPR32NMOpnd>;
 
@@ -805,10 +873,13 @@ def BALC_NM : CallNM<"balc", MipsJmpLink, tglobaladdr>, InstSize32;
 def MOVEBALC_NM : MoveBalcBase;
 
 let isReMaterializable = 1 in {
-def Li_NM : RegImm48<"li", simm32_relaxed, GPR32NMOpnd, 0b00000>;
-def LA_NM : RegImm48<"la", simm32_relaxed, GPR32NMOpnd, 0b00011>;
+def Li_NM : RegImm48_Desc<"li", simm32_relaxed, GPR32NMOpnd>,
+		RegImm48_Enc<0b00000>;
+def LA_NM : RegImm48_Desc<"la", simm32_relaxed, GPR32NMOpnd>,
+		RegImm48_Enc<0b00011>;
 
-def LAGPB_NM : RegImm48<"addiu.b", simm32_relaxed, GPR32NMOpnd, 0b00010> {
+def LAGPB_NM : RegImm48_Desc<"addiu.b", simm32_relaxed, GPR32NMOpnd>,
+		RegImm48_Enc<0b00010> {
     let AsmString = "addiu.b $rt, $$gp, %gprel( $imm )";
     let isReMaterializable = 1;
 }

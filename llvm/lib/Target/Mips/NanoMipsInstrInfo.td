@@ -477,10 +477,10 @@ class AddiU32<string opstr, Operand Od, RegisterOperand RO,
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, _Pool_P32<0b00000> {
   bits<5> rt;
   bits<5> rs;
-  bits<16> imm16;
+  bits<16> imm;
   let Inst{25...21} = rt;
   let Inst{20...16} = rs;
-  let Inst{15...0} = imm16;
+  let Inst{15...0} = imm;
 }
 
 class DivMod<string opstr, SDPatternOperator OpNode = null_frag> :
@@ -497,10 +497,10 @@ class CondLogicI32_Desc<string opstr, Operand Od, RegisterOperand RO,
 class CondLogicI32_Enc<bits<4> psel> : _Pool_P_U12<psel> {
   bits<5> rt;
   bits<5> rs;
-  bits<12> u12;
+  bits<12> imm;
   let Inst{25...21} = rt;
   let Inst{20...16} = rs;
-  let Inst{11...0} = u12;
+  let Inst{11...0} = imm;
 }
 
 class ShiftI32_Desc<string opstr, Operand Od, RegisterOperand RO,
@@ -511,10 +511,10 @@ class ShiftI32_Desc<string opstr, Operand Od, RegisterOperand RO,
 class ShiftI32_Enc<bits<4> psel> : _Pool_P_SHIFT<psel> {
   bits<5> rt;
   bits<5> rs;
-  bits<5> u5;
+  bits<5> imm;
   let Inst{25...21} = rt;
   let Inst{20...16} = rs;
-  let Inst{4...0} = u5;
+  let Inst{4...0} = imm;
 }
 
 class ExtBaseNM<RegisterOperand RO = GPR32NMOpnd> :
@@ -555,10 +555,10 @@ class Trap_Desc<string opstr, RegisterOperand RO, Operand ImmOp> :
 class Trap_Enc<bits<1> isel> : _Pool_P_TRAP<isel> {
   bits<5> rt;
   bits<5> rs;
-  bits<5> cd;
+  bits<5> imm;
   let Inst{25...21} = rt;
   let Inst{20...16} = rs;
-  let Inst{15...11} = cd;
+  let Inst{15...11} = imm;
 }
 
 // Instructions with 1 register (dest) and 1 immediate operand.

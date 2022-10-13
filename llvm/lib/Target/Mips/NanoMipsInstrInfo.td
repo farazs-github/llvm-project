@@ -385,6 +385,11 @@ class _Pool_POOL32A7<bits<3> psel> : _Pool_P32A<0b111> {
   let Inst{5...3} = psel;
 }
 
+class _Pool_PP_LSX<bit scaled, bits<4> isel> : _Pool_POOL32A7<0b000> {
+  let Inst{6} = scaled;
+  let Inst{10...7} = isel;
+}
+
 // TODO  BC_32 : _Pool_P_BAL<0b0>
 
 // 16-bit arithmetic and logical instructions with 4x4 register operands, P16_4X4
@@ -595,6 +600,55 @@ class LoadMemoryNM<string opstr, DAGOperand RO, DAGOperand MO,
   string BaseOpcode = opstr;
 }
 
+class LSMem_S9_Enc<bits<3> psel, bits<4> isel> : _Pool_P_LS_S9<psel>
+{
+  bits<5> rt;
+  bits<14> addr;
+  bits<5> base = addr{13...9};
+  bits<9> offset = addr{8...0};
+  let Inst{25...21} = rt;
+  let Inst{20...16} = base;
+  let Inst{14...11} = isel;
+  let Inst{15} = offset{8};
+  let Inst{7...0} = offset{7...0};
+}
+
+class LSMem_S9_Mult_Enc<bits<4> isel> : _Pool_P_LS_S9<isel{2...0}>
+{
+  bits<5> rt;
+  bits<14> addr;
+  bits<5> base = addr{13...9};
+  bits<9> offset = addr{8...0};
+  bits<3> count;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = base;
+  let Inst{11} = isel{3};
+  let Inst{15} = offset{8};
+  let Inst{7...0} = offset{7...0};
+  let Inst{14...12} = count;
+}
+
+class LSMem_U12_Enc<bits<4> isel> : _Pool_P_LS_U12<isel>
+{
+  bits<5> rt;
+  bits<17> addr;
+  bits<5> base = addr{16...12};
+  bits<12> offset = addr{11...0};
+  let Inst{25...21} = rt;
+  let Inst{20...16} = base;
+  let Inst{11...0} = offset;
+}
+
+class LSMemX_Enc<bit scaled, bits<4> isel> : _Pool_PP_LSX<scaled, isel>
+{
+  bits<5> rt;
+  bits<5> rs;
+  bits<5> rd;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{15...11} = rd;
+}
+
 class StoreMemoryNM<string opstr, DAGOperand RO, DAGOperand MO,
                     SDPatternOperator OpNode = null_frag,
                     ComplexPattern Addr = addr,
@@ -678,13 +732,13 @@ def RESTOREJRC_NM : SaveRestore<"restore.jrc">, InstSize32;
 
 class LoadMultipleNM<string opstr> :
     InstNM<(outs GPR32NMOpnd:$rt), (ins mem:$addr, uimm3plus1_nm:$count),
-           !strconcat(opstr, "\t$rt, $addr, $count"), []>, InstSize32 {
+           !strconcat(opstr, "\t$rt, $addr, $count"), []> {
   let DecoderMethod = "DecodeMem";
   let mayLoad = 1;
 }
 class StoreMultipleNM<string opstr> :
     InstNM<(outs), (ins GPR32NMOpnd:$rt, mem:$addr, uimm3plus1_nm:$count),
-           !strconcat(opstr, "\t$rt, $addr, $count"), []>, InstSize32 {
+           !strconcat(opstr, "\t$rt, $addr, $count"), []> {
   let DecoderMethod = "DecodeMem";
   let mayStore = 1;
 }
@@ -702,7 +756,7 @@ class UnalignedLoad<string opstr, SDNode OpNode,
                     RegisterOperand RO = GPR32NMOpnd> :
     InstNM<(outs RO:$rt), (ins mem_simm9:$addr, RO:$src),
            !strconcat(opstr, "\t$rt, $addr"),
-           [(set RO:$rt, (OpNode addrsimm9:$addr, RO:$src))]>, InstSize32 {
+           [(set RO:$rt, (OpNode addrsimm9:$addr, RO:$src))]> {
   let DecoderMethod = "DecodeMem";
   string Constraints = "$src = $rt";
   let mayLoad = 1;
@@ -713,7 +767,7 @@ class UnalignedStore<string opstr, SDNode OpNode,
                      RegisterOperand RO = GPR32NMOpnd> :
     InstNM<(outs), (ins RO:$rt, mem_simm9:$addr),
            !strconcat(opstr, "\t$rt, $addr"),
-           [(OpNode RO:$rt, addrsimm9:$addr)]>, InstSize32 {
+           [(OpNode RO:$rt, addrsimm9:$addr)]> {
   let DecoderMethod = "DecodeMem";
   let mayStore = 1;
 }
@@ -1123,59 +1177,95 @@ def : NMPat<(brcond (i32 (seteq (and GPR32NM:$rt, simm32power2:$imm), 0)), bb:$o
 //
 //===----------------------------------------------------------------------===//
 
-let isCodeGenOnly = 1 in {
 
 // TODO: addruimm12 and addrsimm9 need to be looked into again. Currently
 //       addruimm12 needs to come before addrsimm9, because addrsimm9 handles
 //       loads/store that do not fit the offset. If we put the same handling in
 //       addruimm12, this will cause addrsimm9 to never get selected.
-def LWs9_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem, load, addrsimm9, II_LW>, InstSize32;
-def LW_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem, load, addruimm12, II_LW>, InstSize32;
-def LWXS_NM : LoadMemoryNM<"lwxs", GPR32NMOpnd, mem, load, addrindexedlsl2, II_LW>, InstSize32;
-def LWX_NM : LoadMemoryNM<"lwx", GPR32NMOpnd, mem, load, addrindexed, II_LW>, InstSize32;
-def SW_NM : StoreMemoryNM<"sw", GPR32NMOpnd, mem, store, addruimm12, II_SW>, InstSize32;
-def SWs9_NM : StoreMemoryNM<"sw", GPR32NMOpnd, mem, store, addrsimm9, II_SW>, InstSize32;
-def SWXS_NM : StoreMemoryNM<"swxs", GPR32NMOpnd, mem, store, addrindexedlsl2, II_SW>, InstSize32;
-def SWX_NM : StoreMemoryNM<"swx", GPR32NMOpnd, mem, store, addrindexed, II_SW>, InstSize32;
+def LB_NM : LoadMemoryNM<"lb", GPR32NMOpnd, mem, sextloadi8, addruimm12, II_LB>,
+		LSMem_U12_Enc<0b0000>;
+def SB_NM : StoreMemoryNM<"sb", GPR32NMOpnd, mem, truncstorei8, addruimm12, II_SB>,
+		LSMem_U12_Enc<0b0001>;
+def LH_NM : LoadMemoryNM<"lh", GPR32NMOpnd, mem, sextloadi16, addruimm12, II_LH>,
+		LSMem_U12_Enc<0b0100>;
+def SH_NM : StoreMemoryNM<"sh", GPR32NMOpnd, mem, truncstorei16, addruimm12, II_SH>,
+		LSMem_U12_Enc<0b0101>;
+def LW_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem, load, addruimm12, II_LW>,
+    	      LSMem_U12_Enc<0b1000>;
+def SW_NM : StoreMemoryNM<"sw", GPR32NMOpnd, mem, store, addruimm12, II_SW>,
+    	      LSMem_U12_Enc<0b1001>;
+def LBU_NM : LoadMemoryNM<"lbu", GPR32NMOpnd, mem, zextloadi8, addruimm12, II_LBU>,
+		LSMem_U12_Enc<0b0010>;
+def LHU_NM : LoadMemoryNM<"lhu", GPR32NMOpnd, mem, zextloadi16, addruimm12, II_LHU>,
+		LSMem_U12_Enc<0b0110>;
 
-def LHU_NM : LoadMemoryNM<"lhu", GPR32NMOpnd, mem, zextloadi16, addruimm12, II_LHU>, InstSize32;
-def LHUs9_NM : LoadMemoryNM<"lhu", GPR32NMOpnd, mem, zextloadi16, addrsimm9, II_LHU>, InstSize32;
-def LHUXS_NM : LoadMemoryNM<"lhuxs", GPR32NMOpnd, mem, zextloadi16, addrindexedlsl1, II_LHU>, InstSize32;
-def LHUX_NM : LoadMemoryNM<"lhux", GPR32NMOpnd, mem, zextloadi16, addrindexed, II_LHU>, InstSize32;
-def LH_NM : LoadMemoryNM<"lh", GPR32NMOpnd, mem, sextloadi16, addruimm12, II_LH>, InstSize32;
-def LHs9_NM : LoadMemoryNM<"lh", GPR32NMOpnd, mem, sextloadi16, addrsimm9, II_LH>, InstSize32;
-def LHXS_NM : LoadMemoryNM<"lhxs", GPR32NMOpnd, mem, sextloadi16, addrindexedlsl1, II_LH>, InstSize32;
-def LHX_NM : LoadMemoryNM<"lhx", GPR32NMOpnd, mem, sextloadi16, addrindexed, II_LH>, InstSize32;
-def SH_NM : StoreMemoryNM<"sh", GPR32NMOpnd, mem, truncstorei16, addruimm12, II_SH>, InstSize32;
-def SHs9_NM : StoreMemoryNM<"sh", GPR32NMOpnd, mem, truncstorei16, addrsimm9, II_SH>, InstSize32;
-def SHXS_NM : StoreMemoryNM<"shxs", GPR32NMOpnd, mem, truncstorei16, addrindexedlsl1, II_SH>, InstSize32;
-def SHX_NM : StoreMemoryNM<"shx", GPR32NMOpnd, mem, truncstorei16, addrindexed, II_SH>, InstSize32;
+def LBs9_NM : LoadMemoryNM<"lb", GPR32NMOpnd, mem, sextloadi8, addrsimm9, II_LB>,
+		LSMem_S9_Enc<0b000, 0b0000>;
+def SBs9_NM : StoreMemoryNM<"sb", GPR32NMOpnd, mem, truncstorei8, addrsimm9, II_SB>,
+		LSMem_S9_Enc<0b000, 0b0001>;
+def LHs9_NM : LoadMemoryNM<"lh", GPR32NMOpnd, mem, sextloadi16, addrsimm9, II_LH>,
+		LSMem_S9_Enc<0b000, 0b0100>;
+def SHs9_NM : StoreMemoryNM<"sh", GPR32NMOpnd, mem, truncstorei16, addrsimm9, II_SH>,
+		LSMem_S9_Enc<0b000, 0b0101>;
+def LWs9_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem, load, addrsimm9, II_LW>,
+	      LSMem_S9_Enc<0b000, 0b1000>;
+def SWs9_NM : StoreMemoryNM<"sw", GPR32NMOpnd, mem, store, addrsimm9, II_SW>,
+	      LSMem_S9_Enc<0b000, 0b1001>;
+def LBUs9_NM : LoadMemoryNM<"lbu", GPR32NMOpnd, mem, zextloadi8, addrsimm9, II_LBU>,
+		LSMem_S9_Enc<0b000, 0b0010>;
+def LHUs9_NM : LoadMemoryNM<"lhu", GPR32NMOpnd, mem, zextloadi16, addrsimm9, II_LHU>,
+		LSMem_S9_Enc<0b000, 0b0110>;
 
-def LBU_NM : LoadMemoryNM<"lbu", GPR32NMOpnd, mem, zextloadi8, addruimm12, II_LBU>, InstSize32;
-def LBUs9_NM : LoadMemoryNM<"lbu", GPR32NMOpnd, mem, zextloadi8, addrsimm9, II_LBU>, InstSize32;
-def LBUX_NM : LoadMemoryNM<"lbux", GPR32NMOpnd, mem, zextloadi8, addrindexed, II_LBU>, InstSize32;
-def LB_NM : LoadMemoryNM<"lb", GPR32NMOpnd, mem, sextloadi8, addruimm12, II_LB>, InstSize32;
-def LBs9_NM : LoadMemoryNM<"lb", GPR32NMOpnd, mem, sextloadi8, addrsimm9, II_LB>, InstSize32;
-def LBX_NM : LoadMemoryNM<"lbx", GPR32NMOpnd, mem, sextloadi8, addrindexed, II_LB>, InstSize32;
-def SB_NM : StoreMemoryNM<"sb", GPR32NMOpnd, mem, truncstorei8, addruimm12, II_SB>, InstSize32;
-def SBs9_NM : StoreMemoryNM<"sb", GPR32NMOpnd, mem, truncstorei8, addrsimm9, II_SB>, InstSize32;
-def SBX_NM : StoreMemoryNM<"sbx", GPR32NMOpnd, mem, truncstorei8, addrindexed, II_SB>, InstSize32;
+def LBX_NM : LoadMemoryNM<"lbx", GPR32NMOpnd, mem, sextloadi8, addrindexed, II_LB>,
+		LSMemX_Enc<0, 0b0000>;
+def SBX_NM : StoreMemoryNM<"sbx", GPR32NMOpnd, mem, truncstorei8, addrindexed, II_SB>,
+		LSMemX_Enc<0, 0b0001>;
+def LHX_NM : LoadMemoryNM<"lhx", GPR32NMOpnd, mem, sextloadi16, addrindexed, II_LH>,
+		LSMemX_Enc<0, 0b0100>;
+def SHX_NM : StoreMemoryNM<"shx", GPR32NMOpnd, mem, truncstorei16, addrindexed, II_SH>,
+		LSMemX_Enc<0, 0b0101>;
+def LWX_NM : LoadMemoryNM<"lwx", GPR32NMOpnd, mem, load, addrindexed, II_LW>,
+		LSMemX_Enc<0, 0b1000>;
+def SWX_NM : StoreMemoryNM<"swx", GPR32NMOpnd, mem, store, addrindexed, II_SW>,
+		LSMemX_Enc<0, 0b1001>;
+def LBUX_NM : LoadMemoryNM<"lbux", GPR32NMOpnd, mem, zextloadi8, addrindexed, II_LBU>,
+		LSMemX_Enc<0, 0b0010>;
+def LHUX_NM : LoadMemoryNM<"lhux", GPR32NMOpnd, mem, zextloadi16, addrindexed, II_LHU>,
+		LSMemX_Enc<0, 0b0000>;
+
+def LHXS_NM : LoadMemoryNM<"lhxs", GPR32NMOpnd, mem, sextloadi16, addrindexedlsl1, II_LH>,
+		LSMemX_Enc<0b1, 0b0100>;
+def SHXS_NM : StoreMemoryNM<"shxs", GPR32NMOpnd, mem, truncstorei16, addrindexedlsl1, II_SH>,
+		LSMemX_Enc<0b1, 0b0101>;
+def LHUXS_NM : LoadMemoryNM<"lhuxs", GPR32NMOpnd, mem, zextloadi16, addrindexedlsl1, II_LHU>,
+		LSMemX_Enc<0b1, 0b0110>;
+def LWXS_NM : LoadMemoryNM<"lwxs", GPR32NMOpnd, mem, load, addrindexedlsl2, II_LW>,
+		LSMemX_Enc<0b1, 0b1000>;
+def SWXS_NM : StoreMemoryNM<"swxs", GPR32NMOpnd, mem, store, addrindexedlsl2, II_SW>,
+		LSMemX_Enc<0b1, 0b1001>;
+
+
+def UALH_NM : UnalignedLoad<"ualh", NMUnalignedLH>, LSMem_S9_Enc<0b001, 0b0100>;
+def UASH_NM : UnalignedStore<"uash", NMUnalignedSH>, LSMem_S9_Enc<0b001, 0b0101>;
+def LWM_NM : LoadMultipleNM<"lwm">, LSMem_S9_Mult_Enc<0b0100>;
+def UALWM_NM : LoadMultipleNM<"ualwm">, LSMem_S9_Mult_Enc<0b0101>;
+def SWM_NM : StoreMultipleNM<"swm">, LSMem_S9_Mult_Enc<0b1100>;
+def UASWM_NM : StoreMultipleNM<"uaswm">, LSMem_S9_Mult_Enc<0b1101>;
+
+def UALW_NM : UnalignedLoad<"ualw", NMUnalignedLW>, LSMem_S9_Enc<0b101, 0b1000>;
+def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>;
+
+//def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
+
+let isCodeGenOnly = 1 in {
 
 // TODO: Halfword load/store is never selected, this needs to be looked into.
-def UALH_NM : UnalignedLoad<"ualh", NMUnalignedLH>;
-def UALW_NM : UnalignedLoad<"ualw", NMUnalignedLW>;
-def UASH_NM : UnalignedStore<"uash", NMUnalignedSH>;
-def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>;
 
 def LWGP_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem>, InstSize32;
 
 def SWPC_NM : StorePCBase<GPR32NMOpnd, simm32>;
 def LWPC_NM : LoadPCBase<GPR32NMOpnd, simm32>;
 
-def LWM_NM : LoadMultipleNM<"lwm">;
-def UALWM_NM : LoadMultipleNM<"ualwm">;
-def SWM_NM : StoreMultipleNM<"swm">;
-def UASWM_NM : StoreMultipleNM<"uaswm">;
 
 def MOVE_NM : InstNM<(outs GPR32NMOpnd:$rt), (ins GPR32NMOpnd:$rs),
                       "move\t$rt, $rs", []>, InstSize16;

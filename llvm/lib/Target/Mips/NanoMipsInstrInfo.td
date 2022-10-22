@@ -661,15 +661,21 @@ class StoreMemoryNM<string opstr, DAGOperand RO, DAGOperand MO,
   string BaseOpcode = opstr;
 }
 
+class LSMem_PC48_Enc<bits<5> isel> : _Pool_P48I<isel> {
+  bits<5> rt;
+  bits<32> addr;
+  let Inst{41...37} = rt;
+  let Inst{31...16} = addr{15...0};
+  let Inst{15...0} = addr{31...16};
+}
+
 class LoadPCBase<DAGOperand RO, DAGOperand MO> :
-    InstNM<(outs RO:$rt), (ins MO:$addr), "lwpc\t$rt, $addr", [], II_LW>,
-    InstSize48 {
+    InstNM<(outs RO:$rt), (ins MO:$addr), "lwpc\t$rt, $addr", [], II_LW> {
   let mayLoad = 1;
 }
 
 class StorePCBase<DAGOperand RO, DAGOperand MO> :
-    InstNM<(outs), (ins RO:$rt, MO:$addr), "swpc\t$rt, $addr", [], II_SW>,
-    InstSize48 {
+    InstNM<(outs), (ins RO:$rt, MO:$addr), "swpc\t$rt, $addr", [], II_SW> {
   let mayStore = 1;
 }
 
@@ -1257,15 +1263,14 @@ def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>
 
 //def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
 
+def SWPC_NM : StorePCBase<GPR32NMOpnd, simm32>, LSMem_PC48_Enc<0b01011>;
+def LWPC_NM : LoadPCBase<GPR32NMOpnd, simm32>, LSMem_PC48_Enc<0b01111>;
+
 let isCodeGenOnly = 1 in {
 
 // TODO: Halfword load/store is never selected, this needs to be looked into.
 
 def LWGP_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem>, InstSize32;
-
-def SWPC_NM : StorePCBase<GPR32NMOpnd, simm32>;
-def LWPC_NM : LoadPCBase<GPR32NMOpnd, simm32>;
-
 
 def MOVE_NM : InstNM<(outs GPR32NMOpnd:$rt), (ins GPR32NMOpnd:$rs),
                       "move\t$rt, $rs", []>, InstSize16;

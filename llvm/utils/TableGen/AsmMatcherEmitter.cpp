@@ -615,6 +615,13 @@ struct MatchableInfo {
     if (int Cmp = Mnemonic.compare_insensitive(RHS.Mnemonic))
       return Cmp == -1;
 
+    // Compare the size of the instructions.
+    const CodeGenInstruction *ResultInst = getResultInst();
+    uint64_t LHSSize = getResultInst()->TheDef->getValueAsInt("Size");
+    uint64_t RHSSize = RHS.getResultInst()->TheDef->getValueAsInt("Size");
+    if (LHSSize != RHSSize)
+      return LHSSize < RHSSize;
+    
     if (AsmOperands.size() != RHS.AsmOperands.size())
       return AsmOperands.size() < RHS.AsmOperands.size();
 

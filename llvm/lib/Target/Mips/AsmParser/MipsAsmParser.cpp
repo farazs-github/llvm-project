@@ -1370,6 +1370,31 @@ public:
     return isMem() && isa<MCConstantExpr>(getMemOff());
   }
 
+  template <unsigned Bits, unsigned ShiftAmount = 0>
+  bool isMemWithUimmOffset() const {
+    if (!isMem())
+      return false;
+    if (!getMemBase()->isGPRAsmReg())
+      return false;
+    if ((isConstantMemOff() &&
+         isShiftedUInt<Bits, ShiftAmount>(getConstantMemOff())))
+      return true;
+    return false;
+    MCValue Res;
+    bool IsReloc = getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    return IsReloc && isShiftedUInt<Bits, ShiftAmount>(Res.getConstant());
+  }
+
+  bool isMemRx() const {
+    if (!isMem())
+      return false;
+    if (!getMemBase()->isGPRAsmReg()
+	|| (getConstantMemOff() < 0)
+	|| (getConstantMemOff() > 31))
+      return false;
+    return true;
+  }
+  
   // Allow relocation operators.
   template <unsigned Bits, unsigned ShiftAmount = 0>
   bool isMemWithSimmOffset() const {

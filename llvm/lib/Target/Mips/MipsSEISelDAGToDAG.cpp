@@ -544,6 +544,22 @@ bool MipsSEDAGToDAGISel::selectIntAddrUImm12(SDValue Addr, SDValue &Base,
   return selectAddrFrameIndexUOffset(Addr, Base, Offset, 12, 0);
 }
 
+
+bool MipsSEDAGToDAGISel::selectIntAddrUImm6s2(SDValue Addr, SDValue &Base,
+                                             SDValue &Offset) const {
+  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 4, 2);
+}
+
+bool MipsSEDAGToDAGISel::selectIntAddrUImm3s1(SDValue Addr, SDValue &Base,
+                                             SDValue &Offset) const {
+  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 2, 1);
+}
+
+bool MipsSEDAGToDAGISel::selectIntAddrUImm2(SDValue Addr, SDValue &Base,
+                                             SDValue &Offset) const {
+  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 2);
+}
+
 // A load/store 'x' indexed (reg + reg)
 bool MipsSEDAGToDAGISel::selectIntAddrIndexed(SDValue Addr, SDValue &Base,
                                               SDValue &Offset) const {

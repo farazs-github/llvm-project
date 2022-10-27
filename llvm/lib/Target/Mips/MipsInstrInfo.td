@@ -1116,6 +1116,24 @@ def MipsMemSimmPtrAsmOperand : AsmOperandClass {
   let DiagnosticType = "MemSImmPtr";
 }
 
+class MipsMemUimmAsmOperand<int Width, int Shift = 0> : AsmOperandClass {
+  let Name = "MemOffsetUimm" # Width # "_" # Shift;
+  let SuperClasses = [MipsMemAsmOperand];
+  let RenderMethod = "addMemOperands";
+  let ParserMethod = "parseMemOperand";
+  let PredicateMethod = "isMemWithUimmOffset<" # Width # ", " # Shift # ">";
+  let DiagnosticType = !if(!eq(Shift, 0), "MemUImm" # Width,
+                                          "MemUImm" # Width # "Lsl" # Shift);
+}
+
+def MipsMemRxAsmOperand : AsmOperandClass {
+  let Name = "MemRx";
+  let SuperClasses = [MipsMemAsmOperand];
+  let RenderMethod = "addMemOperands";
+  let ParserMethod = "parseMemOperand";
+  let PredicateMethod = "isMemRx";
+}
+
 def MipsInvertedImmoperand : AsmOperandClass {
   let Name = "InvNum";
   let RenderMethod = "addImmOperands";

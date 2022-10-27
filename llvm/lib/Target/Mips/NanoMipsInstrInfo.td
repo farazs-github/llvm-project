@@ -99,6 +99,41 @@ def uimm16_nm : Operand<i32> {
   let ParserMatchClass = !cast<AsmOperandClass>("SImm16AsmOperandClass");
 }
 
+def mem_nms9 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm9";
+  let ParserMatchClass = MipsMemSimmAsmOperand<9>;
+}
+
+def mem_nmu12 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm12";
+  let ParserMatchClass = MipsMemUimmAsmOperand<12>;
+}
+
+def mem_nmpcrel : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm9";
+  let ParserMatchClass = MipsMemSimmAsmOperand<9>;
+}
+
+def mem_nmrx : mem_generic {
+  let EncoderMethod = "getMemEncodingNMRX";
+  let ParserMatchClass = MipsMemRxAsmOperand;
+}
+
+def mem_nm6s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm6S2";
+  let ParserMatchClass = MipsMemUimmAsmOperand<4,2>;
+}
+
+def mem_nm3s1 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm3S1";
+  let ParserMatchClass = MipsMemUimmAsmOperand<2,1>;
+}
+
+def mem_nm2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm2";
+  let ParserMatchClass = MipsMemUimmAsmOperand<2>;
+}
+
 def simm32power2 : IntImmLeaf<i32, [{ return isPowerOf2_32(Imm.getSExtValue()); }]>;
 
 def uimm16_simm12 : Operand<i32>;
@@ -108,6 +143,9 @@ def addruimm12 : ComplexPattern<iPTR, 2, "selectIntAddrUImm12", [frameindex]>;
 def addrindexed : ComplexPattern<iPTR, 2, "selectIntAddrIndexed", [frameindex]>;
 def addrindexedlsl1 : ComplexPattern<iPTR, 2, "selectIntAddrIndexedLsl1", [frameindex]>;
 def addrindexedlsl2 : ComplexPattern<iPTR, 2, "selectIntAddrIndexedLsl2", []>;
+def addruimm6s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm6s2", [frameindex]>;
+def addruimm3s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm3s1", [frameindex]>;
+def addruimm2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm2", [frameindex]>;
 
 def Log2XForm : SDNodeXForm<imm, [{ return CurDAG->getTargetConstant(Log2_32(N->getZExtValue()),
                                                                    SDLoc(N), MVT::i32);
@@ -587,19 +625,6 @@ class RegImm48_Enc<bits<5> isel> : _Pool_P48I<isel> {
   let Inst{15...0} = imm{31...16};
 }
 
-class LoadMemoryNM<string opstr, DAGOperand RO, DAGOperand MO,
-                   SDPatternOperator OpNode = null_frag,
-                   ComplexPattern Addr = addr,
-                   InstrItinClass itin = NoItinerary> :
-    InstNM<(outs RO:$rt), (ins MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
-           [(set RO:$rt, (OpNode Addr:$addr))],
-           itin> {
-  let DecoderMethod = "DecodeMem";
-  let canFoldAsLoad = 1;
-  let mayLoad = 1;
-  string BaseOpcode = opstr;
-}
-
 class LSMem_S9_Enc<bits<3> psel, bits<4> isel> : _Pool_P_LS_S9<psel>
 {
   bits<5> rt;
@@ -641,20 +666,118 @@ class LSMem_U12_Enc<bits<4> isel> : _Pool_P_LS_U12<isel>
 
 class LSMemX_Enc<bit scaled, bits<4> isel> : _Pool_PP_LSX<scaled, isel>
 {
-  bits<5> rt;
-  bits<5> rs;
   bits<5> rd;
-  let Inst{25...21} = rt;
-  let Inst{20...16} = rs;
+  bits<5> index;
+  bits<5> base;
+  let Inst{25...21} = base;
+  let Inst{20...16} = index;
   let Inst{15...11} = rd;
 }
 
-class StoreMemoryNM<string opstr, DAGOperand RO, DAGOperand MO,
+class LSMem16_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<3> rt;
+  bits<9> addr;
+  bits<3> base = addr{8...6};
+  bits<4> offset = addr{5...2};
+  let Inst{9...7} = rt;
+  let Inst{6...4} = base;
+  let Inst{3...0} = offset;
+}
+
+class LHMem16_Enc<bits<2> isel> : _Pool_P16_LH<isel>
+{
+  bits<3> rt;
+  bits<6> addr;
+  bits<3> base = addr{5...3};
+  bits<3> offset = addr{2...0};
+  let Inst{9...7} = rt;
+  let Inst{6...4} = base;
+  let Inst{2...1} = offset{2...1};
+}
+
+class LBMem16_Enc<bits<2> isel> : _Pool_P16_LB<isel>
+{
+  bits<3> rt;
+  bits<5> addr;
+  bits<3> base = addr{4...2};
+  bits<2> offset = addr{1...0};
+  let Inst{9...7} = rt;
+  let Inst{6...4} = base;
+  let Inst{1...0} = offset{1...0};
+}
+
+class LoadMemoryNM<string opstr, DAGOperand MO,
+                   SDPatternOperator OpNode = null_frag,
+                   ComplexPattern Addr = addr,
+                   InstrItinClass itin = NoItinerary> :
+    InstNM<(outs GPR32NMOpnd:$rt), (ins MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
+           [(set GPR32NMOpnd:$rt, (OpNode Addr:$addr))],
+           itin> {
+  let DecoderMethod = "DecodeMem";
+  let canFoldAsLoad = 1;
+  let mayLoad = 1;
+  string BaseOpcode = opstr;
+}
+
+class LoadMemoryX<string opstr, DAGOperand MO,
+                   SDPatternOperator OpNode = null_frag,
+                   ComplexPattern Addr = addr,
+                   InstrItinClass itin = NoItinerary> :
+  InstNM<(outs GPR32NMOpnd:$rd), (ins PtrRC:$base, PtrRC:$index),
+         !strconcat(opstr, "\t$rd, ${index}(${base})"),
+	 [],
+	 itin> {
+  let DecoderMethod = "DecodeMem";
+  let canFoldAsLoad = 1;
+  let mayLoad = 1;
+  string BaseOpcode = opstr;
+}
+
+class StoreMemoryX<string opstr, DAGOperand MO,
                     SDPatternOperator OpNode = null_frag,
                     ComplexPattern Addr = addr,
                     InstrItinClass itin> :
-    InstNM<(outs), (ins RO:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
-           [(OpNode RO:$rt, Addr:$addr)],
+    InstNM<(outs), (ins GPR32NMOpnd:$rd, PtrRC:$base, PtrRC:$index),
+    		   !strconcat(opstr, "\t$rd, ${index}(${base})"),
+           	   [],
+           	   itin> {
+  let DecoderMethod = "DecodeMem";
+  let mayStore = 1;
+  string BaseOpcode = opstr;
+}
+
+class LoadMemoryNM16<string opstr, DAGOperand MO,
+                    SDPatternOperator OpNode = null_frag,
+                    ComplexPattern Addr = addr,
+                    InstrItinClass itin = NoItinerary> :
+    InstNM<(outs GPR3Opnd:$rt), (ins MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
+           [(set GPR3Opnd:$rt, (OpNode Addr:$addr))],
+           itin> {
+  let DecoderMethod = "DecodeMem";
+  let canFoldAsLoad = 1;
+  let mayLoad = 1;
+  string BaseOpcode = opstr;
+}
+
+class StoreMemoryNM<string opstr, DAGOperand MO,
+                    SDPatternOperator OpNode = null_frag,
+                    ComplexPattern Addr = addr,
+                    InstrItinClass itin> :
+    InstNM<(outs), (ins GPR32NMOpnd:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
+           [(OpNode GPR32NMOpnd:$rt, Addr:$addr)],
+           itin> {
+  let DecoderMethod = "DecodeMem";
+  let mayStore = 1;
+  string BaseOpcode = opstr;
+}
+
+class StoreMemoryNM16<string opstr, DAGOperand MO,
+                      SDPatternOperator OpNode = null_frag,
+                      ComplexPattern Addr = addr,
+                      InstrItinClass itin> :
+    InstNM<(outs), (ins GPR3Opnd:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
+           [(OpNode GPR3Opnd:$rt, Addr:$addr)],
            itin> {
   let DecoderMethod = "DecodeMem";
   let mayStore = 1;
@@ -737,13 +860,13 @@ def RESTORE_NM : SaveRestore<"restore">, InstSize32;
 def RESTOREJRC_NM : SaveRestore<"restore.jrc">, InstSize32;
 
 class LoadMultipleNM<string opstr> :
-    InstNM<(outs GPR32NMOpnd:$rt), (ins mem:$addr, uimm3plus1_nm:$count),
+    InstNM<(outs GPR32NMOpnd:$rt), (ins mem_nms9:$addr, uimm3plus1_nm:$count),
            !strconcat(opstr, "\t$rt, $addr, $count"), []> {
   let DecoderMethod = "DecodeMem";
   let mayLoad = 1;
 }
 class StoreMultipleNM<string opstr> :
-    InstNM<(outs), (ins GPR32NMOpnd:$rt, mem:$addr, uimm3plus1_nm:$count),
+    InstNM<(outs), (ins GPR32NMOpnd:$rt, mem_nms9:$addr, uimm3plus1_nm:$count),
            !strconcat(opstr, "\t$rt, $addr, $count"), []> {
   let DecoderMethod = "DecodeMem";
   let mayStore = 1;
@@ -760,7 +883,7 @@ class EffectiveAddressNM<string opstr, RegisterOperand RO> :
 
 class UnalignedLoad<string opstr, SDNode OpNode,
                     RegisterOperand RO = GPR32NMOpnd> :
-    InstNM<(outs RO:$rt), (ins mem_simm9:$addr, RO:$src),
+    InstNM<(outs RO:$rt), (ins mem_nms9:$addr, RO:$src),
            !strconcat(opstr, "\t$rt, $addr"),
            [(set RO:$rt, (OpNode addrsimm9:$addr, RO:$src))]> {
   let DecoderMethod = "DecodeMem";
@@ -771,7 +894,7 @@ class UnalignedLoad<string opstr, SDNode OpNode,
 
 class UnalignedStore<string opstr, SDNode OpNode,
                      RegisterOperand RO = GPR32NMOpnd> :
-    InstNM<(outs), (ins RO:$rt, mem_simm9:$addr),
+    InstNM<(outs), (ins RO:$rt, mem_nms9:$addr),
            !strconcat(opstr, "\t$rt, $addr"),
            [(OpNode RO:$rt, addrsimm9:$addr)]> {
   let DecoderMethod = "DecodeMem";
@@ -1182,74 +1305,89 @@ def : NMPat<(brcond (i32 (seteq (and GPR32NM:$rt, simm32power2:$imm), 0)), bb:$o
 // Load / store instructions
 //
 //===----------------------------------------------------------------------===//
+def LW16_NM : LoadMemoryNM16<"lw", mem_nm6s2, load, addruimm6s2, II_LW>,
+    	      LSMem16_Enc<0b00001>;
+def SW16_NM : StoreMemoryNM16<"sw", mem_nm6s2, store, addruimm6s2, II_SW>,
+    	      LSMem16_Enc<0b10001>;
+def LH16_NM : LoadMemoryNM16<"lh", mem_nm3s1, sextloadi16, addruimm3s1, II_LH>,
+    	      LHMem16_Enc<0b00>;
+def LHU16_NM : LoadMemoryNM16<"lhu", mem_nm3s1, zextloadi16, addruimm3s1, II_LH>,
+    	      LHMem16_Enc<0b10>;
+def SH16_NM : StoreMemoryNM16<"sh", mem_nm3s1, truncstorei16, addruimm3s1, II_SH>,
+    	      LHMem16_Enc<0b01>;
 
+def LB16_NM : LoadMemoryNM16<"lb", mem_nm2, sextloadi8, addruimm2, II_LB>,
+    	      LBMem16_Enc<0b00>;
+def LBU16_NM : LoadMemoryNM16<"lbu", mem_nm2, zextloadi8, addruimm2, II_LB>,
+    	      LBMem16_Enc<0b10>;
+def SB16_NM : StoreMemoryNM16<"sb", mem_nm2, truncstorei8, addruimm2, II_SB>,
+    	      LHMem16_Enc<0b01>;
 
 // TODO: addruimm12 and addrsimm9 need to be looked into again. Currently
 //       addruimm12 needs to come before addrsimm9, because addrsimm9 handles
 //       loads/store that do not fit the offset. If we put the same handling in
 //       addruimm12, this will cause addrsimm9 to never get selected.
-def LB_NM : LoadMemoryNM<"lb", GPR32NMOpnd, mem, sextloadi8, addruimm12, II_LB>,
+def LB_NM : LoadMemoryNM<"lb", mem_nmu12, sextloadi8, addruimm12, II_LB>,
 		LSMem_U12_Enc<0b0000>;
-def SB_NM : StoreMemoryNM<"sb", GPR32NMOpnd, mem, truncstorei8, addruimm12, II_SB>,
+def SB_NM : StoreMemoryNM<"sb", mem_nmu12, truncstorei8, addruimm12, II_SB>,
 		LSMem_U12_Enc<0b0001>;
-def LH_NM : LoadMemoryNM<"lh", GPR32NMOpnd, mem, sextloadi16, addruimm12, II_LH>,
+def LH_NM : LoadMemoryNM<"lh", mem_nmu12, sextloadi16, addruimm12, II_LH>,
 		LSMem_U12_Enc<0b0100>;
-def SH_NM : StoreMemoryNM<"sh", GPR32NMOpnd, mem, truncstorei16, addruimm12, II_SH>,
+def SH_NM : StoreMemoryNM<"sh", mem_nmu12, truncstorei16, addruimm12, II_SH>,
 		LSMem_U12_Enc<0b0101>;
-def LW_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem, load, addruimm12, II_LW>,
+def LW_NM : LoadMemoryNM<"lw", mem_nmu12, load, addruimm12, II_LW>,
     	      LSMem_U12_Enc<0b1000>;
-def SW_NM : StoreMemoryNM<"sw", GPR32NMOpnd, mem, store, addruimm12, II_SW>,
+def SW_NM : StoreMemoryNM<"sw", mem_nmu12, store, addruimm12, II_SW>,
     	      LSMem_U12_Enc<0b1001>;
-def LBU_NM : LoadMemoryNM<"lbu", GPR32NMOpnd, mem, zextloadi8, addruimm12, II_LBU>,
+def LBU_NM : LoadMemoryNM<"lbu", mem_nmu12, zextloadi8, addruimm12, II_LBU>,
 		LSMem_U12_Enc<0b0010>;
-def LHU_NM : LoadMemoryNM<"lhu", GPR32NMOpnd, mem, zextloadi16, addruimm12, II_LHU>,
+def LHU_NM : LoadMemoryNM<"lhu", mem_nmu12, zextloadi16, addruimm12, II_LHU>,
 		LSMem_U12_Enc<0b0110>;
 
-def LBs9_NM : LoadMemoryNM<"lb", GPR32NMOpnd, mem, sextloadi8, addrsimm9, II_LB>,
+def LBs9_NM : LoadMemoryNM<"lb", mem_nms9, sextloadi8, addrsimm9, II_LB>,
 		LSMem_S9_Enc<0b000, 0b0000>;
-def SBs9_NM : StoreMemoryNM<"sb", GPR32NMOpnd, mem, truncstorei8, addrsimm9, II_SB>,
+def SBs9_NM : StoreMemoryNM<"sb", mem_nms9, truncstorei8, addrsimm9, II_SB>,
 		LSMem_S9_Enc<0b000, 0b0001>;
-def LHs9_NM : LoadMemoryNM<"lh", GPR32NMOpnd, mem, sextloadi16, addrsimm9, II_LH>,
+def LHs9_NM : LoadMemoryNM<"lh", mem_nms9, sextloadi16, addrsimm9, II_LH>,
 		LSMem_S9_Enc<0b000, 0b0100>;
-def SHs9_NM : StoreMemoryNM<"sh", GPR32NMOpnd, mem, truncstorei16, addrsimm9, II_SH>,
+def SHs9_NM : StoreMemoryNM<"sh", mem_nms9, truncstorei16, addrsimm9, II_SH>,
 		LSMem_S9_Enc<0b000, 0b0101>;
-def LWs9_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem, load, addrsimm9, II_LW>,
+def LWs9_NM : LoadMemoryNM<"lw", mem_nms9, load, addrsimm9, II_LW>,
 	      LSMem_S9_Enc<0b000, 0b1000>;
-def SWs9_NM : StoreMemoryNM<"sw", GPR32NMOpnd, mem, store, addrsimm9, II_SW>,
+def SWs9_NM : StoreMemoryNM<"sw", mem_nms9, store, addrsimm9, II_SW>,
 	      LSMem_S9_Enc<0b000, 0b1001>;
-def LBUs9_NM : LoadMemoryNM<"lbu", GPR32NMOpnd, mem, zextloadi8, addrsimm9, II_LBU>,
+def LBUs9_NM : LoadMemoryNM<"lbu", mem_nms9, zextloadi8, addrsimm9, II_LBU>,
 		LSMem_S9_Enc<0b000, 0b0010>;
-def LHUs9_NM : LoadMemoryNM<"lhu", GPR32NMOpnd, mem, zextloadi16, addrsimm9, II_LHU>,
+def LHUs9_NM : LoadMemoryNM<"lhu", mem_nms9, zextloadi16, addrsimm9, II_LHU>,
 		LSMem_S9_Enc<0b000, 0b0110>;
 
-def LBX_NM : LoadMemoryNM<"lbx", GPR32NMOpnd, mem, sextloadi8, addrindexed, II_LB>,
+def LBX_NM : LoadMemoryNM<"lbx", mem_nmrx, sextloadi8, addrindexed, II_LB>,
 		LSMemX_Enc<0, 0b0000>;
-def SBX_NM : StoreMemoryNM<"sbx", GPR32NMOpnd, mem, truncstorei8, addrindexed, II_SB>,
+def SBX_NM : StoreMemoryNM<"sbx", mem_nmrx, truncstorei8, addrindexed, II_SB>,
 		LSMemX_Enc<0, 0b0001>;
-def LHX_NM : LoadMemoryNM<"lhx", GPR32NMOpnd, mem, sextloadi16, addrindexed, II_LH>,
+def LHX_NM : LoadMemoryNM<"lhx", mem_nmrx, sextloadi16, addrindexed, II_LH>,
 		LSMemX_Enc<0, 0b0100>;
-def SHX_NM : StoreMemoryNM<"shx", GPR32NMOpnd, mem, truncstorei16, addrindexed, II_SH>,
+def SHX_NM : StoreMemoryNM<"shx", mem_nmrx, truncstorei16, addrindexed, II_SH>,
 		LSMemX_Enc<0, 0b0101>;
-def LWX_NM : LoadMemoryNM<"lwx", GPR32NMOpnd, mem, load, addrindexed, II_LW>,
+def LWX_NM : LoadMemoryX<"lwx", mem_nmrx, load, addrindexed, II_LW>,
 		LSMemX_Enc<0, 0b1000>;
-def SWX_NM : StoreMemoryNM<"swx", GPR32NMOpnd, mem, store, addrindexed, II_SW>,
+def SWX_NM : StoreMemoryNM<"swx", mem_nmrx, store, addrindexed, II_SW>,
 		LSMemX_Enc<0, 0b1001>;
-def LBUX_NM : LoadMemoryNM<"lbux", GPR32NMOpnd, mem, zextloadi8, addrindexed, II_LBU>,
+def LBUX_NM : LoadMemoryNM<"lbux", mem_nmrx, zextloadi8, addrindexed, II_LBU>,
 		LSMemX_Enc<0, 0b0010>;
-def LHUX_NM : LoadMemoryNM<"lhux", GPR32NMOpnd, mem, zextloadi16, addrindexed, II_LHU>,
+def LHUX_NM : LoadMemoryNM<"lhux", mem_nmrx, zextloadi16, addrindexed, II_LHU>,
 		LSMemX_Enc<0, 0b0000>;
 
-def LHXS_NM : LoadMemoryNM<"lhxs", GPR32NMOpnd, mem, sextloadi16, addrindexedlsl1, II_LH>,
+def LHXS_NM : LoadMemoryNM<"lhxs", mem_nmrx, sextloadi16, addrindexedlsl1, II_LH>,
 		LSMemX_Enc<0b1, 0b0100>;
-def SHXS_NM : StoreMemoryNM<"shxs", GPR32NMOpnd, mem, truncstorei16, addrindexedlsl1, II_SH>,
+def SHXS_NM : StoreMemoryNM<"shxs", mem_nmrx, truncstorei16, addrindexedlsl1, II_SH>,
 		LSMemX_Enc<0b1, 0b0101>;
-def LHUXS_NM : LoadMemoryNM<"lhuxs", GPR32NMOpnd, mem, zextloadi16, addrindexedlsl1, II_LHU>,
+def LHUXS_NM : LoadMemoryNM<"lhuxs", mem_nmrx, zextloadi16, addrindexedlsl1, II_LHU>,
 		LSMemX_Enc<0b1, 0b0110>;
-def LWXS_NM : LoadMemoryNM<"lwxs", GPR32NMOpnd, mem, load, addrindexedlsl2, II_LW>,
+def LWXS_NM : LoadMemoryNM<"lwxs", mem_nmrx, load, addrindexedlsl2, II_LW>,
 		LSMemX_Enc<0b1, 0b1000>;
-def SWXS_NM : StoreMemoryNM<"swxs", GPR32NMOpnd, mem, store, addrindexedlsl2, II_SW>,
+def SWXS_NM : StoreMemoryNM<"swxs", mem_nmrx, store, addrindexedlsl2, II_SW>,
 		LSMemX_Enc<0b1, 0b1001>;
-
 
 def UALH_NM : UnalignedLoad<"ualh", NMUnalignedLH>, LSMem_S9_Enc<0b001, 0b0100>;
 def UASH_NM : UnalignedStore<"uash", NMUnalignedSH>, LSMem_S9_Enc<0b001, 0b0101>;
@@ -1258,7 +1396,7 @@ def UALWM_NM : LoadMultipleNM<"ualwm">, LSMem_S9_Mult_Enc<0b0101>;
 def SWM_NM : StoreMultipleNM<"swm">, LSMem_S9_Mult_Enc<0b1100>;
 def UASWM_NM : StoreMultipleNM<"uaswm">, LSMem_S9_Mult_Enc<0b1101>;
 
-def UALW_NM : UnalignedLoad<"ualw", NMUnalignedLW>, LSMem_S9_Enc<0b101, 0b1000>;
+def UALW_NM : UnalignedLoad<"ualw", NMUnalignedLW>, LSMem_S9_Enc<0b101, 0b0000>;
 def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>;
 
 //def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
@@ -1270,7 +1408,7 @@ let isCodeGenOnly = 1 in {
 
 // TODO: Halfword load/store is never selected, this needs to be looked into.
 
-def LWGP_NM : LoadMemoryNM<"lw", GPR32NMOpnd, mem>, InstSize32;
+def LWGP_NM : LoadMemoryNM<"lw", mem>, InstSize32;
 
 def MOVE_NM : InstNM<(outs GPR32NMOpnd:$rt), (ins GPR32NMOpnd:$rs),
                       "move\t$rt, $rs", []>, InstSize16;

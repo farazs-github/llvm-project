@@ -712,11 +712,12 @@ def : InstRW<[GenericWriteLoad], (instrs LW_NM, LWGP_NM, LWs9_NM,
                                   LHX_NM, LHXS_NM, LBUX_NM, LBX_NM,
                                   RESTOREJRC_NM, RESTORE_NM, SAVE_NM,
                                   UALH_NM, UALW_NM, LWM_NM, UALWM_NM,
-                                  LWPC_NM)>;
+                                  LWPC_NM, LW16_NM, LH16_NM, LHU16_NM,
+				  LB16_NM, LBU16_NM)>;
 
-def: InstRW<[GenericWriteStore], (instrs SW_NM, SWs9_NM,
+def: InstRW<[GenericWriteStore], (instrs SW_NM, SWs9_NM, SW16_NM, SH16_NM,
                                   SH_NM, SHs9_NM,
-                                  SB_NM, SBs9_NM,
+                                  SB_NM, SBs9_NM, SB16_NM,
                                   SWX_NM, SWXS_NM, SHX_NM, SHXS_NM, SBX_NM,
                                   UASH_NM, UASW_NM, SWM_NM, UASWM_NM, SWPC_NM)>;
 

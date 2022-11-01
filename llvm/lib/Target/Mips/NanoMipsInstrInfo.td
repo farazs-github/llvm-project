@@ -78,6 +78,22 @@ def NaImm12AsmOperandClass : ConstantSImmRangeAsmOperandClass<4095, 1, []>;
 def UImm3Plus1AsmOperandClass :
   ConstantUImmAsmOperandClass<3, [UImm5AsmOperandClass], 1>;
 
+class NMMemGPAsmOperand<int Bits, int Align, list<AsmOperandClass> Supers = []>
+    : AsmOperandClass {
+  let Name = "NMMemGP" # Bits # "s" # Align;
+  let RenderMethod = "addMemOperands";
+  let SuperClasses = Supers;
+  let PredicateMethod = "isMemWithUimmOffsetGP<" # Bits # "," # Align # ">";
+}
+
+class NMMemSPAsmOperand<int Bits, int Align, list<AsmOperandClass> Supers = []>
+    : AsmOperandClass {
+  let Name = "NMMemSP" # Bits # "s" # Align;
+  let RenderMethod = "addMemOperands";
+  let SuperClasses = Supers;
+  let PredicateMethod = "isMemWithUimmOffsetSP<" # Bits # "," # Align # ">";
+}
+
 def uimm12_nm : Operand<i32> {
   let PrintMethod = "printUImm<12>";
   let ParserMatchClass = !cast<AsmOperandClass>("UImm12AsmOperandClass");
@@ -134,6 +150,41 @@ def mem_nm2 : mem_generic {
   let ParserMatchClass = MipsMemUimmAsmOperand<2>;
 }
 
+def mem_nm_gp19s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let ParserMatchClass = NMMemGPAsmOperand<21,4>;
+  let OperandNamespace = "NanoMips";
+  let OperandType = "OPERAND_NM_GPREL21";
+}
+
+def mem_nm_gp18 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let ParserMatchClass = NMMemGPAsmOperand<18,1>;
+  let OperandNamespace = "NanoMips";
+  let OperandType = "OPERAND_NM_GPREL18";
+}
+
+def mem_nm_gp17s1 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let ParserMatchClass = NMMemGPAsmOperand<18,2>;
+  let OperandNamespace = "NanoMips";
+  let OperandType = "OPERAND_NM_GPREL18";
+}
+
+def mem_nm_gp7s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let ParserMatchClass = NMMemGPAsmOperand<9,4>;
+  let OperandNamespace = "NanoMips";
+  let OperandType = "OPERAND_NM_GPREL9";
+}
+
+def mem_nm_sp5s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMSP";
+  let ParserMatchClass = NMMemSPAsmOperand<7,4>;
+  let OperandNamespace = "NanoMips";
+  let OperandType = "OPERAND_NM_SPREL7";
+}
+
 def simm32power2 : IntImmLeaf<i32, [{ return isPowerOf2_32(Imm.getSExtValue()); }]>;
 
 def uimm16_simm12 : Operand<i32>;
@@ -146,6 +197,11 @@ def addrindexedlsl2 : ComplexPattern<iPTR, 2, "selectIntAddrIndexedLsl2", []>;
 def addruimm6s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm6s2", [frameindex]>;
 def addruimm3s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm3s1", [frameindex]>;
 def addruimm2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm2", [frameindex]>;
+def addrgp19s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm19s2", [frameindex]>;
+def addrgp18 : ComplexPattern<iPTR, 2, "selectIntAddrUImm18", [frameindex]>;
+def addrgp17s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm17s1", [frameindex]>;
+def addrgp7s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm7s2", [frameindex]>;
+def addrsp5s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm5s2", [frameindex]>;
 
 def Log2XForm : SDNodeXForm<imm, [{ return CurDAG->getTargetConstant(Log2_32(N->getZExtValue()),
                                                                    SDLoc(N), MVT::i32);
@@ -685,6 +741,24 @@ class LSMem16_Enc<bits<5> isel> : _Pool_P16<isel>
   let Inst{3...0} = offset;
 }
 
+class LSGPRegMem16_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<3> rt;
+  bits<9> addr;
+  bits<7> offset = addr{8...2};
+  let Inst{9...7} = rt;
+  let Inst{6...0} = offset;
+}
+
+class LSSPRegMem16_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<5> rt;
+  bits<7> addr;
+  bits<5> offset = addr{6...2};
+  let Inst{9...5} = rt;
+  let Inst{4...0} = offset;
+}
+
 class LHMem16_Enc<bits<2> isel> : _Pool_P16_LH<isel>
 {
   bits<3> rt;
@@ -705,6 +779,31 @@ class LBMem16_Enc<bits<2> isel> : _Pool_P16_LB<isel>
   let Inst{9...7} = rt;
   let Inst{6...4} = base;
   let Inst{1...0} = offset{1...0};
+}
+
+class LSMemGP19S2_Enc<bits<2> isel> : _Pool_P_GP_W<isel>
+{
+  bits<5> rt;
+  bits<21> addr;
+  let Inst{25...21} = rt;
+  let Inst{20...2} = addr{20...2};
+}
+
+class LSMemGP18_Enc<bits<3> isel> : _Pool_P_GP_BH<isel>
+{
+  bits<5> rt;
+  bits<18> addr;
+  let Inst{25...21} = rt;
+  let Inst{17...0} = addr;
+}
+
+class LSMemGP17S1_Enc<bits<4> isel> : _Pool_P_GP_BH<isel{3...1}>
+{
+  bits<5> rt;
+  bits<18> addr;
+  let Inst{25...21} = rt;
+  let Inst{17...1} = addr{17...1};
+  let Inst{0} = isel{0};
 }
 
 class LoadMemoryNM<string opstr, DAGOperand MO,
@@ -1305,6 +1404,15 @@ def : NMPat<(brcond (i32 (seteq (and GPR32NM:$rt, simm32power2:$imm), 0)), bb:$o
 // Load / store instructions
 //
 //===----------------------------------------------------------------------===//
+def LWSP16_NM : LoadMemoryNM16<"lw", mem_nm_sp5s2, load, addrsp5s2, II_LW>,
+	        LSSPRegMem16_Enc<0b00101>;
+def SWSP16_NM : StoreMemoryNM16<"sw", mem_nm_sp5s2, store, addrsp5s2, II_SW>,
+	        LSSPRegMem16_Enc<0b10101>;
+def LWGP16_NM : LoadMemoryNM16<"lw", mem_nm_gp7s2, load, addrgp7s2, II_LW>,
+	        LSGPRegMem16_Enc<0b01001>;
+def SWGP16_NM : StoreMemoryNM16<"sw", mem_nm_gp7s2, store, addrgp7s2, II_SW>,
+	        LSGPRegMem16_Enc<0b11001>;
+
 def LW16_NM : LoadMemoryNM16<"lw", mem_nm6s2, load, addruimm6s2, II_LW>,
     	      LSMem16_Enc<0b00001>;
 def SW16_NM : StoreMemoryNM16<"sw", mem_nm6s2, store, addruimm6s2, II_SW>,
@@ -1322,6 +1430,25 @@ def LBU16_NM : LoadMemoryNM16<"lbu", mem_nm2, zextloadi8, addruimm2, II_LB>,
     	      LBMem16_Enc<0b10>;
 def SB16_NM : StoreMemoryNM16<"sb", mem_nm2, truncstorei8, addruimm2, II_SB>,
     	      LHMem16_Enc<0b01>;
+
+def LWGP_NM : LoadMemoryNM<"lw", mem_nm_gp19s2, load, addrgp19s2, II_LW>,
+	      LSMemGP19S2_Enc<0b10>;
+def SWGP_NM : StoreMemoryNM<"sw", mem_nm_gp19s2, store, addrgp19s2, II_SW>,
+	      LSMemGP19S2_Enc<0b11>;
+
+def LBGP_NM : LoadMemoryNM<"lb", mem_nm_gp18, sextloadi8, addrgp18, II_LB>,
+	      LSMemGP18_Enc<0b000>;
+def SBGP_NM : StoreMemoryNM<"sb", mem_nm_gp18, truncstorei8, addrgp18, II_SB>,
+	      LSMemGP18_Enc<0b001>;
+def LBUGP_NM : LoadMemoryNM<"lbu", mem_nm_gp18, zextloadi8, addrgp18, II_LB>,
+	      LSMemGP18_Enc<0b010>;
+
+def LHGP_NM : LoadMemoryNM<"lh", mem_nm_gp17s1, sextloadi16, addrgp17s1, II_LH>,
+	      LSMemGP17S1_Enc<0b0000>;
+def SHGP_NM : StoreMemoryNM<"sh", mem_nm_gp17s1, truncstorei16, addrgp17s1, II_SH>,
+	      LSMemGP17S1_Enc<0b1010>;
+def LHUGP_NM : LoadMemoryNM<"lhu", mem_nm_gp17s1, zextloadi16, addrgp17s1, II_LH>,
+	      LSMemGP17S1_Enc<0b0001>;
 
 // TODO: addruimm12 and addrsimm9 need to be looked into again. Currently
 //       addruimm12 needs to come before addrsimm9, because addrsimm9 handles
@@ -1407,8 +1534,6 @@ def LWPC_NM : LoadPCBase<GPR32NMOpnd, simm32>, LSMem_PC48_Enc<0b01111>;
 let isCodeGenOnly = 1 in {
 
 // TODO: Halfword load/store is never selected, this needs to be looked into.
-
-def LWGP_NM : LoadMemoryNM<"lw", mem>, InstSize32;
 
 def MOVE_NM : InstNM<(outs GPR32NMOpnd:$rt), (ins GPR32NMOpnd:$rs),
                       "move\t$rt, $rs", []>, InstSize16;

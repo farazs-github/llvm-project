@@ -1018,6 +1018,30 @@ getMemEncodingNMImm2(const MCInst &MI, unsigned OpNo,
   return (OffBits & 0x3) | RegBits;
 }
 
+unsigned MipsMCCodeEmitter::
+getMemEncodingNMGP(const MCInst &MI, unsigned OpNo,
+                           SmallVectorImpl<MCFixup> &Fixups,
+                           const MCSubtargetInfo &STI) const {
+  unsigned RegBits=getMachineOpValue(MI, MI.getOperand(OpNo), Fixups,
+				     STI);
+  assert(MI.getOperand(OpNo).isReg() && RegBits == 28);
+  unsigned OffBits = getMachineOpValue(MI, MI.getOperand(OpNo+1),
+                                       Fixups, STI);
+  return OffBits;
+}
+
+unsigned MipsMCCodeEmitter::
+getMemEncodingNMSP(const MCInst &MI, unsigned OpNo,
+                           SmallVectorImpl<MCFixup> &Fixups,
+                           const MCSubtargetInfo &STI) const {
+  unsigned RegBits=getMachineOpValue(MI, MI.getOperand(OpNo), Fixups,
+				     STI);
+  assert(MI.getOperand(OpNo).isReg() && RegBits == 29);
+  unsigned OffBits = getMachineOpValue(MI, MI.getOperand(OpNo+1),
+                                       Fixups, STI);
+  return OffBits;
+}
+
 // FIXME: should be called getMSBEncoding
 //
 unsigned

@@ -1446,6 +1446,18 @@ public:
       && (getMemBase()->getGPR32Reg() == Mips::GP);
   }
 
+  template <unsigned Bits, unsigned Align> bool isMemWithUimmOffsetGP() const {
+    return isMem() && isConstantMemOff() && isUInt<Bits>(getConstantMemOff())
+      && (getConstantMemOff() % Align == 0) && getMemBase()->isRegIdx()
+      && (getMemBase()->getGPR32Reg() == Mips::GP);
+  }
+
+  template <unsigned Bits, unsigned Align> bool isMemWithUimmOffsetSP() const {
+    return isMem() && isConstantMemOff() && isUInt<Bits>(getConstantMemOff())
+      && (getConstantMemOff() % Align == 0) && getMemBase()->isRegIdx()
+      && (getMemBase()->getGPR32Reg() == Mips::SP);
+  }
+
   template <unsigned Bits, unsigned ShiftLeftAmount>
   bool isScaledUImm() const {
     return isConstantImm() &&
@@ -1922,13 +1934,25 @@ static bool needsExpandMemInst(MCInst &Inst) {
   const MCOperandInfo &OpInfo = MCID.OpInfo[NumOp - 1];
   if (OpInfo.OperandType != MCOI::OPERAND_MEMORY &&
       OpInfo.OperandType != MCOI::OPERAND_UNKNOWN &&
-      OpInfo.OperandType != MipsII::OPERAND_MEM_SIMM9)
+      OpInfo.OperandType != MipsII::OPERAND_MEM_SIMM9 &&
+      OpInfo.OperandType != NanoMips::OPERAND_NM_GPREL21 &&
+      OpInfo.OperandType != NanoMips::OPERAND_NM_GPREL18 &&
+      OpInfo.OperandType != NanoMips::OPERAND_NM_GPREL9 &&
+      OpInfo.OperandType != NanoMips::OPERAND_NM_SPREL7)
     return false;
 
   MCOperand &Op = Inst.getOperand(NumOp - 1);
   if (Op.isImm()) {
     if (OpInfo.OperandType == MipsII::OPERAND_MEM_SIMM9)
       return !isInt<9>(Op.getImm());
+    if (OpInfo.OperandType == NanoMips::OPERAND_NM_GPREL21)
+      return !isUInt<21>(Op.getImm());
+    if (OpInfo.OperandType == NanoMips::OPERAND_NM_GPREL18)
+      return !isUInt<18>(Op.getImm());
+    if (OpInfo.OperandType == NanoMips::OPERAND_NM_GPREL9)
+      return !isUInt<9>(Op.getImm());
+    if (OpInfo.OperandType == NanoMips::OPERAND_NM_SPREL7)
+      return !isUInt<7>(Op.getImm());
     // Offset can't exceed 16bit value.
     return !isInt<16>(Op.getImm());
   }
@@ -2238,6 +2262,10 @@ bool MipsAsmParser::processInstruction(MCInst &Inst, SMLoc IDLoc,
       case MipsII::OPERAND_MEM_SIMM9:
         expandMem9Inst(Inst, IDLoc, Out, STI, MCID.mayLoad());
         break;
+      case NanoMips::OPERAND_NM_GPREL18:
+      case NanoMips::OPERAND_NM_GPREL21:
+	// These cases have no legal expansion
+	break;
       default:
         expandMem16Inst(Inst, IDLoc, Out, STI, MCID.mayLoad());
         break;

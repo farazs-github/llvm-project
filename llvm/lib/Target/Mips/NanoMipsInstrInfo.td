@@ -202,6 +202,7 @@ def addrgp18 : ComplexPattern<iPTR, 2, "selectIntAddrUImm18", [frameindex]>;
 def addrgp17s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm17s1", [frameindex]>;
 def addrgp7s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm7s2", [frameindex]>;
 def addrsp5s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm5s2", [frameindex]>;
+def addrpcrel : ComplexPattern<iPTR, 2, "selectAddrDefault", [frameindex]>;
 
 def Log2XForm : SDNodeXForm<imm, [{ return CurDAG->getTargetConstant(Log2_32(N->getZExtValue()),
                                                                    SDLoc(N), MVT::i32);
@@ -891,13 +892,19 @@ class LSMem_PC48_Enc<bits<5> isel> : _Pool_P48I<isel> {
   let Inst{15...0} = addr{31...16};
 }
 
-class LoadPCBase<DAGOperand RO, DAGOperand MO> :
-    InstNM<(outs RO:$rt), (ins MO:$addr), "lwpc\t$rt, $addr", [], II_LW> {
+class LoadPCBase<DAGOperand RO, DAGOperand MO, ComplexPattern Addr> :
+    InstNM<(outs RO:$rt),
+           (ins MO:$addr), "lwpc\t$rt, $addr", 
+           [(set RO:$rt, (load Addr:$addr))],
+           II_LW> {
   let mayLoad = 1;
 }
 
-class StorePCBase<DAGOperand RO, DAGOperand MO> :
-    InstNM<(outs), (ins RO:$rt, MO:$addr), "swpc\t$rt, $addr", [], II_SW> {
+class StorePCBase<DAGOperand RO, DAGOperand MO, ComplexPattern Addr> :
+    InstNM<(outs),
+           (ins RO:$rt, MO:$addr), "swpc\t$rt, $addr",
+           [(store RO:$rt, Addr:$addr)],
+	   II_SW> {
   let mayStore = 1;
 }
 
@@ -1528,8 +1535,8 @@ def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>
 
 //def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
 
-def SWPC_NM : StorePCBase<GPR32NMOpnd, simm32>, LSMem_PC48_Enc<0b01011>;
-def LWPC_NM : LoadPCBase<GPR32NMOpnd, simm32>, LSMem_PC48_Enc<0b01111>;
+def SWPC_NM : StorePCBase<GPR32NMOpnd, simm32, addrpcrel>, LSMem_PC48_Enc<0b01011>;
+def LWPC_NM : LoadPCBase<GPR32NMOpnd, simm32, addrpcrel>, LSMem_PC48_Enc<0b01111>;
 
 let isCodeGenOnly = 1 in {
 

@@ -278,6 +278,18 @@ static DecodeStatus DecodeBranchTarget26MM(MCInst &Inst,
                                            uint64_t Address,
                                            const void *Decoder);
 
+// DecodeBranchTargetMM - Decode nanoMIPS branch offset, which is
+// shifted left by 1 bit.
+static DecodeStatus DecodeBranchTarget25NM(MCInst &Inst,
+					   unsigned Offset,
+					   uint64_t Address,
+					   const void *Decoder);
+
+static DecodeStatus DecodeBranchTargetNM(MCInst &Inst,
+					   unsigned Offset,
+					   uint64_t Address,
+					   const void *Decoder);
+
 // DecodeJumpTargetMM - Decode microMIPS jump target, which is
 // shifted left by 1 bit.
 static DecodeStatus DecodeJumpTargetMM(MCInst &Inst,
@@ -2422,6 +2434,26 @@ static DecodeStatus DecodeBranchTarget26MM(MCInst &Inst,
   uint64_t Address,
   const void *Decoder) {
   int32_t BranchOffset = SignExtend32<27>(Offset << 1);
+
+  Inst.addOperand(MCOperand::createImm(BranchOffset));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeBranchTarget25NM(MCInst &Inst,
+  unsigned Offset,
+  uint64_t Address,
+  const void *Decoder) {
+  int32_t BranchOffset = SignExtend32<25>(Offset << 1);
+
+  Inst.addOperand(MCOperand::createImm(BranchOffset));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeBranchTargetNM(MCInst &Inst,
+  unsigned Offset,
+  uint64_t Address,
+  const void *Decoder) {
+  int32_t BranchOffset = SignExtend32<16>(Offset << 1);
 
   Inst.addOperand(MCOperand::createImm(BranchOffset));
   return MCDisassembler::Success;

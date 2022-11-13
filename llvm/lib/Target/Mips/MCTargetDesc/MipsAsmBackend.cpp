@@ -210,6 +210,80 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
       return 0;
     }
     break;
+  case Mips::fixup_NANOMIPS_PC25_S1:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 2;
+    // We now check if Value can be encoded as a 19-bit signed immediate.
+    if (!isInt<25>(Value)) {
+      Ctx.reportError(Fixup.getLoc(), "out of range PC25 fixup");
+      return 0;
+    }
+    break;
+  case Mips::fixup_NANOMIPS_PC21_S1:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 2;
+    // We now check if Value can be encoded as a 21-bit signed immediate.
+    if (!isInt<21>(Value)) {
+      Ctx.reportError(Fixup.getLoc(), "out of range PC21 fixup");
+      return 0;
+    }
+    break;
+  case Mips::fixup_NANOMIPS_PC14_S1:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 2;
+    // We now check if Value can be encoded as a 14-bit signed immediate.
+    if (!isInt<14>(Value)) {
+      Ctx.reportError(Fixup.getLoc(), "out of range PC14 fixup");
+      return 0;
+    }
+    break;
+  case Mips::fixup_NANOMIPS_PC11_S1:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 2;
+    // We now check if Value can be encoded as a 11-bit signed immediate.
+    if (!isInt<11>(Value)) {
+      Ctx.reportError(Fixup.getLoc(), "out of range PC11 fixup");
+      return 0;
+    }
+    break;
+  case Mips::fixup_NANOMIPS_PC10_S1:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 2;
+    // We now check if Value can be encoded as a 10-bit signed immediate.
+    if (!isInt<10>(Value)) {
+      Ctx.reportError(Fixup.getLoc(), "out of range PC10 fixup");
+      return 0;
+    }
+    break;
+  case Mips::fixup_NANOMIPS_PC7_S1:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 2;
+    // We now check if Value can be encoded as a 7-bit signed immediate.
+    if (!isInt<7>(Value)) {
+      Ctx.reportError(Fixup.getLoc(), "out of range PC7 fixup");
+      return 0;
+    }
+    break;
+  case Mips::fixup_NANOMIPS_PC4_S1:
+    // Forcing a signed division because Value can be negative.
+    Value = (int64_t)Value / 2;
+    // We now check if Value can be encoded as a 4-bit signed immediate.
+    if (!isInt<4>(Value)) {
+      Ctx.reportError(Fixup.getLoc(), "out of range PC4 fixup");
+      return 0;
+    }
+    break;
+  case Mips::fixup_NANOMIPS_HI20:
+  case Mips::fixup_NANOMIPS_GPREL_HI20:
+  case Mips::fixup_NANOMIPS_PCHI20:
+  case Mips::fixup_NANOMIPS_GOTPC_HI20:
+    Value = (Value >> 12) & 0xfffff;
+    break;
+  case Mips::fixup_NANOMIPS_LO12:
+  case Mips::fixup_NANOMIPS_GPREL_LO12:
+  case Mips::fixup_NANOMIPS_GOT_LO12:
+    Value = Value & 0xfff;
+    break;
   }
 
   return Value;

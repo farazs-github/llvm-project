@@ -72,6 +72,13 @@ public:
                                   SmallVectorImpl<MCFixup> &Fixups,
                                   const MCSubtargetInfo &STI) const;
 
+  // getBranchJumpOpValueNM - Return binary encoding of the microMIPS jump
+  // target operand. If the machine operand requires relocation,
+  // record the relocation and return zero.
+  unsigned getJumpTargetOpValueNM(const MCInst &MI, unsigned OpNo,
+                                  SmallVectorImpl<MCFixup> &Fixups,
+                                  const MCSubtargetInfo &STI) const;
+
   // getUImm5Lsl2Encoding - Return binary encoding of the microMIPS jump
   // target operand.
   unsigned getUImm5Lsl2Encoding(const MCInst &MI, unsigned OpNo,
@@ -223,6 +230,24 @@ public:
   unsigned getSizeInsEncoding(const MCInst &MI, unsigned OpNo,
                               SmallVectorImpl<MCFixup> &Fixups,
                               const MCSubtargetInfo &STI) const;
+  unsigned getBranchTarget25OpValueNM(const MCInst &MI, unsigned OpNo,
+				      SmallVectorImpl<MCFixup> &Fixups,
+				      const MCSubtargetInfo &STI) const;
+  unsigned getBranchTarget14OpValueNM(const MCInst &MI, unsigned OpNo,
+				      SmallVectorImpl<MCFixup> &Fixups,
+				      const MCSubtargetInfo &STI) const;
+  unsigned getBranchTarget11OpValueNM(const MCInst &MI, unsigned OpNo,
+				      SmallVectorImpl<MCFixup> &Fixups,
+				      const MCSubtargetInfo &STI) const;
+  unsigned getBranchTarget10OpValueNM(const MCInst &MI, unsigned OpNo,
+				      SmallVectorImpl<MCFixup> &Fixups,
+				      const MCSubtargetInfo &STI) const;
+  unsigned getBranchTarget4OpValueNM(const MCInst &MI, unsigned OpNo,
+				     SmallVectorImpl<MCFixup> &Fixups,
+				     const MCSubtargetInfo &STI) const;
+  unsigned getBranchTarget7OpValueNM(const MCInst &MI, unsigned OpNo,
+				     SmallVectorImpl<MCFixup> &Fixups,
+				     const MCSubtargetInfo &STI) const;
   unsigned getMemEncodingNMImm9(const MCInst &MI, unsigned OpNo,
                                  SmallVectorImpl<MCFixup> &Fixups,
                                  const MCSubtargetInfo &STI) const;

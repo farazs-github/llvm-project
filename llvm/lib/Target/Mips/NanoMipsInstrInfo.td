@@ -94,6 +94,13 @@ class NMMemSPAsmOperand<int Bits, int Align, list<AsmOperandClass> Supers = []>
   let PredicateMethod = "isMemWithUimmOffsetSP<" # Bits # "," # Align # ">";
 }
 
+def NMJumpTargetAsmOperand : AsmOperandClass {
+  let Name = "JumpTargetNM";
+  let ParserMethod = "parseJumpTarget";
+  let PredicateMethod = "isImm";
+  let RenderMethod = "addImmOperands";
+}
+
 def uimm12_nm : Operand<i32> {
   let PrintMethod = "printUImm<12>";
   let ParserMatchClass = !cast<AsmOperandClass>("UImm12AsmOperandClass");
@@ -185,6 +192,25 @@ def mem_nm_sp5s2 : mem_generic {
   let OperandType = "OPERAND_NM_SPREL7";
 }
 
+foreach I = {4, 7, 10, 11, 14, 25} in
+  def brtarget # I # _nm : Operand<OtherVT> {
+     let EncoderMethod = "getBranchTarget" # I # "OpValueNM";
+     let OperandType   = "OPERAND_PCREL";
+     let DecoderMethod = "DecodeBranchTargetNM";
+     let ParserMatchClass = NMJumpTargetAsmOperand;
+  }
+
+foreach I = {10, 25} in
+  def calltarget # I # _nm : Operand<iPTR> {
+    let EncoderMethod = "getBranchTarget" # I # "OpValueNM";
+    let ParserMatchClass = NMJumpTargetAsmOperand;
+  }
+
+def jmptarget_nm   : Operand<OtherVT> {
+  let EncoderMethod = "getBranchTarget25OpValueNM";
+  let ParserMatchClass = NMJumpTargetAsmOperand;
+}
+
 def simm32power2 : IntImmLeaf<i32, [{ return isPowerOf2_32(Imm.getSExtValue()); }]>;
 
 def uimm16_simm12 : Operand<i32>;
@@ -272,6 +298,11 @@ class _Pool_P_BR1<bits<2> psel> : _Pool_P32<0b10010> {
 
 class _Pool_P_BR2<bits<2> psel> : _Pool_P32<0b10110> {
   let Inst{15...14} = psel;
+}
+
+class _Pool_P_BR12<bits<3> psel> : _Pool_P32<0b10010> {
+  let Inst{29} = psel{2};
+  let Inst{15...14} = psel{1...0};
 }
 
 class _Pool_P_BRI<bits<3> psel> : _Pool_P32<0b11010> {
@@ -910,9 +941,9 @@ class StorePCBase<DAGOperand RO, DAGOperand MO, ComplexPattern Addr> :
 
 class CallNM<string opstr,
              SDPatternOperator OpNode = null_frag,
-             SDPatternOperator imm_type = null_frag> :
+             DAGOperand calltarget> :
   InstNM<(outs), (ins calltarget:$addr), !strconcat(opstr, "\t$addr"),
-         [(OpNode imm_type:$addr)]> {
+         [(OpNode tglobaladdr:$addr)]> {
   let DecoderMethod = "DecodeJumpTarget";
   let isCall = 1;
   let isCTI = 1;
@@ -920,7 +951,7 @@ class CallNM<string opstr,
 }
 
 class MoveBalcBase : InstNM<(outs GPR32NMOpnd:$rd),
-                            (ins GPR32NMOpnd:$rt, calltarget:$addr),
+                            (ins GPR32NMOpnd:$rt, calltarget25_nm:$addr),
                             "move.balc\t$rd, $rt, $addr", []>, InstSize32 {
   let isCall = 1;
   let isCTI = 1;
@@ -1158,7 +1189,6 @@ def OR16_NM  : ArithLogicR16_Desc<"or16", GPR3Opnd>,
 
 def JRC_NM : IndirectBranchNM<"jrc", GPR32NMOpnd>;
 
-def BALC_NM : CallNM<"balc", MipsJmpLink, tglobaladdr>, InstSize32;
 def MOVEBALC_NM : MoveBalcBase;
 
 let isReMaterializable = 1 in {
@@ -1218,8 +1248,6 @@ let hasPostISelHook = 1, isCall = 1, isCTI = 1, Defs = [RA_NM] in {
 
 def : NMPat<(i32 imm32_NM:$imm), (Li_NM imm:$imm)>;
 
-def : NMPat<(MipsJmpLink (i32 texternalsym:$dst)), (BALC_NM texternalsym:$dst)>;
-
 def : NMPat<(MipsFullAddr tglobaltlsaddr:$in), (LA_NM tglobaltlsaddr:$in)>;
 def : NMPat<(MipsFullAddr tblockaddress:$in), (LA_NM tblockaddress:$in)>;
 def : NMPat<(MipsFullAddr tjumptable:$in), (LA_NM tjumptable:$in)>;
@@ -1276,8 +1304,7 @@ class CBranchNM<string opstr, DAGOperand opnd, PatFrag cond_op,
 class CBranchImmNM<string opstr, DAGOperand opnd, PatFrag cond_op,
                    RegisterOperand RO,
                    Operand imm_type, SDPatternOperator ImmOp>
-    : InstSize32,
-      InstNM<(outs), (ins RO:$rt, imm_type:$u, opnd:$offset),
+    : InstNM<(outs), (ins RO:$rt, imm_type:$u, opnd:$offset),
              !strconcat(opstr, "\t$rt, $u, $offset"),
              [(brcond (i32 (cond_op RO:$rt, ImmOp:$u)), bb:$offset)]> {
   let isBranch = 1;
@@ -1288,8 +1315,7 @@ class CBranchImmNM<string opstr, DAGOperand opnd, PatFrag cond_op,
 
 class CBranchZeroNM<string opstr, DAGOperand opnd, PatFrag cond_op,
                     RegisterOperand RO>
-    : InstSize16,
-      InstNM<(outs), (ins RO:$rs, opnd:$offset),
+    : InstNM<(outs), (ins RO:$rs, opnd:$offset),
              !strconcat(opstr, "\t$rs, $offset"),
              [(brcond (i32 (cond_op RO:$rs, 0)), bb:$offset)]> {
   let isBranch = 1;
@@ -1300,8 +1326,7 @@ class CBranchZeroNM<string opstr, DAGOperand opnd, PatFrag cond_op,
 class CBranchBitNM<string opstr, DAGOperand opnd, PatFrag cond_op,
                    RegisterOperand RO,
                    Operand imm_type, SDPatternOperator ImmOp>
-    : InstSize32,
-      InstNM<(outs), (ins RO:$rt, imm_type:$u, opnd:$offset),
+    : InstNM<(outs), (ins RO:$rt, imm_type:$u, opnd:$offset),
              !strconcat(opstr, "\t$rt, $u, $offset"),
         [(brcond (i32 (cond_op (and RO:$rt, (shl 1, ImmOp:$u)), 0)), bb:$offset)]> {
   let isBranch = 1;
@@ -1310,46 +1335,126 @@ class CBranchBitNM<string opstr, DAGOperand opnd, PatFrag cond_op,
   bit isCTI = 1;
 }
 
-
-let isCodeGenOnly = 1, hasNoSchedulingInfo = 1,
-    hasDelaySlot = 0 in {
-
-// TODO: BBEQZ/BBNEZ bit-test conditional branch instructions
-def BEQC_NM  : CBranchNM<"beqc", brtarget, seteq, GPR32NMOpnd>, InstSize32;
-def BEQIC_NM : CBranchImmNM<"beqic", brtarget, seteq, GPR32NMOpnd, uimm7, immZExt7>;
-def BEQZC_NM : CBranchZeroNM<"beqzc", brtarget, seteq, GPR32NMOpnd>;
-
-def BGEC_NM   : CBranchNM<"bgec", brtarget, setge, GPR32NMOpnd>, InstSize32;
-def BGEIC_NM  : CBranchImmNM<"bgeic", brtarget, setge, GPR32NMOpnd, uimm7, immZExt7>;
-def BGEIUC_NM : CBranchImmNM<"bgeiuc", brtarget, setuge, GPR32NMOpnd, uimm7, immZExt7>;
-def BGEUC_NM  : CBranchNM<"bgeuc", brtarget, setuge, GPR32NMOpnd>, InstSize32;
-
-def BLTC_NM   : CBranchNM<"bltc", brtarget, setlt, GPR32NMOpnd>, InstSize32;
-def BLTIC_NM  : CBranchImmNM<"bltic", brtarget, setlt, GPR32NMOpnd, uimm7, immZExt7>;
-def BLTIUC_NM : CBranchImmNM<"bltiuc", brtarget, setult, GPR32NMOpnd, uimm7, immZExt7>;
-def BLTUC_NM  : CBranchNM<"bltuc", brtarget, setult, GPR32NMOpnd>, InstSize32;
-
-def BNEC_NM  : CBranchNM<"bnec", brtarget, setne, GPR32NMOpnd>, InstSize32;
-def BNEIC_NM : CBranchImmNM<"bneic", brtarget, setne, GPR32NMOpnd, uimm7, immZExt7>;
-def BNEZC_NM : CBranchZeroNM<"bnezc", brtarget, setne, GPR32NMOpnd>;
-
-// Bit-test branches
-def BBNEZC_NM : CBranchBitNM<"bbnezc", brtarget, setne, GPR32NMOpnd, simm32, simm32power2>;
-def BBEQZC_NM : CBranchBitNM<"bbeqzc", brtarget, seteq, GPR32NMOpnd, simm32, simm32power2>;
-
-}
-
-class BCBase : InstNM<(outs), (ins jmptarget:$target), "bc\t$target",
-                      [(br bb:$target)], II_J>, InstSize32 {
+class BCBase<DAGOperand brtarget>
+      : InstNM<(outs), (ins brtarget:$addr), "bc\t$addr",
+	               [(br bb:$addr)], II_J> {
   let isTerminator = 1;
   let isBarrier = 1;
   let isBranch = 1;
   let isCTI = 1;
 }
-def BC_NM : BCBase;
 
-class TailCallBase : PseudoInstNM<(outs), (ins calltarget:$target), []>,
-                     PseudoInstExpansion<(BC_NM jmptarget:$target)> {
+class BC32_Enc<bits<1> isel> : _Pool_P_BAL<isel>
+{
+  bits<26> addr;
+  let Inst{24...0} = addr{25...1};
+}
+
+class BC16_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<11> addr;
+  let Inst{9...1} = addr{9...1};
+  let Inst{0} = addr{10};
+}
+
+class B14_Enc<bits<3> isel> : _Pool_P_BR12<isel>
+{
+  bits<5> rt;
+  bits<5> rs;
+  bits<15> offset;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rt;
+  let Inst{13...1} = offset{13...1};
+  let Inst{0} =  offset{14};
+}
+
+class BZ16_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<3> rt3;
+  bits<5> rs;
+  bits<8> offset;
+  let Inst{9...7} = rt3;
+  let Inst{6...1} = offset{6...1};
+  let Inst{0} =  offset{7};
+}
+
+class BRI_Enc<bits<3> isel> : _Pool_P_BRI<isel>
+{
+  bits<5> rt;
+  bits<7> u;
+  bits<12> offset;
+  let Inst{25...21} = rt;
+  let Inst{17...11} = u;
+  let Inst{10...1} = offset{10...1};
+  let Inst{0} =  offset{11};
+}
+
+class BBit_Enc<bits<3> isel> : _Pool_P_BRI<isel>
+{
+  bits<5> rt;
+  bits<6> u;
+  bits<12> offset;
+  let Inst{25...21} = rt;
+  let Inst{16...11} = u;
+  let Inst{10...1} = offset{10...1};
+  let Inst{0} =  offset{11};
+}
+
+def BC_NM : BCBase<brtarget25_nm>, BC32_Enc<0b0>;
+def BALC_NM : CallNM<"balc", MipsJmpLink, calltarget25_nm>, BC32_Enc<0b1>;
+def BC16_NM : BCBase<brtarget10_nm>, BC16_Enc<0b00010>;
+def BALC16_NM : CallNM<"balc", MipsJmpLink, calltarget10_nm>, BC16_Enc<0b00110>;
+
+def : NMPat<(MipsJmpLink (i32 texternalsym:$dst)), (BALC_NM texternalsym:$dst)>;
+
+
+def BEQC_NM : CBranchNM<"beqc", brtarget14_nm, seteq, GPR32NMOpnd>,
+	      B14_Enc<0b000>;
+def BGEC_NM : CBranchNM<"bgec", brtarget14_nm, setge, GPR32NMOpnd>,
+	      B14_Enc<0b010>;
+def BGEUC_NM : CBranchNM<"bgeuc", brtarget14_nm, setuge, GPR32NMOpnd>,
+	       B14_Enc<0b011>;
+
+def BNEC_NM : CBranchNM<"bnec", brtarget14_nm, setne, GPR32NMOpnd>,
+	      B14_Enc<0b100>;
+def BLTC_NM : CBranchNM<"bltc", brtarget14_nm, setlt, GPR32NMOpnd>,
+	      B14_Enc<0b110>;
+def BLTUC_NM : CBranchNM<"bltuc", brtarget14_nm, setult, GPR32NMOpnd>,
+	       B14_Enc<0b111>;
+
+def BEQZC_NM : CBranchZeroNM<"beqzc", brtarget7_nm, seteq, GPR32NMOpnd>,
+	       BZ16_Enc<0b10010>;
+def BNEZC_NM : CBranchZeroNM<"bnezc", brtarget7_nm, setne, GPR32NMOpnd>,
+	       BZ16_Enc<0b10110>;
+
+def BEQIC_NM : CBranchImmNM<"beqic", brtarget11_nm, seteq, GPR32NMOpnd, uimm7, immZExt7>,
+	       BRI_Enc<0b000>;
+def BGEIC_NM : CBranchImmNM<"bgeic", brtarget11_nm, setge, GPR32NMOpnd, uimm7, immZExt7>,
+	       BRI_Enc<0b010>;
+def BLTIC_NM : CBranchImmNM<"bltic", brtarget11_nm, setlt, GPR32NMOpnd, uimm7, immZExt7>,
+	       BRI_Enc<0b110>;
+def BNEIC_NM : CBranchImmNM<"bneic", brtarget11_nm, setne, GPR32NMOpnd, uimm7, immZExt7>,
+	       BRI_Enc<0b100>;
+def BGEIUC_NM : CBranchImmNM<"bgeiuc", brtarget11_nm, setuge, GPR32NMOpnd, uimm7, immZExt7>,
+	        BRI_Enc<0b011>;
+def BLTIUC_NM : CBranchImmNM<"bltiuc", brtarget11_nm, setult, GPR32NMOpnd, uimm7, immZExt7>,
+	        BRI_Enc<0b111>;
+
+// Bit-test branches
+def BBNEZC_NM : CBranchBitNM<"bbnezc", brtarget11_nm, setne, GPR32NMOpnd, simm32, simm32power2>,
+		BBit_Enc<0b001>;
+def BBEQZC_NM : CBranchBitNM<"bbeqzc", brtarget11_nm, seteq, GPR32NMOpnd, simm32, simm32power2>,
+		BBit_Enc<0b101>;
+
+let isCodeGenOnly = 1, hasNoSchedulingInfo = 1,
+    hasDelaySlot = 0 in {
+
+// TODO: BBEQZ/BBNEZ bit-test conditional branch instructions
+
+}
+
+class TailCallBase : PseudoInstNM<(outs), (ins calltarget25_nm:$target), []>,
+                     PseudoInstExpansion<(BC_NM brtarget25_nm:$target)> {
   let isCall = 1;
   let isTerminator = 1;
   let isReturn = 1;
@@ -1370,10 +1475,10 @@ class TailCallRegBase : PseudoInstNM<(outs), (ins GPR32NMOpnd:$rs),
 }
 def TAILCALLREG_NM : TailCallRegBase;
 
-def : NMPat<(MipsTailCall (i32 tglobaladdr:$dst)),
-            (TAILCALL_NM tglobaladdr:$dst)>;
-def : NMPat<(MipsTailCall (i32 texternalsym:$dst)),
-            (TAILCALL_NM texternalsym:$dst)>;
+//def : NMPat<(MipsTailCall (i32 tglobaladdr:$dst)),
+//            (TAILCALL_NM tglobaladdr:$dst)>;
+//def : NMPat<(MipsTailCall (i32 texternalsym:$dst)),
+//            (TAILCALL_NM texternalsym:$dst)>;
 
 // '>-1' can be represented as '>=0'.
 def : NMPat<(brcond (i32 (setgt GPR32NM:$lhs, -1)), bb:$dst),

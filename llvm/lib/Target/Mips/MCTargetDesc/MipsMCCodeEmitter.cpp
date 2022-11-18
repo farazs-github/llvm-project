@@ -140,7 +140,7 @@ void MipsMCCodeEmitter::emitInstruction(uint64_t Val, unsigned Size,
   // Little-endian byte ordering:
   //   mips32r2:   4 | 3 | 2 | 1
   //   microMIPS:  2 | 1 | 4 | 3
-  if (IsLittleEndian && Size == 4 && isMicroMips(STI)) {
+  if (IsLittleEndian && Size == 4 && (isMicroMips(STI) || isNanoMips(STI))) {
     emitInstruction(Val >> 16, 2, STI, OS);
     emitInstruction(Val, 2, STI, OS);
   } else {

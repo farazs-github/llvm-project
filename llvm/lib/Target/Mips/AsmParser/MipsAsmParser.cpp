@@ -598,6 +598,7 @@ public:
   bool isABI_N32() const { return ABI.IsN32(); }
   bool isABI_N64() const { return ABI.IsN64(); }
   bool isABI_O32() const { return ABI.IsO32(); }
+  bool isABI_P32() const { return ABI.IsP32(); }
   bool isABI_FPXX() const {
     return getSTI().getFeatureBits()[Mips::FeatureFPXX];
   }
@@ -6259,7 +6260,45 @@ MipsAsmParser::printWarningWithFixIt(const Twine &Msg, const Twine &FixMsg,
 int MipsAsmParser::matchCPURegisterName(StringRef Name) {
   int CC;
 
-  CC = StringSwitch<unsigned>(Name)
+  if (isABI_P32()) {
+    CC = StringSwitch<unsigned>(Name)
+            .Cases("zero", "r0", 0)
+            .Cases("at", "r1", "AT", "r1", 1)
+            .Cases("t4", "r2", 2)
+            .Cases("t5", "r3", 3)
+            .Cases("a0", "r4", 4)
+            .Cases("a1", "r5", 5)
+            .Cases("a2", "r6", 6)
+            .Cases("a3", "r7", 7)
+            .Cases("a4", "r8", 8)
+            .Cases("a5", "r9", 9)
+            .Cases("a6", "r10", 10)
+            .Cases("a7", "r11", 11)
+            .Cases("t0", "r12", 12)
+            .Cases("t1", "r13", 13)
+            .Cases("t2", "r14", 14)
+            .Cases("t3", "r15", 15)
+            .Cases("s0", "r16", 16)
+            .Cases("s1", "r17", 17)
+            .Cases("s2", "r18", 18)
+            .Cases("s3", "r19", 19)
+            .Cases("s4", "r20", 20)
+            .Cases("s5", "r21", 21)
+            .Cases("s6", "r22", 22)
+            .Cases("s7", "r23", 23)
+            .Cases("t8", "r24", 24)
+            .Cases("t9", "r25", 25)
+            .Cases("k0", "r26", 26)
+            .Cases("k1", "r27", 27)
+            .Cases("gp", "r28", 28)
+            .Cases("sp", "r29", 29)
+            .Cases("fp", "s8", "r30", 30)
+            .Cases("ra", "r31", 31)
+            .Default(-1);
+    return CC;
+  }
+  else {
+    CC = StringSwitch<unsigned>(Name)
            .Case("zero", 0)
            .Cases("at", "AT", 1)
            .Case("a0", 4)
@@ -6294,6 +6333,7 @@ int MipsAsmParser::matchCPURegisterName(StringRef Name) {
            .Case("t8", 24)
            .Case("t9", 25)
            .Default(-1);
+  }
 
   if (!(isABI_N32() || isABI_N64()))
     return CC;

@@ -223,7 +223,8 @@ namespace Mips {
     fixup_MICROMIPS_JALR,
 
     // NanoMIPS relocations
-    fixup_NANOMIPS_32,
+    FirstNanoMipsFixupKind,
+    fixup_NANOMIPS_32 = FirstNanoMipsFixupKind,
     fixup_NANOMIPS_64,
     fixup_NANOMIPS_NEG,
     fixup_NANOMIPS_ASHIFTR_1,
@@ -296,6 +297,7 @@ namespace Mips {
     fixup_NANOMIPS_TLS_TPREL12,
     fixup_NANOMIPS_TLS_TPREL16,
     fixup_NANOMIPS_TLS_TPREL_I32,
+    LastNanoMipsFixupKind = fixup_NANOMIPS_TLS_TPREL_I32,
     
     // Marker
     LastTargetFixupKind,

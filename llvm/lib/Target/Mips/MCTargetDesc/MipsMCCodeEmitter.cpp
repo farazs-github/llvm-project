@@ -731,6 +731,20 @@ getUImm6Lsl2Encoding(const MCInst &MI, unsigned OpNo,
 }
 
 unsigned MipsMCCodeEmitter::
+getSImm20Lsl12Encoding(const MCInst &MI, unsigned OpNo,
+		       SmallVectorImpl<MCFixup> &Fixups,
+		       const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+  unsigned Res = getMachineOpValue(MI, MO, Fixups, STI);
+  if (MO.isImm()) {
+    assert((Res & 0xfff) == 0);
+    return Res;
+  }
+
+  return 0;
+}
+
+unsigned MipsMCCodeEmitter::
 getSImm9AddiuspValue(const MCInst &MI, unsigned OpNo,
                      SmallVectorImpl<MCFixup> &Fixups,
                      const MCSubtargetInfo &STI) const {
@@ -823,14 +837,18 @@ getExprOpValue(const MCExpr *Expr, SmallVectorImpl<MCFixup> &Fixups,
     case MipsMCExpr::MEK_GPREL:
       FixupKind = Mips::fixup_Mips_GPREL16;
       break;
+    case MipsMCExpr::MEK_LO12:
+        FixupKind = Mips::fixup_NANOMIPS_LO12;
+      break;
     case MipsMCExpr::MEK_LO:
       // Check for %lo(%neg(%gp_rel(X)))
       if (MipsExpr->isGpOff())
         FixupKind = isMicroMips(STI) ? Mips::fixup_MICROMIPS_GPOFF_LO
                                      : Mips::fixup_Mips_GPOFF_LO;
       else
-        FixupKind = isMicroMips(STI) ? Mips::fixup_MICROMIPS_LO16
-                                     : Mips::fixup_Mips_LO16;
+        FixupKind = (isMicroMips(STI) ? Mips::fixup_MICROMIPS_LO16
+		     : (isNanoMips(STI) ? Mips::fixup_NANOMIPS_LO12
+			: Mips::fixup_Mips_LO16));
       break;
     case MipsMCExpr::MEK_HIGHEST:
       FixupKind = isMicroMips(STI) ? Mips::fixup_MICROMIPS_HIGHEST
@@ -840,14 +858,18 @@ getExprOpValue(const MCExpr *Expr, SmallVectorImpl<MCFixup> &Fixups,
       FixupKind = isMicroMips(STI) ? Mips::fixup_MICROMIPS_HIGHER
                                    : Mips::fixup_Mips_HIGHER;
       break;
+    case MipsMCExpr::MEK_HI20:
+        FixupKind = Mips::fixup_NANOMIPS_HI20;
+      break;
     case MipsMCExpr::MEK_HI:
       // Check for %hi(%neg(%gp_rel(X)))
       if (MipsExpr->isGpOff())
         FixupKind = isMicroMips(STI) ? Mips::fixup_MICROMIPS_GPOFF_HI
                                      : Mips::fixup_Mips_GPOFF_HI;
       else
-        FixupKind = isMicroMips(STI) ? Mips::fixup_MICROMIPS_HI16
-                                     : Mips::fixup_Mips_HI16;
+        FixupKind = (isMicroMips(STI) ? Mips::fixup_MICROMIPS_HI16
+		     : (isNanoMips(STI) ? Mips::fixup_NANOMIPS_HI20
+			: Mips::fixup_Mips_HI16));
       break;
     case MipsMCExpr::MEK_PCREL_HI16:
       FixupKind = Mips::fixup_MIPS_PCHI16;

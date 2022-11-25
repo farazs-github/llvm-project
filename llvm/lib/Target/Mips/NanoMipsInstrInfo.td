@@ -49,6 +49,9 @@ def immZExt7Plus1 : PatLeaf<(imm), [{
 // Immediate range for signed 12-bit
 def imm32SExt12OrZExt16 : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue())
                                            || isUInt<16>(Imm.getZExtValue()); }]>;
+// Immediate range for signed 20-bit upper part
+def imm32SExt20s12 : IntImmLeaf<i32, [{ return isInt<32>(Imm.getSExtValue())
+                                       && (Imm.getZExtValue() % 4096 == 0); }]>;
 
 
 class ConstantSImmRangeAsmOperandClass<int Bottom, int Top,
@@ -77,6 +80,17 @@ def NImm12AsmOperandClass : NegImmAsmOperandClass<12, []>;
 def NaImm12AsmOperandClass : ConstantSImmRangeAsmOperandClass<4095, 1, []>;
 def UImm3Plus1AsmOperandClass :
   ConstantUImmAsmOperandClass<3, [UImm5AsmOperandClass], 1>;
+
+class SImmScaledAsmOperandClass<int Bits, int Align, list<AsmOperandClass> Supers = []>
+    : AsmOperandClass{
+  let Name = "SImm" # Bits # "s" # Align;
+  let RenderMethod = "addSImmOperands<32>";
+  let PredicateMethod = "isSImm<" # Bits # ">";
+  let SuperClasses = Supers;
+  let DiagnosticType = "SImm" # Bits # "s" # Align;
+}
+
+def SImm32S12AsmOperandClass : SImmScaledAsmOperandClass<20, 12, []>;
 
 class NMMemGPAsmOperand<int Bits, int Align, list<AsmOperandClass> Supers = []>
     : AsmOperandClass {
@@ -209,6 +223,12 @@ foreach I = {10, 25} in
 def jmptarget_nm   : Operand<OtherVT> {
   let EncoderMethod = "getBranchTarget25OpValueNM";
   let ParserMatchClass = NMJumpTargetAsmOperand;
+}
+
+def simm32s12_nm : Operand<i32> {
+//  let EncoderMethod = "getSImm20Lsl12Encoding";
+  let PrintMethod = "printUImm<20>";
+  let ParserMatchClass = SImmAsmOperandClass<20, []>;
 }
 
 def simm32power2 : IntImmLeaf<i32, [{ return isPowerOf2_32(Imm.getSExtValue()); }]>;
@@ -605,6 +625,18 @@ class ArithLogicI32<string opstr, Operand Od, RegisterOperand RO,
 class AddiU32<string opstr, Operand Od, RegisterOperand RO,
 		    SDPatternOperator imm_type = null_frag,
 		    SDPatternOperator OpNode = null_frag> :
+  ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, _Pool_P32<0b00000> {
+  bits<5> rt;
+  bits<5> rs;
+  bits<16> imm;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{15...0} = imm;
+}
+
+class LoadUpperI32<string opstr, Operand Od, RegisterOperand RO,
+		   SDPatternOperator imm_type = null_frag,
+		   SDPatternOperator OpNode = null_frag> :
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, _Pool_P32<0b00000> {
   bits<5> rt;
   bits<5> rs;
@@ -1204,6 +1236,28 @@ def LAGPB_NM : RegImm48_Desc<"addiu.b", simm32_relaxed, GPR32NMOpnd>,
 }
 
 } // isReMaterializable = 1
+
+
+// Arithmetic and logical instructions with 2 register operands and immediate.
+class LoadUpperINM<string opstr, Operand Od, RegisterOperand RO,
+		   SDPatternOperator imm_type = null_frag,
+		   SDPatternOperator OpNode = null_frag> :
+  InstNM<(outs RO:$rt), (ins Od:$imm),
+	 !strconcat(opstr, "\t$rt, $imm"),
+	 [(set RO:$rt, (OpNode RO:$rs, imm_type:$imm))]> {
+  let isReMaterializable = 1;
+}
+
+class LUI_Enc<bits<1> isel> : _Pool_P_LUI<isel> {
+  bits<5> rt;
+  bits<20> imm;
+  let Inst{25...21} = rt;
+  let Inst{20...12} = imm{8...0};
+  let Inst{11...2} = imm{18...9};
+  let Inst{0} = imm{19};
+}
+
+def LUI_NM : RegImmNM<"lui", simm32s12_nm, GPR32NMOpnd, imm32SExt20s12>, LUI_Enc<0b0>;
 
 def ALUIPC_NM : RegImmNM<"aluipc", simm32_relaxed, GPR32NMOpnd>, InstSize32;
 

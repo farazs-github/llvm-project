@@ -87,6 +87,7 @@ void MipsMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
     OS << "%gp_rel";
     break;
   case MEK_HI:
+  case MEK_HI20:
     OS << "%hi";
     break;
   case MEK_HIGHER:
@@ -96,6 +97,7 @@ void MipsMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
     OS << "%highest";
     break;
   case MEK_LO:
+  case MEK_LO12:
     OS << "%lo";
     break;
   case MEK_NEG:
@@ -204,6 +206,12 @@ MipsMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
       break;
     case MEK_NEG:
       AbsVal = -AbsVal;
+      break;
+    case MEK_HI20:
+      AbsVal = SignExtend64(AbsVal >> 12, 20);
+      break;
+    case MEK_LO12:
+      AbsVal = AbsVal & 0xfff;
       break;
     }
     Res = MCValue::get(AbsVal);

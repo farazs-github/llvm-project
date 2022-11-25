@@ -771,13 +771,19 @@ public:
     case AsmToken::PercentGp_Rel:
       return MipsMCExpr::create(MipsMCExpr::MEK_GPREL, E, Ctx);
     case AsmToken::PercentHi:
-      return MipsMCExpr::create(MipsMCExpr::MEK_HI, E, Ctx);
+      if (hasNanoMips())
+	return MipsMCExpr::create(MipsMCExpr::MEK_HI20, E, Ctx);
+      else
+	return MipsMCExpr::create(MipsMCExpr::MEK_HI, E, Ctx);
     case AsmToken::PercentHigher:
       return MipsMCExpr::create(MipsMCExpr::MEK_HIGHER, E, Ctx);
     case AsmToken::PercentHighest:
       return MipsMCExpr::create(MipsMCExpr::MEK_HIGHEST, E, Ctx);
     case AsmToken::PercentLo:
-      return MipsMCExpr::create(MipsMCExpr::MEK_LO, E, Ctx);
+      if (hasNanoMips())
+	return MipsMCExpr::create(MipsMCExpr::MEK_LO12, E, Ctx);
+      else
+	return MipsMCExpr::create(MipsMCExpr::MEK_LO, E, Ctx);
     case AsmToken::PercentNeg:
       return MipsMCExpr::create(MipsMCExpr::MEK_NEG, E, Ctx);
     case AsmToken::PercentPcrel_Hi:
@@ -6174,6 +6180,9 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_SImm32_Relaxed:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected 32-bit signed immediate");
+  case Match_SImm20s12:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected 20-bit signed immediate");
   case Match_UImm32_Coerced:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected 32-bit immediate");

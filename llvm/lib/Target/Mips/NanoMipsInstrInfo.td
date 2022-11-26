@@ -1259,7 +1259,7 @@ class LUI_Enc<bits<1> isel> : _Pool_P_LUI<isel> {
 
 def LUI_NM : RegImmNM<"lui", simm32s12_nm, GPR32NMOpnd, imm32SExt20s12>, LUI_Enc<0b0>;
 
-def ALUIPC_NM : RegImmNM<"aluipc", simm32_relaxed, GPR32NMOpnd>, InstSize32;
+def ALUIPC_NM : RegImmNM<"aluipc", simm32s12_nm, GPR32NMOpnd, imm32SExt20s12>, LUI_Enc<0b1>;
 
 def LEA_ADDiu_NM : EffectiveAddressNM<"addiu", GPR32NMOpnd>, InstSize32;
 

@@ -149,6 +149,8 @@ static unsigned getMatchingLoType(const ELFRelocationEntry &Reloc) {
     return ELF::R_MIPS16_LO16;
   if (Type == ELF::R_NANOMIPS_HI20)
     return ELF::R_NANOMIPS_LO12;
+  if (Type == ELF::R_NANOMIPS_PCHI20)
+    return ELF::R_NANOMIPS_LO12;
 
   if (Reloc.OriginalSymbol &&
       Reloc.OriginalSymbol->getBinding() != ELF::STB_LOCAL)

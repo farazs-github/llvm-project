@@ -163,8 +163,6 @@ MipsMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
   if (Res.isAbsolute() && Fixup == nullptr) {
     int64_t AbsVal = Res.getConstant();
     switch (Kind) {
-    case MEK_PCREL_HI:
-      llvm_unreachable("nanoMIPS: NYI");
     case MEK_None:
     case MEK_Special:
       llvm_unreachable("MEK_None and MEK_Special are invalid");
@@ -189,6 +187,7 @@ MipsMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
     case MEK_TLSLDM:
     case MEK_TPREL_HI:
     case MEK_TPREL_LO:
+    case MEK_PCREL_HI:
       return false;
     case MEK_LO:
     case MEK_CALL_LO16:
@@ -262,9 +261,6 @@ static void fixELFSymbolsInTLSFixupsImpl(const MCExpr *Expr, MCAssembler &Asm) {
 
 void MipsMCExpr::fixELFSymbolsInTLSFixups(MCAssembler &Asm) const {
   switch (getKind()) {
-  case MEK_PCREL_HI:
-    llvm_unreachable("nanoMIPS: NYI");
-    break;
   case MEK_None:
   case MEK_Special:
     llvm_unreachable("MEK_None and MEK_Special are invalid");
@@ -286,6 +282,7 @@ void MipsMCExpr::fixELFSymbolsInTLSFixups(MCAssembler &Asm) const {
   case MEK_NEG:
   case MEK_PCREL_HI16:
   case MEK_PCREL_LO16:
+  case MEK_PCREL_HI:
     // If we do have nested target-specific expressions, they will be in
     // a consecutive chain.
     if (const MipsMCExpr *E = dyn_cast<const MipsMCExpr>(getSubExpr()))

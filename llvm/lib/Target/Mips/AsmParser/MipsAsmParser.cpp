@@ -787,7 +787,10 @@ public:
     case AsmToken::PercentNeg:
       return MipsMCExpr::create(MipsMCExpr::MEK_NEG, E, Ctx);
     case AsmToken::PercentPcrel_Hi:
-      return MipsMCExpr::create(MipsMCExpr::MEK_PCREL_HI16, E, Ctx);
+      if (hasNanoMips())
+	return MipsMCExpr::create(MipsMCExpr::MEK_PCREL_HI, E, Ctx);
+      else
+	return MipsMCExpr::create(MipsMCExpr::MEK_PCREL_HI16, E, Ctx);
     case AsmToken::PercentPcrel_Lo:
       return MipsMCExpr::create(MipsMCExpr::MEK_PCREL_LO16, E, Ctx);
     case AsmToken::PercentTlsgd:

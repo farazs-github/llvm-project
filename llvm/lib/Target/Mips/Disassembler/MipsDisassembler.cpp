@@ -1251,7 +1251,7 @@ static DecodeStatus readInstruction32(ArrayRef<uint8_t> Bytes, uint64_t Address,
 /// Read four bytes from the ArrayRef and return 32 bit word sorted
 /// according to the given endianness.
 static DecodeStatus readInstruction48(ArrayRef<uint8_t> Bytes, uint64_t Address,
-                                      uint64_t &Size, uint32_t &Insn, uint32_t &Insn2,
+                                      uint64_t &Size, uint64_t &Insn,
                                       bool IsBigEndian = false, bool IsNanoMips = true) {
   // We want to read exactly 6 Bytes of little-endian data in nanoMIPS mode.
   if (Bytes.size() < 6 || IsBigEndian || !IsNanoMips) {
@@ -1266,9 +1266,9 @@ static DecodeStatus readInstruction48(ArrayRef<uint8_t> Bytes, uint64_t Address,
   // nanoMIPS byte ordering:
   //   Little-endian: 1 | 0 | 3 | 2 | 5 | 4
 
-  Insn = (Bytes[4] << 0) | (Bytes[5] << 8) | (Bytes[2] << 16) 
-    | (Bytes[3] << 24);
-  Insn2 = (Bytes[0] << 32) | (Bytes[1] << 40);
+  Insn = (Bytes[0] << 0) | (Bytes[1] << 8);
+  Insn = ((Insn << 32) | (Bytes[4] << 0) | (Bytes[5] << 8) | (Bytes[2] << 16)
+	  | (Bytes[3] << 24));
   return MCDisassembler::Success;
 }
 
@@ -1281,7 +1281,7 @@ DecodeStatus MipsDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
   Size = 0;
 
   if (IsNanoMips) {
-    uint32_t Insn2;
+    uint64_t Insn2;
     Result = readInstruction16(Bytes, Address, Size, Insn, IsBigEndian);
     if (Result == MCDisassembler::Fail)
       return MCDisassembler::Fail;
@@ -1311,13 +1311,13 @@ DecodeStatus MipsDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
       return Result;
     }
 
-    Result = readInstruction48(Bytes, Address, Size, Insn, Insn2, IsBigEndian, IsNanoMips);
+    Result = readInstruction48(Bytes, Address, Size, Insn2, IsBigEndian, IsNanoMips);
     if (Result == MCDisassembler::Fail)
       return MCDisassembler::Fail;
 
     LLVM_DEBUG(dbgs() << "Trying NanoMips48 table (48-bit instructions):\n");
     // Calling the auto-generated decoder function.
-    Result = decodeInstruction(DecoderTableNanoMips48, Instr, Insn, Address,
+    Result = decodeInstruction(DecoderTableNanoMips48, Instr, Insn2, Address,
                                this, STI);
     if (Result != MCDisassembler::Fail) {
       Size = 6;

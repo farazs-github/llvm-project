@@ -332,30 +332,51 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
                                            bool IsPCRel) const {
   // Determine the type of the relocation.
   unsigned Kind = Fixup.getTargetKind();
+  bool isNanoMips = Ctx.getTargetTriple().isNanoMips();
 
   if (Kind >= Mips::FirstNanoMipsFixupKind
       && Kind <= Mips::LastNanoMipsFixupKind)
     return getNanoMipsRelocType(Ctx, Target, Fixup, IsPCRel);
 
-  switch (Kind) {
-  case FK_NONE:
-    return ELF::R_MIPS_NONE;
-  case FK_Data_1:
-    Ctx.reportError(Fixup.getLoc(),
-                    "MIPS does not support one byte relocations");
-    return ELF::R_MIPS_NONE;
-  case Mips::fixup_Mips_16:
-  case FK_Data_2:
-    return IsPCRel ? ELF::R_MIPS_PC16 : ELF::R_MIPS_16;
-  case Mips::fixup_Mips_32:
-  case FK_Data_4:
-    return IsPCRel ? ELF::R_MIPS_PC32 : ELF::R_MIPS_32;
-  case Mips::fixup_Mips_64:
-  case FK_Data_8:
-    return IsPCRel
-               ? setRTypes(ELF::R_MIPS_PC32, ELF::R_MIPS_64, ELF::R_MIPS_NONE)
-               : (unsigned)ELF::R_MIPS_64;
-  }
+  if (isNanoMips)
+    {
+      switch (Kind) {
+	case FK_NONE:
+	  return ELF::R_NANOMIPS_NONE;
+	case FK_Data_1:
+	  return ELF::R_NANOMIPS_UNSIGNED_8;
+	case FK_Data_2:
+	  return ELF::R_NANOMIPS_UNSIGNED_16;
+	case FK_Data_4:
+	  return ELF::R_NANOMIPS_32;
+	case FK_Data_8:
+	  Ctx.reportError(Fixup.getLoc(),
+			  "NanoMips does not support 8 byte relocations");
+	  return ELF::R_NANOMIPS_NONE;
+      }
+    }
+  else
+    {
+      switch (Kind) {
+	case FK_NONE:
+	  return ELF::R_MIPS_NONE;
+	case FK_Data_1:
+	  Ctx.reportError(Fixup.getLoc(),
+			  "MIPS does not support one byte relocations");
+	  return ELF::R_MIPS_NONE;
+	case Mips::fixup_Mips_16:
+	case FK_Data_2:
+	  return IsPCRel ? ELF::R_MIPS_PC16 : ELF::R_MIPS_16;
+	case Mips::fixup_Mips_32:
+	case FK_Data_4:
+	  return IsPCRel ? ELF::R_MIPS_PC32 : ELF::R_MIPS_32;
+	case Mips::fixup_Mips_64:
+	case FK_Data_8:
+	  return IsPCRel
+	    ? setRTypes(ELF::R_MIPS_PC32, ELF::R_MIPS_64, ELF::R_MIPS_NONE)
+	    : (unsigned)ELF::R_MIPS_64;
+      }
+    }
 
   if (IsPCRel) {
     switch (Kind) {
@@ -780,7 +801,7 @@ std::unique_ptr<MCObjectTargetWriter>
 llvm::createMipsELFObjectWriter(const Triple &TT, bool IsN32) {
   uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
   bool IsN64 = TT.isArch64Bit() && !IsN32;
-  bool HasRelocationAddend = TT.isArch64Bit();
+  bool HasRelocationAddend = (TT.isArch64Bit() || TT.getArch() == llvm::Triple::nanomips);
   uint16_t EMachine = ((TT.getArch() == llvm::Triple::nanomips)?
 		       ELF::EM_NANOMIPS : ELF::EM_MIPS);
   return std::make_unique<MipsELFObjectWriter>(OSABI, HasRelocationAddend,

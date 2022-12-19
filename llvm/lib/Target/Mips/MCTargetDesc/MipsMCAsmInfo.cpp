@@ -52,4 +52,6 @@ MipsMCAsmInfo::MipsMCAsmInfo(const Triple &TheTriple,
   HasMipsExpressions = true;
   if (ABI.IsP32())
     HasLEB128Directives = false;
+  if (TheTriple.isNanoMips())
+    AssemblerDialect = 1;
 }

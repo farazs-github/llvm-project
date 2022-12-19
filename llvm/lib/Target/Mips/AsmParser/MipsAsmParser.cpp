@@ -1480,10 +1480,29 @@ public:
       && (getMemBase()->getGPR32Reg() == Mips::GP);
   }
 
+  MipsOperand *getMemBase() const {
+    assert((Kind == k_Memory) && "Invalid access!");
+    return Mem.Base;
+  }
+
+  const MCExpr *getMemOff() const {
+    assert((Kind == k_Memory) && "Invalid access!");
+    return Mem.Off;
+  }
+
+  int64_t getConstantMemOff() const {
+    return static_cast<const MCConstantExpr *>(getMemOff())->getValue();
+  }
+
   template <unsigned Bits, unsigned Align> bool isMemWithUimmOffsetGP() const {
-    return isMem() && isConstantMemOff() && isUInt<Bits>(getConstantMemOff())
-      && (getConstantMemOff() % Align == 0) && getMemBase()->isRegIdx()
-      && (getMemBase()->getGPR32Reg() == Mips::GP);
+    if (isMem() && getMemBase()->isRegIdx() && (getMemBase()->getGPR32Reg() == Mips::GP)) {
+      MCValue Res;
+      bool IsReloc = getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+
+      return (IsReloc || (isConstantMemOff() && isUInt<Bits>(getConstantMemOff())
+			  && (getConstantMemOff() % Align == 0)));
+    }
+    return false;
   }
 
   template <unsigned Bits, unsigned Align> bool isMemWithUimmOffsetSP() const {
@@ -1601,20 +1620,6 @@ public:
     int64_t Value = 0;
     (void)Val->evaluateAsAbsolute(Value);
     return Value;
-  }
-
-  MipsOperand *getMemBase() const {
-    assert((Kind == k_Memory) && "Invalid access!");
-    return Mem.Base;
-  }
-
-  const MCExpr *getMemOff() const {
-    assert((Kind == k_Memory) && "Invalid access!");
-    return Mem.Off;
-  }
-
-  int64_t getConstantMemOff() const {
-    return static_cast<const MCConstantExpr *>(getMemOff())->getValue();
   }
 
   const SmallVectorImpl<unsigned> &getRegList() const {

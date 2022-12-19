@@ -62,6 +62,9 @@ private:
   virtual bool selectAddrDefault(SDValue Addr, SDValue &Base,
                                  SDValue &Offset) const;
 
+  virtual bool selectAddrSym(SDValue Addr, SDValue &Base,
+                                 SDValue &Offset) const;
+
   /// Match integer address pattern.
   virtual bool selectIntAddr(SDValue Addr, SDValue &Base,
                              SDValue &Offset) const;

@@ -366,6 +366,17 @@ bool MipsSEDAGToDAGISel::selectAddrDefault(SDValue Addr, SDValue &Base,
   return true;
 }
 
+bool MipsSEDAGToDAGISel::selectAddrSym(SDValue Addr, SDValue &Base,
+				       SDValue &Offset) const {
+  return false;
+  if (Addr.getOpcode() != ISD::TargetExternalSymbol &&
+      Addr.getOpcode() != ISD::TargetGlobalAddress)
+    return false;
+  Base = Addr;
+  Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), Addr.getValueType());
+  return true;
+}
+
 bool MipsSEDAGToDAGISel::selectIntAddr(SDValue Addr, SDValue &Base,
                                        SDValue &Offset) const {
   return selectAddrRegImm(Addr, Base, Offset) ||

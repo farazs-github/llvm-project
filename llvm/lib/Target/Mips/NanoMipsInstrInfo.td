@@ -90,21 +90,32 @@ class SImmScaledAsmOperandClass<int Bits, int Align, list<AsmOperandClass> Super
   let DiagnosticType = "SImm" # Bits # "s" # Align;
 }
 
+class SymAsmOperandClass<string Type = "">
+    : AsmOperandClass{
+  let Name = "Sym32" # Type ;
+  let DiagnosticType = "Sym32" # Type;
+  let PredicateMethod = "isSym32" # Type;
+}
+
+def SymAsmOperandAbs : SymAsmOperandClass;
+def SymAsmOperandPCRel : SymAsmOperandClass<"PCRel">;
+def SymAsmOperandGPRel : SymAsmOperandClass<"GPRel">;
+
 def SImm32S12AsmOperandClass : SImmScaledAsmOperandClass<20, 12, []>;
 
-class NMMemGPAsmOperand<int Bits, int Align, list<AsmOperandClass> Supers = []>
-    : AsmOperandClass {
+class NMMemGPAsmOperand<int Bits, int Align = 0, list<AsmOperandClass> Supers = [MipsMemAsmOperand]>
+    : MipsMemSimmAsmOperand<Bits> {
   let Name = "NMMemGP" # Bits # "s" # Align;
   let RenderMethod = "addMemOperands";
-  let SuperClasses = Supers;
+  let ParserMethod = "parseMemOperand";
+  let SuperClasses = Supers;  
   let PredicateMethod = "isMemWithUimmOffsetGP<" # Bits # "," # Align # ">";
 }
 
-class NMMemSPAsmOperand<int Bits, int Align, list<AsmOperandClass> Supers = []>
+class NMMemSPAsmOperand<int Bits, int Align>
     : AsmOperandClass {
   let Name = "NMMemSP" # Bits # "s" # Align;
   let RenderMethod = "addMemOperands";
-  let SuperClasses = Supers;
   let PredicateMethod = "isMemWithUimmOffsetSP<" # Bits # "," # Align # ">";
 }
 
@@ -231,6 +242,21 @@ def simm32s12_nm : Operand<i32> {
   let ParserMatchClass = SImmAsmOperandClass<20, []>;
 }
 
+def sym32_pc_nm : Operand<iPTRAny> {
+  let EncoderMethod = "getSymPCRel";
+  let ParserMatchClass = SymAsmOperandPCRel;
+}
+
+def sym32_gp_nm : Operand<iPTRAny> {
+  let EncoderMethod = "getSymGPRel";
+  let ParserMatchClass = SymAsmOperandGPRel;
+}
+
+def sym32_abs_nm : Operand<iPTRAny> {
+  let EncoderMethod = "getSymAbs";
+  let ParserMatchClass = SymAsmOperandAbs;
+}
+
 def simm32power2 : IntImmLeaf<i32, [{ return isPowerOf2_32(Imm.getSExtValue()); }]>;
 
 def uimm16_simm12 : Operand<i32>;
@@ -248,7 +274,8 @@ def addrgp18 : ComplexPattern<iPTR, 2, "selectIntAddrUImm18", [frameindex]>;
 def addrgp17s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm17s1", [frameindex]>;
 def addrgp7s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm7s2", [frameindex]>;
 def addrsp5s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm5s2", [frameindex]>;
-def addrpcrel : ComplexPattern<iPTR, 2, "selectAddrDefault", [frameindex]>;
+def addrpcrel : ComplexPattern<iPTR, 2, "selectAddrSym", [frameindex]>;
+def addrgprel : ComplexPattern<iPTR, 2, "selectAddrSym", [frameindex]>;
 
 def Log2XForm : SDNodeXForm<imm, [{ return CurDAG->getTargetConstant(Log2_32(N->getZExtValue()),
                                                                    SDLoc(N), MVT::i32);
@@ -947,7 +974,7 @@ class StoreMemoryNM16<string opstr, DAGOperand MO,
   string BaseOpcode = opstr;
 }
 
-class LSMem_PC48_Enc<bits<5> isel> : _Pool_P48I<isel> {
+class Op48_Enc<bits<5> isel> : _Pool_P48I<isel> {
   bits<5> rt;
   bits<32> addr;
   let Inst{41...37} = rt;
@@ -1098,6 +1125,21 @@ class ReverseNM<string opstr, RegisterOperand RO, SDNode OpNode>:
   InstNM<(outs RO:$rd), (ins RO:$rs), !strconcat(opstr, "\t$rd, $rs"),
          [(set RO:$rd, (OpNode RO:$rs))]>, InstSize32;
 
+class LoadAddressPCRelNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexPattern Addr> :
+  InstNM<(outs RO:$rt), (ins MO:$addr),
+         !strconcat(opstr, "\t$rt, $addr"),
+         [(set RO:$rt, Addr:$addr)]>;
+
+class LoadAddressGPRelNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexPattern Addr> :
+  InstNM<(outs RO:$rt), (ins MO:$addr),
+         !strconcat(opstr, "\t$rt, $addr"),
+         [(set RO:$rt, Addr:$addr)]>;
+
+class LoadAddressAbsNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexPattern Addr> :
+  InstNM<(outs RO:$rt), (ins MO:$addr),
+         !strconcat(opstr, "\t$rt, $addr"),
+         [(set RO:$rt, Addr:$addr)]>;
+
 //===----------------------------------------------------------------------===//
 //
 // Instruction Definitions
@@ -1191,9 +1233,11 @@ def INS_NM : InsBaseNM, ExtInsBase_Enc<0b1110>;
 
 def ADDiu_NM : AddiU32<"addiu", uimm16_simm12, GPR32NMOpnd,
                              imm32SExt12OrZExt16, add>;
-let Constraints = "$rt = $rs" in
-def ADDIU48_NM : ArithLogicINM<"addiu[48]", simm32_relaxed, GPR32NMOpnd,
-                               imm32_NM, add>, RegImm48_Enc<0b00001>;
+def ADDIU48_NM : ArithLogicINM<"addiu", simm32_relaxed, GPR32NMOpnd,
+                               imm32_NM, add>, Op48_Enc<0b00001>;
+
+def ADDIUPC48_NM : LoadAddressPCRelNM<"addiu", GPR32NMOpnd, sym32_pc_nm,
+                                      addrpcrel>, Op48_Enc<0b00011>;
 
 def LSA_NM : LoadScaledAddressNM<"lsa", GPR32NMOpnd>;
 
@@ -1224,16 +1268,13 @@ def JRC_NM : IndirectBranchNM<"jrc", GPR32NMOpnd>;
 def MOVEBALC_NM : MoveBalcBase;
 
 let isReMaterializable = 1 in {
-def Li_NM : RegImm48_Desc<"li", simm32_relaxed, GPR32NMOpnd>,
-		RegImm48_Enc<0b00000>;
+def Li_NM : LoadAddressAbsNM<"li48", GPR32NMOpnd, sym32_abs_nm,
+    	      		       addrpcrel>, Op48_Enc<0b00000>;
 def LA_NM : RegImm48_Desc<"la", simm32_relaxed, GPR32NMOpnd>,
-		RegImm48_Enc<0b00011>;
+		Op48_Enc<0b00011>;
 
-def LAGPB_NM : RegImm48_Desc<"addiu.b", simm32_relaxed, GPR32NMOpnd>,
-		RegImm48_Enc<0b00010> {
-    let AsmString = "addiu.b $rt, $$gp, %gprel( $imm )";
-    let isReMaterializable = 1;
-}
+def LAGPB_NM : LoadAddressGPRelNM<"addiu", GPR32NMOpnd, sym32_gp_nm,
+                                      addrgprel>, Op48_Enc<0b00010>;
 
 } // isReMaterializable = 1
 
@@ -1694,8 +1735,8 @@ def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>
 
 //def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
 
-def SWPC_NM : StorePCBase<GPR32NMOpnd, simm32, addrpcrel>, LSMem_PC48_Enc<0b01011>;
-def LWPC_NM : LoadPCBase<GPR32NMOpnd, simm32, addrpcrel>, LSMem_PC48_Enc<0b01111>;
+def SWPC_NM : StorePCBase<GPR32NMOpnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01011>;
+def LWPC_NM : LoadPCBase<GPR32NMOpnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01111>;
 
 let isCodeGenOnly = 1 in {
 

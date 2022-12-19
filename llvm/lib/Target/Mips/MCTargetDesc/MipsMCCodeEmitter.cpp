@@ -762,6 +762,62 @@ getSImm9AddiuspValue(const MCInst &MI, unsigned OpNo,
 }
 
 unsigned MipsMCCodeEmitter::
+getSymPCRel(const MCInst &MI, unsigned OpNo,
+	    SmallVectorImpl<MCFixup> &Fixups,
+	    const MCSubtargetInfo &STI) const {
+  const MCExpr *Expr;
+  const MCOperand &MO = MI.getOperand(OpNo);
+  if (MO.isExpr()) {
+    Expr = MO.getExpr();
+    Fixups.push_back(MCFixup::create(0, Expr,
+				     MCFixupKind(Mips::fixup_NANOMIPS_PC_I32)));
+  }
+  else if (MO.isImm()) {
+    Expr = MCConstantExpr::create(static_cast<unsigned>(MO.getImm()), Ctx);
+    Fixups.push_back(MCFixup::create(0, Expr,
+				     MCFixupKind(Mips::fixup_NANOMIPS_PC_I32)));
+  }
+  return 0;
+}
+
+unsigned MipsMCCodeEmitter::
+getSymGPRel(const MCInst &MI, unsigned OpNo,
+	    SmallVectorImpl<MCFixup> &Fixups,
+	    const MCSubtargetInfo &STI) const {
+  const MCExpr *Expr;
+  unsigned RegBits=getMachineOpValue(MI, MI.getOperand(OpNo), Fixups,
+				     STI);
+
+  assert(MI.getOperand(OpNo).isReg() && RegBits == 28);
+  const MCOperand MO = MI.getOperand(OpNo+1);
+
+  if (MO.isExpr()) {
+    const MipsMCExpr *MipsExpr = cast<MipsMCExpr>(Expr);
+    assert (MipsExpr->getKind() == MipsMCExpr::MEK_GPREL);
+    Expr = MO.getExpr();
+  }
+  else if (MO.isImm())
+    Expr = MCConstantExpr::create(static_cast<unsigned>(MO.getImm()), Ctx);
+
+  Fixups.push_back(MCFixup::create(0, Expr,
+				   MCFixupKind(Mips::fixup_NANOMIPS_GPREL_I32)));
+  return 0;
+}
+
+unsigned MipsMCCodeEmitter::
+getSymAbs(const MCInst &MI, unsigned OpNo,
+	  SmallVectorImpl<MCFixup> &Fixups,
+	  const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+  if (MO.isExpr())
+    Fixups.push_back(MCFixup::create(0, MO.getExpr(),
+				     MCFixupKind(Mips::fixup_NANOMIPS_I32)));
+  else if (MO.isImm())
+    return MO.getImm();
+  return 0;
+}
+
+unsigned MipsMCCodeEmitter::
 getExprOpValue(const MCExpr *Expr, SmallVectorImpl<MCFixup> &Fixups,
                const MCSubtargetInfo &STI) const {
   int64_t Res;

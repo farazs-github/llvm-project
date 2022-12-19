@@ -1262,6 +1262,30 @@ public:
     addConstantSImmOperands<Bits, 0, 0>(Inst, N);
   }
 
+  void addSym32Operands(MCInst &Inst, unsigned N) const {
+    if (isImm() && !isConstantImm()) {
+      addExpr(Inst, getImm());
+      return;
+    }
+    addConstantSImmOperands<32, 0, 0>(Inst, N);
+  }
+
+  void addSym32PCRelOperands(MCInst &Inst, unsigned N) const {
+    if (isImm() && !isConstantImm()) {
+      addExpr(Inst, getImm());
+      return;
+    }
+    addConstantSImmOperands<32, 0, 0>(Inst, N);
+  }
+
+  void addSym32GPRelOperands(MCInst &Inst, unsigned N) const {
+    if (isImm() && !isConstantImm()) {
+      addExpr(Inst, getImm());
+      return;
+    }
+    addConstantSImmOperands<32, 0, 0>(Inst, N);
+  }
+
   template <unsigned Bits>
   void addUImmOperands(MCInst &Inst, unsigned N) const {
     if (isImm() && !isConstantImm()) {
@@ -1472,6 +1496,33 @@ public:
   bool isScaledUImm() const {
     return isConstantImm() &&
            isShiftedUInt<Bits, ShiftLeftAmount>(getConstantImm());
+  }
+
+  bool isSym32() const {
+    MCValue Res;
+    bool Success;
+    if (Kind != k_Immediate)
+      return false;
+    Success = getImm()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    if (Success && Res.getRefKind() == MipsMCExpr::MEK_None)
+      return Success;
+    return Success;
+  }
+
+  bool isSym32PCRel() const {
+    return isSym32();
+  }
+
+  bool isSym32GPRel() const {
+    MCValue Res;
+    bool Success;
+    if (Kind != k_Immediate)
+      return false;
+
+    Success = getImm()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    if (Success && Res.getRefKind() == MipsMCExpr::MEK_GPREL)
+      return Success;
+    return false;
   }
 
   template <unsigned Bits, unsigned ShiftLeftAmount>
@@ -6015,6 +6066,10 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
     if (Inst.getOperand(0).getReg() != Inst.getOperand(2).getReg())
       return Match_RequiresSameSrcAndDst;
     return Match_Success;
+  case Mips::ADDIU48_NM:
+    if (Inst.getOperand(0).getReg() != Inst.getOperand(1).getReg())
+      return Match_RequiresSameSrcAndDst;
+  return Match_Success;
   }
 
   uint64_t TSFlags = getInstDesc(Inst.getOpcode()).TSFlags;
@@ -6234,6 +6289,9 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return Error(ErrorStart, "size plus position are not in the range 33 .. 64",
                  SMRange(ErrorStart, ErrorEnd));
     }
+  case Match_Sym32:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected symbol");
   }
 
   llvm_unreachable("Implement any new match types added!");

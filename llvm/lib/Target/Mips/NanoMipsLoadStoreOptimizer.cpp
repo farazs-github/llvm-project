@@ -575,6 +575,12 @@ static bool isValidUse(MachineInstr *MI, Register Reg) {
   case Mips::LW_NM:
   case Mips::LWs9_NM:
   case Mips::ADDiu_NM:
+  case Mips::LH16_NM:
+  case Mips::LHU16_NM:
+  case Mips::SH16_NM:
+  case Mips::LB16_NM:
+  case Mips::LBU16_NM:
+  case Mips::SB16_NM:
     return MI->getOperand(1).getReg() == Reg;
   default:
     return false;
@@ -589,6 +595,18 @@ static bool isLoadStoreShortChar(MachineInstr *MI) {
   case Mips::SH_NM:
   case Mips::LH_NM:
   case Mips::LHU_NM:
+  case Mips::LH16_NM:
+  case Mips::LHU16_NM:
+  case Mips::SH16_NM:
+  case Mips::LHGP_NM:
+  case Mips::LHUGP_NM:
+  case Mips::SHGP_NM:
+  case Mips::LB16_NM:
+  case Mips::LBU16_NM:
+  case Mips::SB16_NM:
+  case Mips::LBGP_NM:
+  case Mips::LBUGP_NM:
+  case Mips::SBGP_NM:
     return true;
   default:
     return false;

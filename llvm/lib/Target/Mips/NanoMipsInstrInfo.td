@@ -1696,32 +1696,32 @@ def LBUs9_NM : LoadMemoryNM<"lbu", mem_nms9, zextloadi8, addrsimm9, II_LBU>,
 def LHUs9_NM : LoadMemoryNM<"lhu", mem_nms9, zextloadi16, addrsimm9, II_LHU>,
 		LSMem_S9_Enc<0b000, 0b0110>;
 
-def LBX_NM : LoadMemoryNM<"lbx", mem_nmrx, sextloadi8, addrindexed, II_LB>,
+def LBX_NM : LoadMemoryX<"lbx", mem_nmrx, sextloadi8, addrindexed, II_LB>,
 		LSMemX_Enc<0, 0b0000>;
-def SBX_NM : StoreMemoryNM<"sbx", mem_nmrx, truncstorei8, addrindexed, II_SB>,
+def SBX_NM : StoreMemoryX<"sbx", mem_nmrx, truncstorei8, addrindexed, II_SB>,
 		LSMemX_Enc<0, 0b0001>;
-def LHX_NM : LoadMemoryNM<"lhx", mem_nmrx, sextloadi16, addrindexed, II_LH>,
+def LHX_NM : LoadMemoryX<"lhx", mem_nmrx, sextloadi16, addrindexed, II_LH>,
 		LSMemX_Enc<0, 0b0100>;
-def SHX_NM : StoreMemoryNM<"shx", mem_nmrx, truncstorei16, addrindexed, II_SH>,
+def SHX_NM : StoreMemoryX<"shx", mem_nmrx, truncstorei16, addrindexed, II_SH>,
 		LSMemX_Enc<0, 0b0101>;
 def LWX_NM : LoadMemoryX<"lwx", mem_nmrx, load, addrindexed, II_LW>,
 		LSMemX_Enc<0, 0b1000>;
-def SWX_NM : StoreMemoryNM<"swx", mem_nmrx, store, addrindexed, II_SW>,
+def SWX_NM : StoreMemoryX<"swx", mem_nmrx, store, addrindexed, II_SW>,
 		LSMemX_Enc<0, 0b1001>;
-def LBUX_NM : LoadMemoryNM<"lbux", mem_nmrx, zextloadi8, addrindexed, II_LBU>,
+def LBUX_NM : LoadMemoryX<"lbux", mem_nmrx, zextloadi8, addrindexed, II_LBU>,
 		LSMemX_Enc<0, 0b0010>;
-def LHUX_NM : LoadMemoryNM<"lhux", mem_nmrx, zextloadi16, addrindexed, II_LHU>,
+def LHUX_NM : LoadMemoryX<"lhux", mem_nmrx, zextloadi16, addrindexed, II_LHU>,
 		LSMemX_Enc<0, 0b0000>;
 
-def LHXS_NM : LoadMemoryNM<"lhxs", mem_nmrx, sextloadi16, addrindexedlsl1, II_LH>,
+def LHXS_NM : LoadMemoryX<"lhxs", mem_nmrx, sextloadi16, addrindexedlsl1, II_LH>,
 		LSMemX_Enc<0b1, 0b0100>;
-def SHXS_NM : StoreMemoryNM<"shxs", mem_nmrx, truncstorei16, addrindexedlsl1, II_SH>,
+def SHXS_NM : StoreMemoryX<"shxs", mem_nmrx, truncstorei16, addrindexedlsl1, II_SH>,
 		LSMemX_Enc<0b1, 0b0101>;
-def LHUXS_NM : LoadMemoryNM<"lhuxs", mem_nmrx, zextloadi16, addrindexedlsl1, II_LHU>,
+def LHUXS_NM : LoadMemoryX<"lhuxs", mem_nmrx, zextloadi16, addrindexedlsl1, II_LHU>,
 		LSMemX_Enc<0b1, 0b0110>;
-def LWXS_NM : LoadMemoryNM<"lwxs", mem_nmrx, load, addrindexedlsl2, II_LW>,
+def LWXS_NM : LoadMemoryX<"lwxs", mem_nmrx, load, addrindexedlsl2, II_LW>,
 		LSMemX_Enc<0b1, 0b1000>;
-def SWXS_NM : StoreMemoryNM<"swxs", mem_nmrx, store, addrindexedlsl2, II_SW>,
+def SWXS_NM : StoreMemoryX<"swxs", mem_nmrx, store, addrindexedlsl2, II_SW>,
 		LSMemX_Enc<0b1, 0b1001>;
 
 def UALH_NM : UnalignedLoad<"ualh", NMUnalignedLH>, LSMem_S9_Enc<0b001, 0b0100>;
@@ -1804,12 +1804,12 @@ def : NMPat<(store GPR32NM:$rt, GPR32NM:$rs),
 // Any-extending loads
 def : NMPat<(i32 (extloadi8 addruimm12:$addr)), (LBU_NM addruimm12:$addr)>;
 def : NMPat<(i32 (extloadi8 addrsimm9:$addr)), (LBUs9_NM addrsimm9:$addr)>;
-def : NMPat<(i32 (extloadi8 addrindexed:$addr)), (LBUX_NM addrindexed:$addr)>;
+def : NMPat<(i32 (extloadi8 addrindexed:$addr)), (LBUX_NM addrindexed:$addr, 0)>;
 def : NMPat<(i32 (extloadi16 addruimm12:$addr)), (LHU_NM addruimm12:$addr)>;
 def : NMPat<(i32 (extloadi16 addrsimm9:$addr)), (LHUs9_NM addrsimm9:$addr)>;
 def : NMPat<(i32 (extloadi16 addrindexedlsl1:$addr)),
-            (LHUXS_NM addrindexedlsl1:$addr)>;
-def : NMPat<(i32 (extloadi16 addrindexed:$addr)), (LHUX_NM addrindexed:$addr)>;
+            (LHUXS_NM addrindexedlsl1:$addr, 0)>;
+def : NMPat<(i32 (extloadi16 addrindexed:$addr)), (LHUX_NM addrindexed:$addr, 0)>;
 
 // Catching out-of-range immediate unaligned loads/stores.
 def : NMPat<(i32 (NMUnalignedLW GPR32NM:$rs, GPR32NM:$src)),

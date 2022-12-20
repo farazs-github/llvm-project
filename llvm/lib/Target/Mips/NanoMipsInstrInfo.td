@@ -1146,17 +1146,6 @@ class LoadAddressAbsNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexP
 //
 //===----------------------------------------------------------------------===//
 
-// 16-bit register operations
-let FastISelShouldIgnore = 1 in {
-def ADDu16_NM : AddSubR16_Desc<"addu16", GPR3Opnd, add>,
-    	      	AddSubR16_Enc<0b0>;
-def SUBu16_NM  : AddSubR16_Desc<"subu", GPR3Opnd, sub>,
-		 AddSubR16_Enc<0b1>;
-def ADDu4x4_NM : Arith4x4_Desc<"addu4 x4", GPR4Opnd, add>,
-		 Arith4x4_Enc<0b00>;
-def MULu4x4_NM  : Arith4x4_Desc<"mulu", GPR4Opnd, mul>,
-    		  Arith4x4_Enc<0b01>;
-}
 
 // _POOL32A0_0 pool of instructions.
 def SLLV_NM  : ArithLogicR32_Desc<"sllv", GPR32NMOpnd, shl>,
@@ -1203,6 +1192,18 @@ def DIVU_NM  : DivMod<"divu", udiv>,
 	       ArithLogicR32_Enc<0b011011>;
 def MODU_NM  : DivMod<"modu", urem>,
 	       ArithLogicR32_Enc<0b011111>;
+
+// 16-bit register operations
+let FastISelShouldIgnore = 1 in {
+def ADDu16_NM : AddSubR16_Desc<"addu", GPR3Opnd, add>,
+    	      	AddSubR16_Enc<0b0>;
+def SUBu16_NM  : AddSubR16_Desc<"subu", GPR3Opnd, sub>,
+		 AddSubR16_Enc<0b1>;
+def ADDu4x4_NM : Arith4x4_Desc<"addu", GPR4Opnd, add>,
+		 Arith4x4_Enc<0b00>;
+def MUL4x4_NM  : Arith4x4_Desc<"mul", GPR4Opnd, mul>,
+    		  Arith4x4_Enc<0b01>;
+}
 
 // P.U12 pool of instructions
 def ORI_NM   : CondLogicI32_Desc<"ori", uimm12_nm, GPR32NMOpnd, imm32ZExt12, or>,
@@ -1254,13 +1255,13 @@ def BYTEREVW_NM : ReverseNM<"byterevw", GPR32NMOpnd, bswap>;
 def TEQ_NM : Trap_Desc<"teq", GPR32NMOpnd, uimm5_nm>, Trap_Enc<0b0>;
 def TNE_NM : Trap_Desc<"tne", GPR32NMOpnd, uimm5_nm>, Trap_Enc<0b1>;
 
-def NOT_NM   : ArithLogicR16U_Desc<"not16", GPR3Opnd, not>,
+def NOT_NM   : ArithLogicR16U_Desc<"not", GPR3Opnd, not>,
 	       ArithLogicR16_Enc<0b00>;
-def XOR16_NM : ArithLogicR16_Desc<"xor16", GPR3Opnd>,
+def XOR16_NM : ArithLogicR16_Desc<"xor", GPR3Opnd>,
 	       ArithLogicR16_Enc<0b01>;
-def AND16_NM : ArithLogicR16_Desc<"and16", GPR3Opnd>,
+def AND16_NM : ArithLogicR16_Desc<"and", GPR3Opnd>,
 	       ArithLogicR16_Enc<0b10>;
-def OR16_NM  : ArithLogicR16_Desc<"or16", GPR3Opnd>,
+def OR16_NM  : ArithLogicR16_Desc<"or	", GPR3Opnd>,
 	       ArithLogicR16_Enc<0b11>;
 
 def JRC_NM : IndirectBranchNM<"jrc", GPR32NMOpnd>;
@@ -1268,7 +1269,7 @@ def JRC_NM : IndirectBranchNM<"jrc", GPR32NMOpnd>;
 def MOVEBALC_NM : MoveBalcBase;
 
 let isReMaterializable = 1 in {
-def Li_NM : LoadAddressAbsNM<"li48", GPR32NMOpnd, sym32_abs_nm,
+def Li_NM : LoadAddressAbsNM<"li", GPR32NMOpnd, sym32_abs_nm,
     	      		       addrpcrel>, Op48_Enc<0b00000>;
 def LA_NM : RegImm48_Desc<"la", simm32_relaxed, GPR32NMOpnd>,
 		Op48_Enc<0b00011>;

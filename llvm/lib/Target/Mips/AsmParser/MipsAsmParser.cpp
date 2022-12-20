@@ -6069,10 +6069,14 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
   case Mips::CRC32H: case Mips::CRC32CH:
   case Mips::CRC32W: case Mips::CRC32CW:
   case Mips::CRC32D: case Mips::CRC32CD:
+  case Mips::AND16_NM: case Mips::OR16_NM:
+  case Mips::XOR16_NM:
     if (Inst.getOperand(0).getReg() != Inst.getOperand(2).getReg())
       return Match_RequiresSameSrcAndDst;
     return Match_Success;
   case Mips::ADDIU48_NM:
+  case Mips::ADDu4x4_NM:
+  case Mips::MUL4x4_NM:
     if (Inst.getOperand(0).getReg() != Inst.getOperand(1).getReg())
       return Match_RequiresSameSrcAndDst;
   return Match_Success;

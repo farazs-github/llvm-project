@@ -1101,13 +1101,14 @@ public:
     Inst.addOperand(MCOperand::createReg(getGPR32Reg()));
   }
 
-  void addGPR32NMAsmRegOperands(MCInst &Inst, unsigned N) const {
-    addGPR32AsmRegOperands(Inst, N);
-  }
-
   void addGPRMM16AsmRegOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     Inst.addOperand(MCOperand::createReg(getGPRMM16Reg()));
+  }
+
+  void addGPRNM32AsmRegOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    addGPR32AsmRegOperands(Inst, N);
   }
 
   void addGPRNM16AsmRegOperands(MCInst &Inst, unsigned N) const {

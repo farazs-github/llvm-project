@@ -571,7 +571,6 @@ class Arith4x4_Desc<string opstr, RegisterOperand RO,
     InstNM<(outs RO:$dst), (ins RO:$rs, RO:$rt),
 	!strconcat(opstr, "\t$dst, $rs, $rt"),
 	   [(set RO:$dst, (OpNode RO:$rs, RO:$rt))]> {
-  let Constraints = "$rt = $dst";
   Format Form = FrmR;
 }
 
@@ -634,25 +633,32 @@ class AddSubR16_Enc<bits<1> isel>: _Pool_P16_ADDU<isel> {
   let Inst{0} = 0;
 }
 
+class ArithLogicINM2Reg<string opstr, Operand Od, RegisterOperand DRO,
+		        RegisterOperand SRO,
+		        SDPatternOperator imm_type = null_frag,
+		        SDPatternOperator OpNode = null_frag> :
+  InstNM<(outs DRO:$rt), (ins SRO:$rs, Od:$imm),
+	 !strconcat(opstr, "\t$rt, $rs, $imm"),
+	 [(set DRO:$rt, (OpNode SRO:$rs, imm_type:$imm))]> {
+  let isReMaterializable = 1;
+}
+
 // Arithmetic and logical instructions with 2 register operands and immediate.
 class ArithLogicINM<string opstr, Operand Od, RegisterOperand RO,
 		    SDPatternOperator imm_type = null_frag,
 		    SDPatternOperator OpNode = null_frag> :
-  InstNM<(outs RO:$rt), (ins RO:$rs, Od:$imm),
-	 !strconcat(opstr, "\t$rt, $rs, $imm"),
-	 [(set RO:$rt, (OpNode RO:$rs, imm_type:$imm))]> {
-  let isReMaterializable = 1;
-}
+  ArithLogicINM2Reg<opstr, Od, RO, RO, imm_type, OpNode>;
 
 class ArithLogicI32<string opstr, Operand Od, RegisterOperand RO,
 		    SDPatternOperator imm_type = null_frag,
 		    SDPatternOperator OpNode = null_frag> :
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>;
 
-class AddiU32<string opstr, Operand Od, RegisterOperand RO,
+class AddiU32<string opstr, Operand Od, RegisterOperand DRO,
+		    RegisterOperand SRO,
 		    SDPatternOperator imm_type = null_frag,
 		    SDPatternOperator OpNode = null_frag> :
-  ArithLogicINM<opstr, Od, RO, imm_type, OpNode>, _Pool_P32<0b00000> {
+  ArithLogicINM2Reg<opstr, Od, DRO, SRO, imm_type, OpNode>, _Pool_P32<0b00000> {
   bits<5> rt;
   bits<5> rs;
   bits<16> imm;
@@ -1232,7 +1238,7 @@ def ROTR_NM : ShiftI32_Desc<"rotr", uimm5_nm, GPRNM32Opnd, imm32ZExt5, rotr>,
 def EXT_NM : ExtBaseNM, ExtInsBase_Enc<0b1111>;
 def INS_NM : InsBaseNM, ExtInsBase_Enc<0b1110>;
 
-def ADDiu_NM : AddiU32<"addiu", uimm16_simm12, GPRNM32Opnd,
+def ADDiu_NM : AddiU32<"addiu", uimm16_simm12, GPRNM32NZOpnd, GPRNM32Opnd,
                              imm32SExt12OrZExt16, add>;
 def ADDIU48_NM : ArithLogicINM<"addiu", simm32_relaxed, GPRNM32Opnd,
                                imm32_NM, add>, Op48_Enc<0b00001>;

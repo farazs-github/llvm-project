@@ -568,13 +568,21 @@ class _Pool_PP_LSX<bit scaled, bits<4> isel> : _Pool_POOL32A7<0b000> {
 // 16-bit arithmetic and logical instructions with 4x4 register operands, P16_4X4
 class Arith4x4_Desc<string opstr, RegisterOperand RO,
 			SDPatternOperator OpNode = null_frag>:
-    InstNM<(outs RO:$dst), (ins RO:$rs, RO:$rt),
-	!strconcat(opstr, "\t$dst, $rs, $rt"),
-	   [(set RO:$dst, (OpNode RO:$rs, RO:$rt))]> {
+    InstNM<(outs RO:$dst), (ins RO:$rt, RO:$rs),
+	!strconcat(opstr, "\t$dst, $rt, $rs"),
+	   [(set RO:$dst, (OpNode RO:$rt, RO:$rs))]> {
   Format Form = FrmR;
 }
 
-class Arith4x4_Enc<bits<2> isel>:  _Pool_P16_4X4<isel>;
+class Arith4x4_Enc<bits<2> isel>:  _Pool_P16_4X4<isel> {
+      bits<5> dst;
+      bits<5> rs;
+
+      let Inst{9} = dst{4};
+      let Inst{7...5} = dst{2...0};
+      let Inst{4} = rs{4};
+      let Inst{2...0} = rs{2...0};
+}
 
 // 32-bit arithmetic and logical instructions with 3 register operands.
 
@@ -1200,11 +1208,11 @@ def MODU_NM  : DivMod<"modu", urem>,
 	       ArithLogicR32_Enc<0b011111>;
 
 // 16-bit register operations
-let FastISelShouldIgnore = 1 in {
-def ADDu16_NM : AddSubR16_Desc<"addu", GPRNM3Opnd, add>,
-    	      	AddSubR16_Enc<0b0>;
+let FastISelShouldIgnore = 1, isCommutable=1 in {
 def SUBu16_NM  : AddSubR16_Desc<"subu", GPRNM3Opnd, sub>,
 		 AddSubR16_Enc<0b1>;
+def ADDu16_NM : AddSubR16_Desc<"addu", GPRNM3Opnd, add>,
+		AddSubR16_Enc<0b0>;
 def ADDu4x4_NM : Arith4x4_Desc<"addu", GPRNM4Opnd, add>,
 		 Arith4x4_Enc<0b00>;
 def MUL4x4_NM  : Arith4x4_Desc<"mul", GPRNM4Opnd, mul>,

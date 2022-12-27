@@ -936,12 +936,11 @@ public:
 
   /// Coerce the register to GPR32 and return the real register for the current
   /// target.
-  unsigned getGPRNM16Reg() const {
+  unsigned getGPRNM32Reg() const {
     assert(isRegIdx() && (RegIdx.Kind & RegKind_GPR) && "Invalid access!");
-    unsigned ClassID = Mips::GPR32RegClassID;
+    unsigned ClassID = Mips::GPRNM32RegClassID;
     return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
   }
-
 
   /// Coerce the register to GPR64 and return the real register for the current
   /// target.
@@ -1108,17 +1107,17 @@ public:
 
   void addGPRNM32AsmRegOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
-    addGPR32AsmRegOperands(Inst, N);
+    Inst.addOperand(MCOperand::createReg(getGPRNM32Reg()));
   }
 
   void addGPRNM16AsmRegOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
-    Inst.addOperand(MCOperand::createReg(getGPR32Reg()));
+    Inst.addOperand(MCOperand::createReg(getGPRNM32Reg()));
   }
 
   void addGPRNM4x4AsmRegOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
-    Inst.addOperand(MCOperand::createReg(getGPR32Reg()));
+    Inst.addOperand(MCOperand::createReg(getGPRNM32Reg()));
   }
 
   void addGPRMM16AsmRegZeroOperands(MCInst &Inst, unsigned N) const {

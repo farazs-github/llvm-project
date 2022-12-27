@@ -1293,7 +1293,7 @@ DecodeStatus MipsDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
 
     LLVM_DEBUG(
 	       dbgs() << "Trying NanoMips16 table (16-bit instructions):\n");
-    // Calling the auto-generated decoder function for microMIPS32R6
+    // Calling the auto-generated decoder function for NanoMips
     // 16-bit instructions.
     Result = decodeInstruction(DecoderTableNanoMips16, Instr, Insn,
 			       Address, this, STI);
@@ -1575,7 +1575,8 @@ static DecodeStatus DecodeGPRNM3RegisterClass(MCInst &Inst,
                                             const void *Decoder) {
   if (RegNo > 7)
     return MCDisassembler::Fail;
-  unsigned Reg = getReg(Decoder, Mips::GPRNM3RegClassID, RegNo);
+  RegNo |= ((RegNo & 0x4) ^ 0x4) << 2;
+  unsigned Reg = getReg(Decoder, Mips::GPRNM32RegClassID, RegNo);
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -1584,9 +1585,10 @@ static DecodeStatus DecodeGPRNM4RegisterClass(MCInst &Inst,
                                             unsigned RegNo,
                                             uint64_t Address,
                                             const void *Decoder) {
-  if (RegNo > 15)
+  if (RegNo > 31)
     return MCDisassembler::Fail;
-  unsigned Reg = getReg(Decoder, Mips::GPRNM4RegClassID, RegNo);
+  RegNo += (RegNo < 4 ? 8 : 0);
+  unsigned Reg = getReg(Decoder, Mips::GPRNM32RegClassID, RegNo);
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -1606,7 +1608,11 @@ static DecodeStatus DecodeGPRNM32RegisterClass(MCInst &Inst,
                                                unsigned RegNo,
                                                uint64_t Address,
                                                const void *Decoder) {
-  return DecodeGPR32RegisterClass(Inst, RegNo, Address, Decoder);
+  if (RegNo > 31)
+    return MCDisassembler::Fail;
+  unsigned Reg = getReg(Decoder, Mips::GPRNM32RegClassID, RegNo);
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
 }
 
 static DecodeStatus DecodePtrRegisterClass(MCInst &Inst,

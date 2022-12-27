@@ -345,13 +345,13 @@ def GPRNM32 : GPR32ClassNM<[i32]>;
 // nanoMIPS "gpr3" register encoding type.
 def GPRNM3 :
   RegisterClass<"Mips", [i32], 32,
-                (add A0_NM, A1_NM, A2_NM, A3_NM, S0_NM, S1_NM, S2_NM, S3_NM)>;
+                (add S0_NM, S1_NM, S2_NM, S3_NM, A0_NM, A1_NM, A2_NM, A3_NM)>;
 
 // nanoMIPS "gpr4x4" register encoding type.
 def GPRNM4 :
   RegisterClass<"Mips", [i32], 32,
-                (add S0_NM, S1_NM, S2_NM, S3_NM, S4_NM, S5_NM, S6_NM, S7_NM,
-		A0_NM, A1_NM, A2_NM, A3_NM, A4_NM, A5_NM, A6_NM, A7_NM)>;
+                (add  A4_NM, A5_NM, A6_NM, A7_NM, A0_NM, A1_NM, A2_NM, A3_NM,
+		S0_NM, S1_NM, S2_NM, S3_NM, S4_NM, S5_NM, S6_NM, S7_NM)>;
 
 // nanoMIPS "gpr4x4.zero" register encoding type.
 def GPRNM4Zero :
@@ -362,7 +362,7 @@ def GPRNM4Zero :
 // nanoMIPS non-zero gpr register encoding type.
 def GPRNM32NZ :
   RegisterClass<"Mips", [i32], 32,
-                (add AT_NM, T4_NM, T5_NM, A0_NM, A1_NM, A2_NM, A3_NM,
+                  (add AT_NM, T4_NM, T5_NM, A0_NM, A1_NM, A2_NM, A3_NM,
 		 A4_NM, A5_NM, A6_NM, A7_NM, T0_NM, T1_NM, T2_NM, T3_NM,
 		 S0_NM, S1_NM, S2_NM, S3_NM, S4_NM, S5_NM, S6_NM, S7_NM,
 		 T8_NM, T9_NM, K0_NM, K1_NM, GP_NM, SP_NM, FP_NM, RA_NM)>;
@@ -633,6 +633,7 @@ def GPRNM16AsmOperand : GPRNM16AsmOperandClass;
 
 class GPRNM4x4AsmOperandClass<list<AsmOperandClass> Supers = []> : MipsAsmRegOperand {
   let Name = "GPRNM4x4AsmReg";
+  let RenderMethod = "addGPRNM4x4AsmRegOperands";
   let PredicateMethod = "isNM4x4AsmReg";
 }
 

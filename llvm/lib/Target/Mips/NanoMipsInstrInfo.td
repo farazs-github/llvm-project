@@ -638,7 +638,6 @@ class AddSubR16_Enc<bits<1> isel>: _Pool_P16_ADDU<isel> {
   let Inst{9...7} = rt;
   let Inst{6...4} = rs;
   let Inst{3...1} = rd;
-  let Inst{0} = 0;
 }
 
 class ArithLogicINM2Reg<string opstr, Operand Od, RegisterOperand DRO,
@@ -1171,7 +1170,7 @@ def SRAV_NM  : ArithLogicR32_Desc<"srav", GPRNM32Opnd, sra>,
 def ROTRV_NM : ArithLogicR32_Desc<"rotrv", GPRNM32Opnd, rotr>,
 	       ArithLogicR32_Enc<0b001110>;
 def ADD_NM   : ArithLogicR32_Desc<"add", GPRNM32Opnd>,
-	       ArithLogicR32_Enc<0b001110>;
+	       ArithLogicR32_Enc<0b010010>;
 def ADDu_NM  : ArithLogicR32_Desc<"addu", GPRNM32Opnd, add>,
 	       ArithLogicR32_Enc<0b010110>;
 def SUB_NM   : ArithLogicR32_Desc<"sub", GPRNM32Opnd>,
@@ -1285,14 +1284,14 @@ def MOVEBALC_NM : MoveBalcBase;
 let isReMaterializable = 1 in {
 def Li_NM : LoadAddressAbsNM<"li", GPRNM32Opnd, sym32_abs_nm,
     	      		       addrpcrel>, Op48_Enc<0b00000>;
-def LA_NM : RegImm48_Desc<"la", simm32_relaxed, GPRNM32Opnd>,
-		Op48_Enc<0b00011>;
-
 def LAGPB_NM : LoadAddressGPRelNM<"addiu", GPRNM32Opnd, sym32_gp_nm,
                                       addrgprel>, Op48_Enc<0b00010>;
-
 } // isReMaterializable = 1
 
+let isReMaterializable = 1,isCodeGenOnly = 1 in {
+def LA_NM : RegImm48_Desc<"la", simm32_relaxed, GPRNM32Opnd>,
+		Op48_Enc<0b00011>;
+}
 
 // Arithmetic and logical instructions with 2 register operands and immediate.
 class LoadUpperINM<string opstr, Operand Od, RegisterOperand RO,
@@ -1651,7 +1650,7 @@ def LB16_NM : LoadMemoryNM16<"lb", mem_nm2, sextloadi8, addruimm2, II_LB>,
 def LBU16_NM : LoadMemoryNM16<"lbu", mem_nm2, zextloadi8, addruimm2, II_LB>,
     	      LBMem16_Enc<0b10>;
 def SB16_NM : StoreMemoryNM16<"sb", mem_nm2, truncstorei8, addruimm2, II_SB>,
-    	      LHMem16_Enc<0b01>;
+	      LBMem16_Enc<0b01>;
 
 def LWGP_NM : LoadMemoryNM<"lw", mem_nm_gp19s2, load, addrgp19s2, II_LW>,
 	      LSMemGP19S2_Enc<0b10>;
@@ -1725,7 +1724,7 @@ def SWX_NM : StoreMemoryX<"swx", mem_nmrx, store, addrindexed, II_SW>,
 def LBUX_NM : LoadMemoryX<"lbux", mem_nmrx, zextloadi8, addrindexed, II_LBU>,
 		LSMemX_Enc<0, 0b0010>;
 def LHUX_NM : LoadMemoryX<"lhux", mem_nmrx, zextloadi16, addrindexed, II_LHU>,
-		LSMemX_Enc<0, 0b0000>;
+		LSMemX_Enc<0, 0b0110>;
 
 def LHXS_NM : LoadMemoryX<"lhxs", mem_nmrx, sextloadi16, addrindexedlsl1, II_LH>,
 		LSMemX_Enc<0b1, 0b0100>;

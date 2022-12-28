@@ -1105,21 +1105,6 @@ public:
     Inst.addOperand(MCOperand::createReg(getGPRMM16Reg()));
   }
 
-  void addGPRNM32AsmRegOperands(MCInst &Inst, unsigned N) const {
-    assert(N == 1 && "Invalid number of operands!");
-    Inst.addOperand(MCOperand::createReg(getGPRNM32Reg()));
-  }
-
-  void addGPRNM16AsmRegOperands(MCInst &Inst, unsigned N) const {
-    assert(N == 1 && "Invalid number of operands!");
-    Inst.addOperand(MCOperand::createReg(getGPRNM32Reg()));
-  }
-
-  void addGPRNM4x4AsmRegOperands(MCInst &Inst, unsigned N) const {
-    assert(N == 1 && "Invalid number of operands!");
-    Inst.addOperand(MCOperand::createReg(getGPRNM32Reg()));
-  }
-
   void addGPRMM16AsmRegZeroOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     Inst.addOperand(MCOperand::createReg(getGPRMM16Reg()));
@@ -1139,6 +1124,11 @@ public:
                                                unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     Inst.addOperand(MCOperand::createReg(getGPRMM16Reg()));
+  }
+
+  void addGPRNM32AsmRegOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(getGPRNM32Reg()));
   }
 
   /// Render the operand to an MCInst as a GPR64
@@ -1839,12 +1829,27 @@ public:
 
   }
 
+  bool isNM16ZeroAsmReg() const {
+    if (!(isRegIdx() && RegIdx.Kind))
+      return false;
+    volatile unsigned RegNo = RegIdx.Index;
+    return ((RegNo == 0) ||
+	    (RegNo >= 5 && RegNo <= 7) ||
+	    (RegNo >= 17 && RegNo <= 19));
+  }
+
   bool isNM4x4AsmReg() const {
     if (!(isRegIdx() && RegIdx.Kind))
       return false;
     return ((RegIdx.Index >= 4 && RegIdx.Index <= 11)
             || (RegIdx.Index >= 16 && RegIdx.Index <= 23));
 
+  }
+
+  bool isGPRNMAsmReg() const {
+    if (!(isRegIdx() && RegIdx.Kind))
+      return false;
+    return (RegIdx.Index < 32);
   }
 
   /// getStartLoc - Get the location of the first token of this operand.

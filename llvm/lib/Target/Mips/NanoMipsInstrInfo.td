@@ -979,8 +979,8 @@ class StoreMemoryNM16<string opstr, DAGOperand MO,
                       SDPatternOperator OpNode = null_frag,
                       ComplexPattern Addr = addr,
                       InstrItinClass itin> :
-    InstNM<(outs), (ins GPRNM3Opnd:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
-           [(OpNode GPRNM3Opnd:$rt, Addr:$addr)],
+    InstNM<(outs), (ins GPRNM3ZOpnd:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
+           [(OpNode GPRNM3ZOpnd:$rt, Addr:$addr)],
            itin> {
   let DecoderMethod = "DecodeMem";
   let mayStore = 1;
@@ -1626,9 +1626,9 @@ def : NMPat<(brcond (i32 (seteq (and GPRNM32:$rt, simm32power2:$imm), 0)), bb:$o
 //
 //===----------------------------------------------------------------------===//
 def LWSP16_NM : LoadMemoryNM16<"lw", mem_nm_sp5s2, load, addrsp5s2, II_LW>,
-	        LSSPRegMem16_Enc<0b00101>;
+	        LSSPRegMem16_Enc<0b00101>;  // Broken
 def SWSP16_NM : StoreMemoryNM16<"sw", mem_nm_sp5s2, store, addrsp5s2, II_SW>,
-	        LSSPRegMem16_Enc<0b10101>;
+	        LSSPRegMem16_Enc<0b10101>; // Broken
 def LWGP16_NM : LoadMemoryNM16<"lw", mem_nm_gp7s2, load, addrgp7s2, II_LW>,
 	        LSGPRegMem16_Enc<0b01001>;
 def SWGP16_NM : StoreMemoryNM16<"sw", mem_nm_gp7s2, store, addrgp7s2, II_SW>,

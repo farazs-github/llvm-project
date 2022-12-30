@@ -481,10 +481,6 @@ class _Pool_P16_MV<bits<5> psel> : _Pool_P16<0b00000> {
   let Inst{9...5} = psel;
 }
 
-// TODO LW16<bits<> psel> : _Pool_P16<0b00001>
-
-// TODO BC16 : _Pool_P16<0b00010>
-
 class _Pool_P16_SR<bits<1> psel> : _Pool_P16<0b00011> {
   let Inst{8} = psel;
 }
@@ -492,10 +488,6 @@ class _Pool_P16_SR<bits<1> psel> : _Pool_P16<0b00011> {
 class _Pool_P16_SHIFT<bits<1> psel> : _Pool_P16<0b00100> {
   let Inst{3} = psel;
 }
-
-// TODO LW_SP : _Pool_P16<0b00101>
-
-// TODO BALC16 : _Pool_P16<0b00110>
 
 class _Pool_P16_4X4<bits<2> psel> : _Pool_P16<0b00111> {
   let Inst{8} = psel{1};
@@ -510,8 +502,6 @@ class _Pool_POOL16C_00<bits<2> psel> : _Pool_P16<0b01000> {
   let Inst{3...2} = psel;
   let Inst{1...0} = 0b00;
 }
-
-// TODO LW_GP16 : _Pool_P16<0b01001>
 
 class _Pool_P16_LB<bits<2> psel> : _Pool_P16<0b01011> {
   let Inst{3...2} = psel;
@@ -532,24 +522,17 @@ class _Pool_P16_A2<bits<1> psel> : _Pool_P16<0b10000> {
   let Inst{3} = psel;
 }
 
-//TODO SW_16 : _Pool_P16<0b10001>
-
 //TODO BEQZC_16 : _Pool_P16<0b10010>
-
 
 class _Pool_P16_ADDU<bits<1> psel> : _Pool_P16<0b10100> {
   let Inst{0} = psel;
 }
-
-//TODO SW_SP : _Pool_P16<0b10101>
 
 // TODO BNEZC_16 : _Pool_P16<0b10110>
 
 // TODO MOVEP : _Pool_P16<0b10111>
 
 // TODO LI16 : _Pool_P16<0b11000>
-
-// TODO SW_GP16 : _Pool_P16<0b10001>
 
 class _Pool_P16_BR<bits<4> psel> : _Pool_P16<0b11010> {
   let Inst{3...0} = psel;
@@ -562,8 +545,6 @@ class _Pool_P16_RI<bits<2> psel> : _Pool_P16_MV<0b00000> {
 class _Pool_P16_SYSCALL<bits<1> psel> : _Pool_P16_RI<0b01> {
   let Inst{2} = psel;
 }
-
-// TODO MOVE_16 : _Pool_P16_RI<!0b0>
 
 // TODO ANDI_16 : _Pool_P16<0b11100>
 
@@ -599,8 +580,6 @@ class _Pool_PP_LSX<bit scaled, bits<4> isel> : _Pool_POOL32A7<0b000> {
   let Inst{6} = scaled;
   let Inst{10...7} = isel;
 }
-
-// TODO  BC_32 : _Pool_P_BAL<0b0>
 
 // 16-bit arithmetic and logical instructions with 4x4 register operands, P16_4X4
 class Arith4x4_Desc<string opstr, RegisterOperand RO,
@@ -1593,16 +1572,12 @@ def BLTIUC_NM : CBranchImmNM<"bltiuc", brtarget11_nm, setult, GPRNM32Opnd, uimm7
 	        BRI_Enc<0b111>;
 
 // Bit-test branches
+let hasNoSchedulingInfo = 1,
+    hasDelaySlot = 0 in {
 def BBNEZC_NM : CBranchBitNM<"bbnezc", brtarget11_nm, setne, GPRNM32Opnd, simm32, simm32power2>,
 		BBit_Enc<0b001>;
 def BBEQZC_NM : CBranchBitNM<"bbeqzc", brtarget11_nm, seteq, GPRNM32Opnd, simm32, simm32power2>,
 		BBit_Enc<0b101>;
-
-let isCodeGenOnly = 1, hasNoSchedulingInfo = 1,
-    hasDelaySlot = 0 in {
-
-// TODO: BBEQZ/BBNEZ bit-test conditional branch instructions
-
 }
 
 class TailCallBase : PseudoInstNM<(outs), (ins calltarget25_nm:$target), []>,
@@ -1801,8 +1776,6 @@ def MOVE16_NM : InstNM<(outs GPRNM32NZOpnd:$rt), (ins GPRNM32Opnd:$rs),
 }
 
 let isCodeGenOnly = 1 in {
-
-// TODO: Halfword load/store is never selected, this needs to be looked into.
 
 def MOVEP_NM : InstNM<(outs GPRNM32Opnd:$dst1, GPRNM32Opnd:$dst2),
                       (ins GPRNM32Opnd:$src1, GPRNM32Opnd:$src2),

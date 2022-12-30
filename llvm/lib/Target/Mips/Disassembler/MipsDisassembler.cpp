@@ -121,6 +121,16 @@ static DecodeStatus DecodeGPRNM4RegisterClass(MCInst &Inst,
 					    uint64_t Address,
 					    const void *Decoder);
 
+static DecodeStatus DecodeGPRNM3ZRegisterClass(MCInst &Inst,
+					    unsigned RegNo,
+					    uint64_t Address,
+					    const void *Decoder);
+
+static DecodeStatus DecodeGPRNM4ZRegisterClass(MCInst &Inst,
+					    unsigned RegNo,
+					    uint64_t Address,
+					    const void *Decoder);
+
 static DecodeStatus DecodeGPRNM32NZRegisterClass(MCInst &Inst,
 					         unsigned RegNo,
 					         uint64_t Address,
@@ -313,6 +323,12 @@ static DecodeStatus DecodeMem(MCInst &Inst,
                               unsigned Insn,
                               uint64_t Address,
                               const void *Decoder);
+
+template <unsigned Offbits, bool isSigned, unsigned rt>
+static DecodeStatus DecodeMemNM(MCInst &Inst,
+				unsigned Insn,
+				uint64_t Address,
+				const void *Decoder);
 
 static DecodeStatus DecodeMemEVA(MCInst &Inst,
                                  unsigned Insn,
@@ -1581,6 +1597,19 @@ static DecodeStatus DecodeGPRNM3RegisterClass(MCInst &Inst,
   return MCDisassembler::Success;
 }
 
+static DecodeStatus DecodeGPRNM3ZRegisterClass(MCInst &Inst,
+                                            unsigned RegNo,
+                                            uint64_t Address,
+                                            const void *Decoder) {
+  if (RegNo > 7)
+    return MCDisassembler::Fail;
+  if (RegNo != 0)
+    RegNo |= ((RegNo & 0x4) ^ 0x4) << 2;
+  unsigned Reg = getReg(Decoder, Mips::GPRNM32RegClassID, RegNo);
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
 static DecodeStatus DecodeGPRNM4RegisterClass(MCInst &Inst,
                                             unsigned RegNo,
                                             uint64_t Address,
@@ -1588,6 +1617,21 @@ static DecodeStatus DecodeGPRNM4RegisterClass(MCInst &Inst,
   if (RegNo > 31)
     return MCDisassembler::Fail;
   RegNo += (RegNo < 4 ? 8 : 0);
+  unsigned Reg = getReg(Decoder, Mips::GPRNM32RegClassID, RegNo);
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeGPRNM4ZRegisterClass(MCInst &Inst,
+                                            unsigned RegNo,
+                                            uint64_t Address,
+                                            const void *Decoder) {
+  if (RegNo > 31)
+    return MCDisassembler::Fail;
+  if (RegNo == 3)
+    RegNo = 0;
+  else
+    RegNo += (RegNo < 3 ? 8 : 0);
   unsigned Reg = getReg(Decoder, Mips::GPRNM32RegClassID, RegNo);
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
@@ -1710,6 +1754,41 @@ static DecodeStatus DecodeMem(MCInst &Inst,
 
   return MCDisassembler::Success;
 }
+
+template <unsigned Offbits = 12, bool isSigned = false,
+	  unsigned rt = Mips::GPRNM32RegClassID>
+static DecodeStatus DecodeMemNM(MCInst &Inst,
+				unsigned Insn,
+				uint64_t Address,
+				const void *Decoder) {
+  int Offset = (Insn & ((1 << Offbits) - 1));
+  if (isSigned)
+    Offset = SignExtend32<Offbits>(Offset);
+  unsigned Base;
+
+  switch (rt) {
+    case Mips::GPRNMGPRegClassID:
+    case Mips::GPRNMSPRegClassID:
+      Base = 0;
+      break;
+    case Mips::GPRNM3RegClassID:
+      Base = fieldFromInstruction(Insn, Offbits, 3);
+      break;
+    default:
+      Base = fieldFromInstruction(Insn, Offbits, 5);
+  }
+  Base = getReg(Decoder, rt, Base);
+
+//   if (Inst.getOpcode() == Mips::SC ||
+//       Inst.getOpcode() == Mips::SCD)
+//     Inst.addOperand(MCOperand::createReg(Reg));
+
+  Inst.addOperand(MCOperand::createReg(Base));
+  Inst.addOperand(MCOperand::createImm(Offset));
+
+  return MCDisassembler::Success;
+}
+
 
 static DecodeStatus DecodeMemEVA(MCInst &Inst,
                                  unsigned Insn,
@@ -2095,6 +2174,7 @@ static DecodeStatus DecodeMemMMImm16(MCInst &Inst,
 
   return MCDisassembler::Success;
 }
+
 
 static DecodeStatus DecodeFMem(MCInst &Inst,
                                unsigned Insn,

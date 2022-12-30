@@ -1313,6 +1313,15 @@ public:
     addExpr(Inst, Expr);
   }
 
+  void addNMMemOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 2 && "Invalid number of operands!");
+
+    Inst.addOperand(MCOperand::createReg(getMemBase()->getGPRNM32Reg()));
+
+    const MCExpr *Expr = getMemOff();
+    addExpr(Inst, Expr);
+  }
+
   void addMicroMipsMemOperands(MCInst &Inst, unsigned N) const {
     assert(N == 2 && "Invalid number of operands!");
 
@@ -1410,6 +1419,34 @@ public:
     return IsReloc && isShiftedUInt<Bits, ShiftAmount>(Res.getConstant());
   }
 
+  template <unsigned Bits, unsigned ShiftAmount = 0,
+	    unsigned ClassID = Mips::GPR32RegClassID>
+  bool isMemWithBaseUimmOffset() const {
+    MCValue Res;
+    if (!isMem())
+      return false;
+    if (!getMemBase()->isGPRAsmReg()
+	|| !MipsMCRegisterClasses[ClassID].contains(getMemBase()->getGPRNM32Reg()))
+      return false;
+    if (isConstantMemOff())
+      return isShiftedUInt<Bits, ShiftAmount>(getConstantMemOff());
+    return getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+  }
+
+  template <unsigned Bits, unsigned ShiftAmount = 0,
+	    unsigned ClassID = Mips::GPR32RegClassID>
+  bool isMemWithBaseSimmOffset() const {
+    MCValue Res;
+    if (!isMem())
+      return false;
+    if (!getMemBase()->isGPRAsmReg()
+	|| !MipsMCRegisterClasses[ClassID].contains(getMemBase()->getGPRNM32Reg()))
+      return false;
+    if (isConstantMemOff())
+      return isShiftedUInt<Bits, ShiftAmount>(getConstantMemOff());
+    return getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+  }
+
   bool isMemRx() const {
     if (!isMem())
       return false;
@@ -1490,8 +1527,12 @@ public:
       MCValue Res;
       bool IsReloc = getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
 
-      return (IsReloc || (isConstantMemOff() && isUInt<Bits>(getConstantMemOff())
-			  && (getConstantMemOff() % Align == 0)));
+
+      if (isConstantMemOff())
+	return (isUInt<Bits>(getConstantMemOff()) &&
+		(getConstantMemOff() % Align == 0));
+      else
+	return IsReloc;
     }
     return false;
   }
@@ -1846,10 +1887,45 @@ public:
 
   }
 
+  bool isNM4x4ZeroAsmReg() const {
+    if (!(isRegIdx() && RegIdx.Kind))
+      return false;
+    return ((RegIdx.Index == 0) ||
+	    (RegIdx.Index >= 4 && RegIdx.Index <= 10) ||
+	    (RegIdx.Index >= 16 && RegIdx.Index <= 23));
+  }
+
+  enum NM_REG_TYPE {
+	NMR,
+	NMR_NZ,
+	NMR_3,
+	NMR_3Z,
+	NMR_4,
+	NMR_4Z
+  };
+
+  template <unsigned rt = Mips::GPRNM32RegClassID>
   bool isGPRNMAsmReg() const {
     if (!(isRegIdx() && RegIdx.Kind))
       return false;
-    return (RegIdx.Index < 32);
+    switch (rt) {
+      case Mips::GPRNMGPRegClassID:
+	return (RegIdx.Index == 28);
+      case Mips::GPRNMSPRegClassID:
+	return (RegIdx.Index == 29);
+      case Mips::GPRNM32NZRegClassID:
+	return (RegIdx.Index > 0 && RegIdx.Index < 32);
+      case Mips::GPRNM3RegClassID:
+	return isNM16AsmReg();
+      case Mips::GPRNM3ZRegClassID:
+	return isNM16ZeroAsmReg();
+      case Mips::GPRNM4RegClassID:
+	return isNM4x4AsmReg();
+      case Mips::GPRNM4ZeroRegClassID:
+	return isNM4x4ZeroAsmReg();
+      default:
+	return (RegIdx.Index < 32);
+    }
   }
 
   /// getStartLoc - Get the location of the first token of this operand.

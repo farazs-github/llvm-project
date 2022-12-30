@@ -103,20 +103,28 @@ def SymAsmOperandGPRel : SymAsmOperandClass<"GPRel">;
 
 def SImm32S12AsmOperandClass : SImmScaledAsmOperandClass<20, 12, []>;
 
-class NMMemGPAsmOperand<int Bits, int Align = 0, list<AsmOperandClass> Supers = [MipsMemAsmOperand]>
-    : MipsMemSimmAsmOperand<Bits> {
-  let Name = "NMMemGP" # Bits # "s" # Align;
-  let RenderMethod = "addMemOperands";
+class NMMemUimmAsmOperand<int Width, int Shift = 0,
+      string RegClass = "Mips::GPRNM32RegClassID",
+      list<AsmOperandClass> Supers = [MipsMemAsmOperand]> : AsmOperandClass {
+  let Name = "NMMemOffsetUimm" # Width # "_" # Shift;
+  let SuperClasses = Supers;
+  let RenderMethod = "addNMMemOperands";
   let ParserMethod = "parseMemOperand";
-  let SuperClasses = Supers;  
-  let PredicateMethod = "isMemWithUimmOffsetGP<" # Bits # "," # Align # ">";
+  let PredicateMethod = "isMemWithBaseUimmOffset<" # Width # ", " # Shift # ", " # RegClass # ">";
+  let DiagnosticType = !if(!eq(Shift, 0), "MemUImm" # Width,
+                                          "MemUImm" # Width # "Lsl" # Shift);
 }
 
-class NMMemSPAsmOperand<int Bits, int Align>
-    : AsmOperandClass {
-  let Name = "NMMemSP" # Bits # "s" # Align;
-  let RenderMethod = "addMemOperands";
-  let PredicateMethod = "isMemWithUimmOffsetSP<" # Bits # "," # Align # ">";
+class NMMemSimmAsmOperand<int Width, int Shift = 0,
+      string RegClass = "Mips::GPRNM32RegClassID",
+      list<AsmOperandClass> Supers = [MipsMemAsmOperand]> : AsmOperandClass {
+  let Name = "NMMemOffsetSimm" # Width # "_" # Shift;
+  let SuperClasses = Supers;
+  let RenderMethod = "addNMMemOperands";
+  let ParserMethod = "parseMemOperand";
+  let PredicateMethod = "isMemWithBaseSimmOffset<" # Width # ", " # Shift # ", " # RegClass # ">";
+  let DiagnosticType = !if(!eq(Shift, 0), "MemUImm" # Width,
+                                          "MemUImm" # Width # "Lsl" # Shift);
 }
 
 def NMJumpTargetAsmOperand : AsmOperandClass {
@@ -147,14 +155,93 @@ def uimm16_nm : Operand<i32> {
   let ParserMatchClass = !cast<AsmOperandClass>("SImm16AsmOperandClass");
 }
 
-def mem_nms9 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMImm9";
-  let ParserMatchClass = MipsMemSimmAsmOperand<9>;
+def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID">;
+
+def mem_nm_gp7s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let DecoderMethod = "DecodeMemNM<9,false,Mips::GPRNMGPRegClassID>";
+  let OperandType = "OPERAND_NM_GPREL9";
+  let OperandNamespace = "NanoMips";
+  let ParserMatchClass = MemNMGP7S2Parser;
 }
+
+def MemNMSP5S2Parser :
+    NMMemUimmAsmOperand<5,2,"Mips::GPRNMSPRegClassID",[MemNMGP7S2Parser]>;
+
+def mem_nm_sp5s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMSP";
+  let DecoderMethod = "DecodeMemNM<7,false,Mips::GPRNMSPRegClassID>";
+  let OperandType = "OPERAND_NM_SPREL7";
+  let OperandNamespace = "NanoMips";
+  let ParserMatchClass = MemNMSP5S2Parser;
+}
+
+def MemNM6S2Parser :
+    NMMemUimmAsmOperand<4,2,"Mips::GPRNM3RegClassID",[MemNMSP5S2Parser]>;
+def MemNM3S1Parser :
+    NMMemUimmAsmOperand<3,1,"Mips::GPRNM3RegClassID",[MemNMSP5S2Parser]>;
+def MemNM2Parser :
+    NMMemUimmAsmOperand<2,0,"Mips::GPRNM3RegClassID",[MemNMSP5S2Parser]>;
+
+def mem_nm6s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm6S2";
+  let DecoderMethod = "DecodeMemNM<6,false,Mips::GPRNM3RegClassID>";
+  let ParserMatchClass = MemNM6S2Parser;
+}
+
+def mem_nm3s1 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm3S1";
+  let ParserMatchClass = MemNM3S1Parser;
+}
+
+def mem_nm2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm2";
+  let ParserMatchClass = MemNM2Parser;
+}
+
+def MemNMGP19S2Parser : NMMemUimmAsmOperand<19,2,
+    "Mips::GPRNMGPRegClassID",[MemNMGP7S2Parser]>;
+
+def mem_nm_gp19s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let OperandType = "OPERAND_NM_GPREL21";
+  let OperandNamespace = "NanoMips";
+  let DecoderMethod = "DecodeMemNM<21,false,Mips::GPRNMGPRegClassID>";
+  let ParserMatchClass = MemNMGP7S2Parser;
+}
+
+def mem_nm_gp18 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let DecoderMethod = "DecodeMemNM<18,false,Mips::GPRNMGPRegClassID>";
+  let OperandType = "OPERAND_NM_GPREL18";
+  let OperandNamespace = "NanoMips";
+  let ParserMatchClass = NMMemUimmAsmOperand<18,0,"Mips::GPRNMGPRegClassID",[MemNMGP7S2Parser]>;
+}
+
+def mem_nm_gp17s1 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let DecoderMethod = "DecodeMemNM<18,false,Mips::GPRNMGPRegClassID>";
+  let OperandType = "OPERAND_NM_GPREL18";
+  let OperandNamespace = "NanoMips";
+  let ParserMatchClass = NMMemUimmAsmOperand<17,1,"Mips::GPRNMGPRegClassID",[MemNMGP7S2Parser]>;
+}
+
+def MemNMU12Parser : NMMemUimmAsmOperand<12,0,
+    "Mips::GPRNM32RegClassID",[MemNMGP19S2Parser]>;
 
 def mem_nmu12 : mem_generic {
   let EncoderMethod = "getMemEncodingNMImm12";
-  let ParserMatchClass = MipsMemUimmAsmOperand<12>;
+  let DecoderMethod = "DecodeMemNM<12,false,Mips::GPRNM32RegClassID>";
+  let ParserMatchClass = MemNMU12Parser;
+}
+
+def MemNMS9Parser : NMMemSimmAsmOperand<9,0,
+    "Mips::GPRNM32RegClassID",[MemNMGP19S2Parser]>;
+
+def mem_nms9 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm9";
+  let DecoderMethod = "DecodeMemNM<9,true,Mips::GPRNM32RegClassID>";
+  let ParserMatchClass = MemNMS9Parser;
 }
 
 def mem_nmpcrel : mem_generic {
@@ -165,56 +252,6 @@ def mem_nmpcrel : mem_generic {
 def mem_nmrx : mem_generic {
   let EncoderMethod = "getMemEncodingNMRX";
   let ParserMatchClass = MipsMemRxAsmOperand;
-}
-
-def mem_nm6s2 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMImm6S2";
-  let ParserMatchClass = MipsMemUimmAsmOperand<4,2>;
-}
-
-def mem_nm3s1 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMImm3S1";
-  let ParserMatchClass = MipsMemUimmAsmOperand<2,1>;
-}
-
-def mem_nm2 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMImm2";
-  let ParserMatchClass = MipsMemUimmAsmOperand<2>;
-}
-
-def mem_nm_gp19s2 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMGP";
-  let ParserMatchClass = NMMemGPAsmOperand<21,4>;
-  let OperandNamespace = "NanoMips";
-  let OperandType = "OPERAND_NM_GPREL21";
-}
-
-def mem_nm_gp18 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMGP";
-  let ParserMatchClass = NMMemGPAsmOperand<18,1>;
-  let OperandNamespace = "NanoMips";
-  let OperandType = "OPERAND_NM_GPREL18";
-}
-
-def mem_nm_gp17s1 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMGP";
-  let ParserMatchClass = NMMemGPAsmOperand<18,2>;
-  let OperandNamespace = "NanoMips";
-  let OperandType = "OPERAND_NM_GPREL18";
-}
-
-def mem_nm_gp7s2 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMGP";
-  let ParserMatchClass = NMMemGPAsmOperand<9,4>;
-  let OperandNamespace = "NanoMips";
-  let OperandType = "OPERAND_NM_GPREL9";
-}
-
-def mem_nm_sp5s2 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMSP";
-  let ParserMatchClass = NMMemSPAsmOperand<7,4>;
-  let OperandNamespace = "NanoMips";
-  let OperandType = "OPERAND_NM_SPREL7";
 }
 
 foreach I = {4, 7, 10, 11, 14, 25} in
@@ -572,11 +609,13 @@ class Arith4x4_Desc<string opstr, RegisterOperand RO,
 	!strconcat(opstr, "\t$dst, $rt, $rs"),
 	   [(set RO:$dst, (OpNode RO:$rt, RO:$rs))]> {
   Format Form = FrmR;
+  let Constraints = "$rt = $dst";
 }
 
 class Arith4x4_Enc<bits<2> isel>:  _Pool_P16_4X4<isel> {
       bits<5> dst;
       bits<5> rs;
+      bits<5> rt;
 
       let Inst{9} = dst{4};
       let Inst{7...5} = dst{2...0};
@@ -917,7 +956,6 @@ class LoadMemoryNM<string opstr, DAGOperand MO,
     InstNM<(outs GPRNM32Opnd:$rt), (ins MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
            [(set GPRNM32Opnd:$rt, (OpNode Addr:$addr))],
            itin> {
-  let DecoderMethod = "DecodeMem";
   let canFoldAsLoad = 1;
   let mayLoad = 1;
   string BaseOpcode = opstr;
@@ -950,14 +988,13 @@ class StoreMemoryX<string opstr, DAGOperand MO,
   string BaseOpcode = opstr;
 }
 
-class LoadMemoryNM16<string opstr, DAGOperand MO,
+class LoadMemoryNM16<string opstr, RegisterOperand RO, DAGOperand MO,
                     SDPatternOperator OpNode = null_frag,
                     ComplexPattern Addr = addr,
                     InstrItinClass itin = NoItinerary> :
-    InstNM<(outs GPRNM3Opnd:$rt), (ins MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
-           [(set GPRNM3Opnd:$rt, (OpNode Addr:$addr))],
+    InstNM<(outs RO:$rt), (ins MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
+           [(set RO:$rt, (OpNode Addr:$addr))],
            itin> {
-  let DecoderMethod = "DecodeMem";
   let canFoldAsLoad = 1;
   let mayLoad = 1;
   string BaseOpcode = opstr;
@@ -970,19 +1007,17 @@ class StoreMemoryNM<string opstr, DAGOperand MO,
     InstNM<(outs), (ins GPRNM32Opnd:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
            [(OpNode GPRNM32Opnd:$rt, Addr:$addr)],
            itin> {
-  let DecoderMethod = "DecodeMem";
   let mayStore = 1;
   string BaseOpcode = opstr;
 }
 
-class StoreMemoryNM16<string opstr, DAGOperand MO,
+class StoreMemoryNM16<string opstr, RegisterOperand RO, DAGOperand MO,
                       SDPatternOperator OpNode = null_frag,
                       ComplexPattern Addr = addr,
                       InstrItinClass itin> :
-    InstNM<(outs), (ins GPRNM3ZOpnd:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
-           [(OpNode GPRNM3ZOpnd:$rt, Addr:$addr)],
+    InstNM<(outs), (ins RO:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
+           [(OpNode RO:$rt, Addr:$addr)],
            itin> {
-  let DecoderMethod = "DecodeMem";
   let mayStore = 1;
   string BaseOpcode = opstr;
 }
@@ -1625,31 +1660,31 @@ def : NMPat<(brcond (i32 (seteq (and GPRNM32:$rt, simm32power2:$imm), 0)), bb:$o
 // Load / store instructions
 //
 //===----------------------------------------------------------------------===//
-def LWSP16_NM : LoadMemoryNM16<"lw", mem_nm_sp5s2, load, addrsp5s2, II_LW>,
+def LWSP16_NM : LoadMemoryNM16<"lw", GPRNM32Opnd, mem_nm_sp5s2, load, addrsp5s2, II_LW>,
 	        LSSPRegMem16_Enc<0b00101>;  // Broken
-def SWSP16_NM : StoreMemoryNM16<"sw", mem_nm_sp5s2, store, addrsp5s2, II_SW>,
+def SWSP16_NM : StoreMemoryNM16<"sw", GPRNM32Opnd, mem_nm_sp5s2, store, addrsp5s2, II_SW>,
 	        LSSPRegMem16_Enc<0b10101>; // Broken
-def LWGP16_NM : LoadMemoryNM16<"lw", mem_nm_gp7s2, load, addrgp7s2, II_LW>,
+def LWGP16_NM : LoadMemoryNM16<"lw", GPRNM3Opnd, mem_nm_gp7s2, load, addrgp7s2, II_LW>,
 	        LSGPRegMem16_Enc<0b01001>;
-def SWGP16_NM : StoreMemoryNM16<"sw", mem_nm_gp7s2, store, addrgp7s2, II_SW>,
+def SWGP16_NM : StoreMemoryNM16<"sw", GPRNM3ZOpnd, mem_nm_gp7s2, store, addrgp7s2, II_SW>,
 	        LSGPRegMem16_Enc<0b11001>;
 
-def LW16_NM : LoadMemoryNM16<"lw", mem_nm6s2, load, addruimm6s2, II_LW>,
+def LW16_NM : LoadMemoryNM16<"lw", GPRNM3Opnd, mem_nm6s2, load, addruimm6s2, II_LW>,
     	      LSMem16_Enc<0b00001>;
-def SW16_NM : StoreMemoryNM16<"sw", mem_nm6s2, store, addruimm6s2, II_SW>,
+def SW16_NM : StoreMemoryNM16<"sw", GPRNM3ZOpnd, mem_nm6s2, store, addruimm6s2, II_SW>,
     	      LSMem16_Enc<0b10001>;
-def LH16_NM : LoadMemoryNM16<"lh", mem_nm3s1, sextloadi16, addruimm3s1, II_LH>,
+def LH16_NM : LoadMemoryNM16<"lh", GPRNM3Opnd, mem_nm3s1, sextloadi16, addruimm3s1, II_LH>,
     	      LHMem16_Enc<0b00>;
-def LHU16_NM : LoadMemoryNM16<"lhu", mem_nm3s1, zextloadi16, addruimm3s1, II_LH>,
+def LHU16_NM : LoadMemoryNM16<"lhu", GPRNM3Opnd, mem_nm3s1, zextloadi16, addruimm3s1, II_LH>,
     	      LHMem16_Enc<0b10>;
-def SH16_NM : StoreMemoryNM16<"sh", mem_nm3s1, truncstorei16, addruimm3s1, II_SH>,
+def SH16_NM : StoreMemoryNM16<"sh", GPRNM3ZOpnd, mem_nm3s1, truncstorei16, addruimm3s1, II_SH>,
     	      LHMem16_Enc<0b01>;
 
-def LB16_NM : LoadMemoryNM16<"lb", mem_nm2, sextloadi8, addruimm2, II_LB>,
+def LB16_NM : LoadMemoryNM16<"lb", GPRNM3Opnd, mem_nm2, sextloadi8, addruimm2, II_LB>,
     	      LBMem16_Enc<0b00>;
-def LBU16_NM : LoadMemoryNM16<"lbu", mem_nm2, zextloadi8, addruimm2, II_LB>,
+def LBU16_NM : LoadMemoryNM16<"lbu", GPRNM3Opnd, mem_nm2, zextloadi8, addruimm2, II_LB>,
     	      LBMem16_Enc<0b10>;
-def SB16_NM : StoreMemoryNM16<"sb", mem_nm2, truncstorei8, addruimm2, II_SB>,
+def SB16_NM : StoreMemoryNM16<"sb", GPRNM3ZOpnd, mem_nm2, truncstorei8, addruimm2, II_SB>,
 	      LBMem16_Enc<0b01>;
 
 def LWGP_NM : LoadMemoryNM<"lw", mem_nm_gp19s2, load, addrgp19s2, II_LW>,

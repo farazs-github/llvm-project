@@ -1293,11 +1293,11 @@ MachineBasicBlock::iterator MipsInstrInfo::insertOutlinedCall(
     assert(Reg != 0 && "No callee-saved register available?");
     // save RA + restore RA from Reg  (available register)
 
-    SaveRA = BuildMI(MF, DebugLoc(), get(Mips::MOVE_NM))
+    SaveRA = BuildMI(MF, DebugLoc(), get(Mips::MOVE16_NM))
                  .addReg(Reg, RegState::Define)
                  .addReg(Mips::RA_NM);
 
-    RestoreRA = BuildMI(MF, DebugLoc(), get(Mips::MOVE_NM))
+    RestoreRA = BuildMI(MF, DebugLoc(), get(Mips::MOVE16_NM))
                     .addReg(Mips::RA_NM, RegState::Define)
                     .addReg(Reg);
 

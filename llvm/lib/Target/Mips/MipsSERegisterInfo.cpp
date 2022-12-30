@@ -231,7 +231,7 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
     const MipsSEInstrInfo &TII = *static_cast<const MipsSEInstrInfo *>(
         MBB.getParent()->getSubtarget().getInstrInfo());
     DebugLoc DL = MI.getDebugLoc();
-    BuildMI(MBB, II, DL, TII.get(Mips::MOVE_NM), MI.getOperand(0).getReg())
+    BuildMI(MBB, II, DL, TII.get(Mips::MOVE16_NM), MI.getOperand(0).getReg())
         .addReg(FrameReg);
     MI.eraseFromParent();
     return;

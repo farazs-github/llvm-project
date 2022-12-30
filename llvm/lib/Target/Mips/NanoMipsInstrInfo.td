@@ -1544,6 +1544,14 @@ class BBit_Enc<bits<3> isel> : _Pool_P_BRI<isel>
   let Inst{0} =  offset{11};
 }
 
+class MOVE_Enc<bits<5> isel> : _Pool_P16<0b00000>
+{
+  bits<5> rt;
+  bits<5> rs;
+  let Inst{9...5} = rt;
+  let Inst{4...0} = rs;
+}
+
 def BC_NM : BCBase<brtarget25_nm>, BC32_Enc<0b0>;
 def BALC_NM : CallNM<"balc", MipsJmpLink, calltarget25_nm>, BC32_Enc<0b1>;
 def BC16_NM : BCBase<brtarget10_nm>, BC16_Enc<0b00010>;
@@ -1787,12 +1795,15 @@ def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>
 def SWPC_NM : StorePCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01011>;
 def LWPC_NM : LoadPCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01111>;
 
+def MOVE16_NM : InstNM<(outs GPRNM32NZOpnd:$rt), (ins GPRNM32Opnd:$rs),
+                      "move\t$rt, $rs", []>, MOVE_Enc<0b00100> {
+  let isMoveReg = 1;
+}
+
 let isCodeGenOnly = 1 in {
 
 // TODO: Halfword load/store is never selected, this needs to be looked into.
 
-def MOVE_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
-                      "move\t$rt, $rs", []>, InstSize16;
 def MOVEP_NM : InstNM<(outs GPRNM32Opnd:$dst1, GPRNM32Opnd:$dst2),
                       (ins GPRNM32Opnd:$src1, GPRNM32Opnd:$src2),
                       "movep\t$dst1, $dst2, $src1, $src2", []>, InstSize16;

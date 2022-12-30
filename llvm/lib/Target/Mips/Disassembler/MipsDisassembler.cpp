@@ -1643,7 +1643,7 @@ static DecodeStatus DecodeGPRNM32NZRegisterClass(MCInst &Inst,
                                                  const void *Decoder) {
   if (RegNo == 0)
     return MCDisassembler::Fail;
-  unsigned Reg = getReg(Decoder, Mips::GPRNM32NZRegClassID, RegNo);
+  unsigned Reg = getReg(Decoder, Mips::GPRNM32RegClassID, RegNo);
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }

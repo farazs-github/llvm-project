@@ -202,7 +202,7 @@ bool NMMoveOpt::generateMoveP(MachineBasicBlock &MBB) {
   };
 
   for (auto &MI : MBB) {
-    if (MI.getOpcode() == Mips::MOVE_NM) {
+    if (MI.getOpcode() == Mips::MOVE16_NM) {
       if (PrevMove) {
         bool Swap;
         if (areMovePRevCompatibleMoves(PrevMove, &MI, Swap) ||
@@ -303,7 +303,7 @@ bool NMMoveOpt::generateMoveBalc(MachineBasicBlock &MBB) {
         if (MI2.isCFIInstruction() || MI2.isDebugInstr())
           continue;
 
-        if (MI2.getOpcode() == Mips::MOVE_NM &&
+        if (MI2.getOpcode() == Mips::MOVE16_NM &&
             // Make sure $rt is used only by BALC.
             CandidateDstRegs.contains(MI2.getOperand(0).getReg()) &&
             // Make sure $rs is not redefined between MOVE and BALC.

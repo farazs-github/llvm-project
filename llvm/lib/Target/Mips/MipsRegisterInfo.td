@@ -822,6 +822,7 @@ def GPRNM2R2Opnd : RegisterOperand<GPRNM2R2> {
 
 def GPRNM4Opnd : RegisterOperand<GPRNM4> {
   let ParserMatchClass = GPRNM4x4AsmOperandClass<[GPRNM3Opnd.ParserMatchClass]>;
+  let EncoderMethod = "getGPRNM4x4Reg";
 }
 
 def GPRNM4ZOpnd : RegisterOperand<GPRNM4Z> {

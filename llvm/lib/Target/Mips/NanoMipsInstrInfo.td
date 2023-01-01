@@ -182,6 +182,8 @@ def MemNM3S1Parser :
     NMMemUimmAsmOperand<3,1,"Mips::GPRNM3RegClassID",[MemNMSP5S2Parser]>;
 def MemNM2Parser :
     NMMemUimmAsmOperand<2,0,"Mips::GPRNM3RegClassID",[MemNMSP5S2Parser]>;
+def MemNM2S2Parser :
+    NMMemUimmAsmOperand<2,2,"Mips::GPRNM4RegClassID",[MemNMSP5S2Parser]>;
 
 def mem_nm6s2 : mem_generic {
   let EncoderMethod = "getMemEncodingNMImm6S2";
@@ -197,6 +199,12 @@ def mem_nm3s1 : mem_generic {
 def mem_nm2 : mem_generic {
   let EncoderMethod = "getMemEncodingNMImm2";
   let ParserMatchClass = MemNM2Parser;
+}
+
+def mem_nm2s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm2S2";
+  let ParserMatchClass = MemNM2S2Parser;
+  let DecoderMethod = "DecodeMemNM4x4";
 }
 
 def MemNMGP19S2Parser : NMMemUimmAsmOperand<19,2,
@@ -306,6 +314,7 @@ def addrindexedlsl2 : ComplexPattern<iPTR, 2, "selectIntAddrIndexedLsl2", []>;
 def addruimm6s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm6s2", [frameindex]>;
 def addruimm3s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm3s1", [frameindex]>;
 def addruimm2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm2", [frameindex]>;
+def addruimm2s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm2s2", [frameindex]>;
 def addrgp19s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm19s2", [frameindex]>;
 def addrgp18 : ComplexPattern<iPTR, 2, "selectIntAddrUImm18", [frameindex]>;
 def addrgp17s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm17s1", [frameindex]>;
@@ -511,8 +520,6 @@ class _Pool_P16_A1<bits<1> psel> : _Pool_P16<0b01100> {
   let Inst{6} = psel;
 }
 
-// TODO LW_4X4 : _Pool_P16<0b01101> {
-
 class _Pool_P16_LH<bits<2> psel> : _Pool_P16<0b01111> {
   let Inst{3} = psel{1};
   let Inst{0} = psel{0};
@@ -545,9 +552,6 @@ class _Pool_P16_SYSCALL<bits<1> psel> : _Pool_P16_RI<0b01> {
 }
 
 // TODO ANDI_16 : _Pool_P16<0b11100>
-
-// TODO SW_4X4 : _Pool_P16<0b11101>
-
 
 class _Pool_P_RI<bits<2> psel> : _Pool_P_ADDIU<0b00000> {
   let Inst{20...19} = psel;
@@ -923,6 +927,20 @@ class LSMemGP17S1_Enc<bits<4> isel> : _Pool_P_GP_BH<isel{3...1}>
   let Inst{0} = isel{0};
 }
 
+class LSMem4x4_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<5> rt;
+  bits<9> addr;
+  bits<5> rs = addr{8...4};
+  bits<4> offset = addr{3...0};
+  let Inst{9} = rt{4};
+  let Inst{7...5} = rt{2...0};
+  let Inst{4} = rs{4};
+  let Inst{2...0} = rs{2...0};
+  let Inst{3} = offset{3};
+  let Inst{8} = offset{2};
+}
+
 class LoadMemoryNM<string opstr, DAGOperand MO,
                    SDPatternOperator OpNode = null_frag,
                    ComplexPattern Addr = addr,
@@ -991,6 +1009,17 @@ class StoreMemoryNM16<string opstr, RegisterOperand RO, DAGOperand MO,
                       InstrItinClass itin> :
     InstNM<(outs), (ins RO:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
            [(OpNode RO:$rt, Addr:$addr)],
+           itin> {
+  let mayStore = 1;
+  string BaseOpcode = opstr;
+}
+
+class StoreMemoryNM4x4<string opstr, RegisterOperand RO, DAGOperand MO,
+                       SDPatternOperator OpNode = null_frag,
+                       ComplexPattern Addr = addr,
+                       InstrItinClass itin> :
+    InstNM<(outs), (ins GPRNM4ZOpnd:$rt, MO:$addr), !strconcat(opstr, "\t$rt, $addr"),
+           [(OpNode GPRNM4ZOpnd:$rt, Addr:$addr)],
            itin> {
   let mayStore = 1;
   string BaseOpcode = opstr;
@@ -1789,6 +1818,11 @@ def UALW_NM : UnalignedLoad<"ualw", NMUnalignedLW>, LSMem_S9_Enc<0b101, 0b0000>;
 def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>;
 
 //def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
+
+def LW4x4_NM : LoadMemoryNM16<"lw", GPRNM4Opnd, mem_nm2s2, load, addruimm2s2, II_LW>,
+	       LSMem4x4_Enc<0b01101>;
+def SW4x4_NM : StoreMemoryNM4x4<"sw", GPRNM4Opnd, mem_nm2s2, store, addruimm2s2, II_SW>,
+	       LSMem4x4_Enc<0b11101>;
 
 def SWPC_NM : StorePCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01011>;
 def LWPC_NM : LoadPCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01111>;

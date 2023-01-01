@@ -267,6 +267,9 @@ public:
   unsigned getMemEncodingNMImm2(const MCInst &MI, unsigned OpNo,
                                  SmallVectorImpl<MCFixup> &Fixups,
                                  const MCSubtargetInfo &STI) const;
+  unsigned getMemEncodingNMImm2S2(const MCInst &MI, unsigned OpNo,
+                                  SmallVectorImpl<MCFixup> &Fixups,
+                                  const MCSubtargetInfo &STI) const;
   unsigned getMemEncodingNMGP(const MCInst &MI, unsigned OpNo,
 			      SmallVectorImpl<MCFixup> &Fixups,
 			      const MCSubtargetInfo &STI) const;
@@ -335,6 +338,10 @@ public:
   unsigned getGPRNM4x4ZeroReg(const MCInst &MI, unsigned OpNo,
 			      SmallVectorImpl<MCFixup> &Fixups,
 			      const MCSubtargetInfo &STI) const;
+
+  unsigned getGPRNM4x4Reg(const MCInst &MI, unsigned OpNo,
+			  SmallVectorImpl<MCFixup> &Fixups,
+			  const MCSubtargetInfo &STI) const;
 
 private:
   void LowerCompactBranch(MCInst& Inst) const;

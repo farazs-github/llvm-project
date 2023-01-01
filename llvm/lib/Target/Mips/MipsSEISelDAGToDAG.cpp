@@ -571,6 +571,11 @@ bool MipsSEDAGToDAGISel::selectIntAddrUImm2(SDValue Addr, SDValue &Base,
   return selectAddrFrameIndexUOffset(Addr, Base, Offset, 2);
 }
 
+bool MipsSEDAGToDAGISel::selectIntAddrUImm2s2(SDValue Addr, SDValue &Base,
+					      SDValue &Offset) const {
+  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 2, 2);
+}
+
 bool MipsSEDAGToDAGISel::selectIntAddrUImm19s2(SDValue Addr, SDValue &Base,
                                              SDValue &Offset) const {
   return selectAddrFrameIndexUOffset(Addr, Base, Offset, 19, 2);

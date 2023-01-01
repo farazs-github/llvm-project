@@ -116,6 +116,9 @@ private:
   virtual bool selectIntAddrUImm2(SDValue Addr, SDValue &Base,
                                     SDValue &Offset) const;
 
+  virtual bool selectIntAddrUImm2s2(SDValue Addr, SDValue &Base,
+				    SDValue &Offset) const;
+
   virtual bool selectIntAddrUImm19s2(SDValue Addr, SDValue &Base,
 				     SDValue &Offset) const;
 

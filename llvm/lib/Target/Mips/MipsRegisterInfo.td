@@ -359,7 +359,7 @@ def GPRNM4 :
 		S0_NM, S1_NM, S2_NM, S3_NM, S4_NM, S5_NM, S6_NM, S7_NM)>;
 
 // nanoMIPS "gpr4x4.zero" register encoding type.
-def GPRNM4Zero :
+def GPRNM4Z :
   RegisterClass<"Mips", [i32], 32,
                 (add A0_NM, A1_NM, A2_NM, A3_NM, A4_NM, A5_NM, A6_NM, A7_NM,
 		 S0_NM, S1_NM, S2_NM, S3_NM, S4_NM, S5_NM, S6_NM, S7_NM)>;
@@ -375,6 +375,14 @@ def GPRNM32NZ :
 def GPRNMSP : RegisterClass<"Mips", [i32], 32, (add SP_NM)>;
 
 def GPRNMGP : RegisterClass<"Mips", [i32], 32, (add GP_NM)>;
+
+// nanoMIPS "gpr2.reg1" & "gpr2.reg2" register encoding types.
+def GPRNM2R1 :
+  RegisterClass<"Mips", [i32], 32,
+                (add A0_NM, A1_NM, A2_NM, A3_NM)>;
+def GPRNM2R2 :
+  RegisterClass<"Mips", [i32], 32,
+                (add A1_NM, A2_NM, A3_NM, A4_NM)>;
 
 class GPR32Class<list<ValueType> regTypes> :
   RegisterClass<"Mips", regTypes, 32, (add
@@ -671,10 +679,28 @@ class GPRNM4x4AsmOperandClass<list<AsmOperandClass> Supers = []> : MipsAsmRegOpe
   let PredicateMethod = "isGPRNMAsmReg<Mips::GPRNM4RegClassID>";
 }
 
+class GPRNM4x4ZeroAsmOperandClass<list<AsmOperandClass> Supers = []> : MipsAsmRegOperand {
+  let Name = "GPRNM4x4ZeroAsmReg";
+  let PredicateMethod = "isGPRNMAsmReg<Mips::GPRNM4ZRegClassID>";
+  let RenderMethod = "addGPRNM32AsmRegOperands";
+}
+
 class GPRNM32NZAsmOperandClass<list<AsmOperandClass> Supers = []> : MipsAsmRegOperand {
   let Name = "GPRNMNonZeroAsmReg";
   let RenderMethod = "addGPRNM32AsmRegOperands";
   let PredicateMethod = "isGPRNMAsmReg<Mips::GPRNM32NZRegClassID>";
+}
+
+class GPRNM2R1AsmOperandClass<list<AsmOperandClass> Supers = []> : MipsAsmRegOperand {
+  let Name = "GPRNM2R1AsmReg";
+  let RenderMethod = "addGPRNM32AsmRegOperands";
+  let PredicateMethod = "isGPRNMAsmReg<Mips::GPRNM2R1RegClassID>";
+}
+
+class GPRNM2R2AsmOperandClass<list<AsmOperandClass> Supers = []> : MipsAsmRegOperand {
+  let Name = "GPRNM2R2AsmReg";
+  let RenderMethod = "addGPRNM32AsmRegOperands";
+  let PredicateMethod = "isGPRNMAsmReg<Mips::GPRNM2R2RegClassID>";
 }
 
 def GPRMM16AsmOperandZero : MipsAsmRegOperand {
@@ -786,8 +812,21 @@ def GPRNM3ZOpnd : RegisterOperand<GPRNM3Z> {
   let ParserMatchClass = GPRNM16ZeroAsmOperandClass<[GPRNM3Opnd.ParserMatchClass]>;
 }
 
+def GPRNM2R1Opnd : RegisterOperand<GPRNM2R1> {
+  let ParserMatchClass = GPRNM2R1AsmOperandClass<[GPRNM3Opnd.ParserMatchClass]>;
+}
+
+def GPRNM2R2Opnd : RegisterOperand<GPRNM2R2> {
+  let ParserMatchClass = GPRNM2R2AsmOperandClass<[GPRNM3Opnd.ParserMatchClass]>;
+}
+
 def GPRNM4Opnd : RegisterOperand<GPRNM4> {
   let ParserMatchClass = GPRNM4x4AsmOperandClass<[GPRNM3Opnd.ParserMatchClass]>;
+}
+
+def GPRNM4ZOpnd : RegisterOperand<GPRNM4Z> {
+  let ParserMatchClass = GPRNM4x4ZeroAsmOperandClass<[GPRNM3Opnd.ParserMatchClass]>;
+  let EncoderMethod = "getGPRNM4x4ZeroReg";
 }
 
 def GPRNM32NZOpnd : RegisterOperand<GPRNM32NZ> {

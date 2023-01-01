@@ -237,6 +237,8 @@ encodeInstruction(const MCInst &MI, raw_ostream &OS,
   emitInstruction(Binary, Size, STI, OS);
 }
 
+
+
 /// getBranchTargetOpValue - Return binary encoding of the branch
 /// target operand. If the machine operand requires relocation,
 /// record the relocation and return zero.
@@ -1477,6 +1479,24 @@ MipsMCCodeEmitter::getSimm23Lsl2Encoding(const MCInst &MI, unsigned OpNo,
   unsigned Res = static_cast<unsigned>(MO.getImm());
   assert((Res & 3) == 0);
   return Res >> 2;
+}
+
+unsigned
+MipsMCCodeEmitter::getGPRNM4x4ZeroReg(const MCInst &MI, unsigned OpNo,
+				      SmallVectorImpl<MCFixup> &Fixups,
+				      const MCSubtargetInfo &STI) const {
+  MCOperand Op = MI.getOperand(OpNo);
+  assert(Op.isReg() && "Operand of movep is not a register!");
+  unsigned RegNo = Ctx.getRegisterInfo()->getEncodingValue(Op.getReg());
+  switch (Op.getReg()) {
+  default:
+    return RegNo;
+  case Mips::ZERO_NM:  return 11;
+  case Mips::A4_NM:
+  case Mips::A5_NM:
+  case Mips::A6_NM:
+    return RegNo - 8;
+  }
 }
 
 #include "MipsGenMCCodeEmitter.inc"

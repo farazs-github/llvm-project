@@ -520,6 +520,8 @@ public:
     Match_RequiresPosSizeRange0_32,
     Match_RequiresPosSizeRange33_64,
     Match_RequiresPosSizeUImm6,
+    Match_RequiresDstRegPair,
+    Match_RequiresSrcRegPair,
 #define GET_OPERAND_DIAGNOSTIC_TYPES
 #include "MipsGenAsmMatcher.inc"
 #undef GET_OPERAND_DIAGNOSTIC_TYPES
@@ -942,6 +944,15 @@ public:
     return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
   }
 
+  unsigned getGPRNM4ZeroReg() const {
+    assert(isRegIdx() && (RegIdx.Kind & RegKind_GPR) && "Invalid access!");
+    unsigned ClassID = Mips::GPRNM32RegClassID;
+    unsigned RegNo = RegIdx.Index;
+    if (RegNo == 0)
+      RegNo = 11;
+    return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
+  }
+
   /// Coerce the register to GPR64 and return the real register for the current
   /// target.
   unsigned getGPR64Reg() const {
@@ -1129,6 +1140,11 @@ public:
   void addGPRNM32AsmRegOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
     Inst.addOperand(MCOperand::createReg(getGPRNM32Reg()));
+  }
+
+  void addGPRNM4ZAsmRegOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    Inst.addOperand(MCOperand::createReg(getGPRNM4ZeroReg()));
   }
 
   /// Render the operand to an MCInst as a GPR64
@@ -1879,7 +1895,7 @@ public:
 	    (RegNo >= 17 && RegNo <= 19));
   }
 
-  bool isNM4x4AsmReg() const {
+  bool isNM4AsmReg() const {
     if (!(isRegIdx() && RegIdx.Kind))
       return false;
     return ((RegIdx.Index >= 4 && RegIdx.Index <= 11)
@@ -1887,12 +1903,25 @@ public:
 
   }
 
-  bool isNM4x4ZeroAsmReg() const {
+  bool isNM4ZeroAsmReg() const {
     if (!(isRegIdx() && RegIdx.Kind))
       return false;
     return ((RegIdx.Index == 0) ||
 	    (RegIdx.Index >= 4 && RegIdx.Index <= 10) ||
 	    (RegIdx.Index >= 16 && RegIdx.Index <= 23));
+  }
+
+  bool isNM2R1AsmReg() const {
+    volatile unsigned RegNo = RegIdx.Index;
+    if (!(isRegIdx() && RegIdx.Kind))
+      return false;
+    return (RegNo >= 4 && RegNo <= 7);
+  }
+
+  bool isNM2R2AsmReg() const {
+    if (!(isRegIdx() && RegIdx.Kind))
+      return false;
+    return (RegIdx.Index >= 5 && RegIdx.Index <= 8);
   }
 
   enum NM_REG_TYPE {
@@ -1901,7 +1930,9 @@ public:
 	NMR_3,
 	NMR_3Z,
 	NMR_4,
-	NMR_4Z
+	NMR_4Z,
+	NMR_2R1,
+	NMR_2R2
   };
 
   template <unsigned rt = Mips::GPRNM32RegClassID>
@@ -1920,9 +1951,13 @@ public:
       case Mips::GPRNM3ZRegClassID:
 	return isNM16ZeroAsmReg();
       case Mips::GPRNM4RegClassID:
-	return isNM4x4AsmReg();
-      case Mips::GPRNM4ZeroRegClassID:
-	return isNM4x4ZeroAsmReg();
+	return isNM4AsmReg();
+      case Mips::GPRNM4ZRegClassID:
+	return isNM4ZeroAsmReg();
+      case Mips::GPRNM2R1RegClassID:
+	return isNM2R1AsmReg();
+      case Mips::GPRNM2R2RegClassID:
+	return isNM2R2AsmReg();
       default:
 	return (RegIdx.Index < 32);
     }
@@ -6160,7 +6195,15 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
   case Mips::MUL4x4_NM:
     if (Inst.getOperand(0).getReg() != Inst.getOperand(1).getReg())
       return Match_RequiresSameSrcAndDst;
-  return Match_Success;
+    return Match_Success;
+  case Mips::MOVEP_NM:
+    if (Inst.getOperand(1).getReg() != Inst.getOperand(0).getReg() + 1)
+      return Match_RequiresDstRegPair;
+    return Match_Success;
+  case Mips::MOVEPREV_NM:
+    if (Inst.getOperand(3).getReg() != Inst.getOperand(2).getReg() + 1)
+      return Match_RequiresSrcRegPair;
+    return Match_Success;
   }
 
   uint64_t TSFlags = getInstDesc(Inst.getOpcode()).TSFlags;
@@ -6230,6 +6273,10 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return Error(IDLoc, "invalid operand ($zero) for instruction");
   case Match_RequiresSameSrcAndDst:
     return Error(IDLoc, "source and destination must match");
+  case Match_RequiresDstRegPair:
+    return Error(IDLoc, "destination registers must be in sequence");
+  case Match_RequiresSrcRegPair:
+    return Error(IDLoc, "source registers must be in sequence");
   case Match_NoFCCRegisterForCurrentISA:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "non-zero fcc register doesn't exist in current ISA level");
@@ -7245,7 +7292,7 @@ bool MipsAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
   getTargetStreamer().forbidModuleDirective();
 
   // Check if we have valid mnemonic
-  if (!mnemonicIsValid(Name, 0)) {
+  if (!mnemonicIsValid(Name, 0) && !mnemonicIsValid(Name, 1)) {
     FeatureBitset FBS = ComputeAvailableFeatures(getSTI().getFeatureBits());
     std::string Suggestion = MipsMnemonicSpellCheck(Name, FBS);
     return Error(NameLoc, "unknown instruction" + Suggestion);

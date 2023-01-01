@@ -530,8 +530,6 @@ class _Pool_P16_ADDU<bits<1> psel> : _Pool_P16<0b10100> {
 
 // TODO BNEZC_16 : _Pool_P16<0b10110>
 
-// TODO MOVEP : _Pool_P16<0b10111>
-
 // TODO LI16 : _Pool_P16<0b11000>
 
 class _Pool_P16_BR<bits<4> psel> : _Pool_P16<0b11010> {
@@ -549,9 +547,6 @@ class _Pool_P16_SYSCALL<bits<1> psel> : _Pool_P16_RI<0b01> {
 // TODO ANDI_16 : _Pool_P16<0b11100>
 
 // TODO SW_4X4 : _Pool_P16<0b11101>
-
-// TODO MOVEP_REV : _Pool_P16<0b11111>
-
 
 
 class _Pool_P_RI<bits<2> psel> : _Pool_P_ADDIU<0b00000> {
@@ -1523,12 +1518,40 @@ class BBit_Enc<bits<3> isel> : _Pool_P_BRI<isel>
   let Inst{0} =  offset{11};
 }
 
-class MOVE_Enc<bits<5> isel> : _Pool_P16<0b00000>
+class MOVE_Enc<bits<5> isel> : _Pool_P16<isel>
 {
   bits<5> rt;
   bits<5> rs;
   let Inst{9...5} = rt;
   let Inst{4...0} = rs;
+}
+
+class MOVEP_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<2> dst1;
+  bits<5> src1;
+  bits<5> src2;
+
+  let Inst{9} = src2{4};
+  let Inst{7...5} = src2{2...0};
+  let Inst{4} = src1{4};
+  let Inst{2...0} = src1{2...0};
+  let Inst{8} = dst1{0};
+  let Inst{3} = dst1{1};
+}
+
+class MOVEPREV_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<2> src1;
+  bits<5> dst1;
+  bits<5> dst2;
+
+  let Inst{9} = dst2{4};
+  let Inst{7...5} = dst2{2...0};
+  let Inst{4} = dst1{4};
+  let Inst{2...0} = dst1{2...0};
+  let Inst{8} = src1{0};
+  let Inst{3} = src1{1};
 }
 
 def BC_NM : BCBase<brtarget25_nm>, BC32_Enc<0b0>;
@@ -1770,17 +1793,19 @@ def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>
 def SWPC_NM : StorePCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01011>;
 def LWPC_NM : LoadPCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01111>;
 
+let isMoveReg = 1 in {
 def MOVE16_NM : InstNM<(outs GPRNM32NZOpnd:$rt), (ins GPRNM32Opnd:$rs),
-                      "move\t$rt, $rs", []>, MOVE_Enc<0b00100> {
-  let isMoveReg = 1;
-}
+                      "move\t$rt, $rs", []>, MOVE_Enc<0b00100>;
 
-let isCodeGenOnly = 1 in {
+def MOVEP_NM : InstNM<(outs GPRNM2R1Opnd:$dst1, GPRNM2R2Opnd:$dst2),
+		      (ins GPRNM4ZOpnd:$src1, GPRNM4ZOpnd:$src2),
+		      "movep\t$dst1, $dst2, $src1, $src2", []>,
+		      MOVEP_Enc<0b10111>;
 
-def MOVEP_NM : InstNM<(outs GPRNM32Opnd:$dst1, GPRNM32Opnd:$dst2),
-                      (ins GPRNM32Opnd:$src1, GPRNM32Opnd:$src2),
-                      "movep\t$dst1, $dst2, $src1, $src2", []>, InstSize16;
-
+def MOVEPREV_NM : InstNM<(outs GPRNM4Opnd:$dst1, GPRNM4Opnd:$dst2),
+			 (ins GPRNM2R1Opnd:$src1, GPRNM2R2Opnd:$src2),
+			 "movep\t$dst1, $dst2, $src1, $src2", []>,
+			 MOVEPREV_Enc<0b11111>;
 }
 
 // These patterns help generate better loads/stores when the immediate doesn't

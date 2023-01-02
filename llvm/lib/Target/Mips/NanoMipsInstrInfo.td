@@ -442,9 +442,6 @@ class _Pool_P_BALRSC<bits<5> psel> : _Pool_P_J<0b1000> {
   let Inst{25...21} = psel;
 }
 
-// TODO BRSC : _Pool_P_BALRSC<0b00000>
-// TODO BALRSC : _Pool_P_BALRSC<!0b00000>
-
 class _Pool_P_SHIFT<bits<4> psel> : _Pool_P_U12<0b1100> {
   let Inst{8...5} = psel;
   bits<5> shift;
@@ -981,6 +978,28 @@ class LI16_Enc<bits<5> isel> : _Pool_P16<isel>
   let Inst{6...0} = eu;
 }
 
+class IndirectBranch32_Enc : _Pool_P_J<0b1000>
+{
+  bits<5> rs;
+  let Inst{25...21} = 0b00000;
+  let Inst{20...16} = rs;
+}
+
+class IndirectBranch16_Enc<bits<1> isel> : _Pool_P16_BR<0b0000>
+{
+  bits<5> rs;
+  let Inst{9...5} = rs;
+  let Inst{4} = isel;
+}
+
+class IndirectCallNM_Enc<bits<4> isel> : _Pool_P_J<isel>
+{
+  bits<5> rt;
+  bits<5> rs;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+}
+
 class LoadMemoryNM<string opstr, DAGOperand MO,
                    SDPatternOperator OpNode = null_frag,
                    ComplexPattern Addr = addr,
@@ -1100,6 +1119,14 @@ class CallNM<string opstr,
   let Defs = [RA_NM];
 }
 
+class IndirectCallNM<string opstr, RegisterOperand RA,
+		     RegisterOperand RO> :
+  InstNM<(outs RA:$rt), (ins RO:$rs), !strconcat(opstr, "\t$rt, $rs"),
+         []> {
+  let isCall = 1;
+  let isCTI = 1;
+}
+
 class MoveBalcBase : InstNM<(outs GPRNM32Opnd:$rd),
                             (ins GPRNM32Opnd:$rt, calltarget25_nm:$addr),
                             "move.balc\t$rd, $rt, $addr", []>, InstSize32 {
@@ -1112,7 +1139,7 @@ class MoveBalcBase : InstNM<(outs GPRNM32Opnd:$rd),
 class IndirectBranchNM<string opstr, RegisterOperand RO,
                        SDPatternOperator operator = null_frag>:
     InstNM<(outs), (ins RO:$rs), !strconcat(opstr, "\t$rs"),
-           [(operator RO:$rs)]>, _Pool_P16_BR<0b0000> {
+           [(operator RO:$rs)]> {
   let isTerminator = 1;
   let isBarrier = 1;
   let isCTI = 1;
@@ -1361,7 +1388,7 @@ def AND16_NM : ArithLogicR16_Desc<"and", GPRNM3Opnd>,
 def OR16_NM  : ArithLogicR16_Desc<"or	", GPRNM3Opnd>,
 	       ArithLogicR16_Enc<0b11>;
 
-def JRC_NM : IndirectBranchNM<"jrc", GPRNM32Opnd>;
+def JRC_NM : IndirectBranchNM<"jrc", GPRNM32Opnd>, IndirectBranch16_Enc<0>;
 
 def MOVEBALC_NM : MoveBalcBase;
 
@@ -1445,10 +1472,11 @@ def PseudoIndirectBranchNM :
   bit isCTI = 1;
 }
 
-let hasPostISelHook = 1, isCall = 1, isCTI = 1, Defs = [RA_NM] in {
-  def JALRC_NM : InstNM<(outs GPRNM32Opnd:$rd), (ins GPRNM32Opnd:$rs),
-                        "jalrc\t$rd, $rs", []>, InstSize32;
 
+let hasPostISelHook = 1, isCall = 1, isCTI = 1, Defs = [RA_NM] in {
+
+  def JALRC_NM : IndirectCallNM<"jalrc", GPRNM32Opnd, GPRNM32Opnd>,
+	         IndirectCallNM_Enc<0b0000>;
   def JALRCPseudo : PseudoInstNM<(outs), (ins GPRNM32Opnd:$rs),
                                  [(MipsJmpLink GPRNM32Opnd:$rs)]>,
     PseudoInstExpansion<(JALRC_NM RA_NM, GPRNM32Opnd:$rs)>;
@@ -1683,6 +1711,11 @@ def BGEIUC_NM : CBranchImmNM<"bgeiuc", brtarget11_nm, setuge, GPRNM32Opnd, uimm7
 	        BRI_Enc<0b011>;
 def BLTIUC_NM : CBranchImmNM<"bltiuc", brtarget11_nm, setult, GPRNM32Opnd, uimm7, immZExt7>,
 	        BRI_Enc<0b111>;
+
+
+
+def BRSC_NM : IndirectBranchNM<"brsc", GPRNM32Opnd>, IndirectBranch32_Enc;
+def BALRSC_NM : IndirectCallNM<"balrsc", GPRNM32NZOpnd, GPRNM32Opnd>, IndirectCallNM_Enc<0b1000>;
 
 // Bit-test branches
 let hasNoSchedulingInfo = 1,

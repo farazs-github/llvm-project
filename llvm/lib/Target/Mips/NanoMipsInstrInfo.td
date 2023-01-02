@@ -53,6 +53,10 @@ def imm32SExt12OrZExt16 : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue()
 def imm32SExt20s12 : IntImmLeaf<i32, [{ return isInt<32>(Imm.getSExtValue())
                                        && (Imm.getZExtValue() % 4096 == 0); }]>;
 
+// Immediate range for 16-bit load immediate
+def imm7M1To126 : IntImmLeaf<i32, [{
+    return (Imm.getSExtValue() >= -1 &&  Imm.getSExtValue() < 127);
+}]>;
 
 class ConstantSImmRangeAsmOperandClass<int Bottom, int Top,
                                        list<AsmOperandClass> Supers = []>
@@ -73,8 +77,16 @@ class NegImmAsmOperandClass<int Bits, list<AsmOperandClass> Supers = []>
   let DiagnosticType = "SImm" # Bits;
 }
 
+class Imm7AsmOperandClass : AsmOperandClass {
+  let Name = "UImm7N1";
+  let RenderMethod = "addSImmOperands<8>";
+  let PredicateMethod = "isConstantSImmRange<-1,126>";
+}
+
 def UImm12AsmOperandClass : UImmAsmOperandClass<12, []>;
 def UImm5AsmOperandClass : UImmAsmOperandClass<5, [UImm12AsmOperandClass]>;
+def Imm7AsmOperand : Imm7AsmOperandClass;
+
 def SImm12AsmOperandClass : SImmAsmOperandClass<12, []>;
 def NImm12AsmOperandClass : NegImmAsmOperandClass<12, []>;
 def NaImm12AsmOperandClass : ConstantSImmRangeAsmOperandClass<4095, 1, []>;
@@ -153,6 +165,10 @@ def nimm12_nm : Operand<i32> {
 def uimm16_nm : Operand<i32> {
   let PrintMethod = "printUImm<16>";
   let ParserMatchClass = !cast<AsmOperandClass>("SImm16AsmOperandClass");
+}
+def nimm7_nm : Operand<i32> {
+  let ParserMatchClass = !cast<AsmOperandClass>("Imm7AsmOperand");
+  let DecoderMethod = "DecodeImmM1To126";
 }
 
 def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID">;
@@ -536,8 +552,6 @@ class _Pool_P16_ADDU<bits<1> psel> : _Pool_P16<0b10100> {
 }
 
 // TODO BNEZC_16 : _Pool_P16<0b10110>
-
-// TODO LI16 : _Pool_P16<0b11000>
 
 class _Pool_P16_BR<bits<4> psel> : _Pool_P16<0b11010> {
   let Inst{3...0} = psel;
@@ -941,6 +955,14 @@ class LSMem4x4_Enc<bits<5> isel> : _Pool_P16<isel>
   let Inst{8} = offset{2};
 }
 
+class LI16_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<3> rt;
+  bits<7> eu;
+  let Inst{9...7} = rt;
+  let Inst{6...0} = eu;
+}
+
 class LoadMemoryNM<string opstr, DAGOperand MO,
                    SDPatternOperator OpNode = null_frag,
                    ComplexPattern Addr = addr,
@@ -1191,6 +1213,12 @@ class LoadAddressAbsNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexP
          !strconcat(opstr, "\t$rt, $addr"),
          [(set RO:$rt, Addr:$addr)]>;
 
+class LoadImmediateNM<string opstr, RegisterOperand RO, Operand Od,
+      			SDPatternOperator imm_type = null_frag> :
+  InstNM<(outs RO:$rt), (ins Od:$eu),
+         !strconcat(opstr, "\t$rt, $eu"),
+         [(set RO:$rt, imm_type:$eu)]>;
+
 //===----------------------------------------------------------------------===//
 //
 // Instruction Definitions
@@ -1320,6 +1348,8 @@ def JRC_NM : IndirectBranchNM<"jrc", GPRNM32Opnd>;
 def MOVEBALC_NM : MoveBalcBase;
 
 let isReMaterializable = 1 in {
+def LI16_NM : LoadImmediateNM<"li", GPRNM3Opnd, nimm7_nm, imm7M1To126>,
+    	      LI16_Enc<0b11000>;
 def Li_NM : LoadAddressAbsNM<"li", GPRNM32Opnd, sym32_abs_nm,
     	      		       addrpcrel>, Op48_Enc<0b00000>;
 def LAGPB_NM : LoadAddressGPRelNM<"addiu", GPRNM32Opnd, sym32_gp_nm,

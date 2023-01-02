@@ -614,6 +614,10 @@ static DecodeStatus DecodeMovePRegPair(MCInst &Inst, unsigned RegPair,
 static DecodeStatus DecodeMovePOperands(MCInst &Inst, unsigned Insn,
                                         uint64_t Address, const void *Decoder);
 
+static DecodeStatus DecodeImmM1To126(MCInst &Inst, unsigned Value,
+				     uint64_t Address,
+				     const void *Decoder);
+
 static MCDisassembler *createMipsDisassembler(
                        const Target &T,
                        const MCSubtargetInfo &STI,
@@ -2956,5 +2960,15 @@ static DecodeStatus DecodeBlezGroupBranchMMR6(MCInst &MI, InsnType insn,
 
   MI.addOperand(MCOperand::createImm(Imm));
 
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeImmM1To126(MCInst &Inst, unsigned Value,
+				     uint64_t Address,
+				     const void *Decoder) {
+  if (Value == 127)
+    Inst.addOperand(MCOperand::createImm(-1));
+  else
+    Inst.addOperand(MCOperand::createImm(Value));
   return MCDisassembler::Success;
 }

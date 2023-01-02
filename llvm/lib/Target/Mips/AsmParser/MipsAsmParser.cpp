@@ -1403,6 +1403,11 @@ public:
            getConstantImm() <= Top;
   }
 
+  template <int Bottom, int Top> bool isConstantSImmRange() const {
+    return isConstantImm() && getConstantImm() >= Bottom &&
+           getConstantImm() <= Top;
+  }
+
   template <signed Bottom, signed Top> bool isConstantNegImmRange() const {
     return isConstantImm() && getConstantImm() >= -Bottom &&
            getConstantImm() <= -Top;

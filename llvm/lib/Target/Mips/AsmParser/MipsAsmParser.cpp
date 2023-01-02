@@ -522,6 +522,8 @@ public:
     Match_RequiresPosSizeUImm6,
     Match_RequiresDstRegPair,
     Match_RequiresSrcRegPair,
+    Match_RequiresFirstOpLT,
+    Match_RequiresFirstOpGE,
 #define GET_OPERAND_DIAGNOSTIC_TYPES
 #include "MipsGenAsmMatcher.inc"
 #undef GET_OPERAND_DIAGNOSTIC_TYPES
@@ -6216,6 +6218,14 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
     if (Inst.getOperand(3).getReg() != Inst.getOperand(2).getReg() + 1)
       return Match_RequiresSrcRegPair;
     return Match_Success;
+  case Mips::BEQC16_NM:
+    if (Inst.getOperand(0).getReg() >= Inst.getOperand(1).getReg())
+      return Match_RequiresFirstOpLT;
+    return Match_Success;
+  case Mips::BNEC16_NM:
+    if (Inst.getOperand(0).getReg() < Inst.getOperand(1).getReg())
+      return Match_RequiresFirstOpGE;
+    return Match_Success;
   }
 
   uint64_t TSFlags = getInstDesc(Inst.getOpcode()).TSFlags;
@@ -6289,6 +6299,12 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return Error(IDLoc, "destination registers must be in sequence");
   case Match_RequiresSrcRegPair:
     return Error(IDLoc, "source registers must be in sequence");
+  case Match_RequiresFirstOpLT:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "first register operand(rs) must be less than second(rt)");
+  case Match_RequiresFirstOpGE:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "first register operand(rs) must not be less than second(rt)");
   case Match_NoFCCRegisterForCurrentISA:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "non-zero fcc register doesn't exist in current ISA level");

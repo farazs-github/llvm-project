@@ -306,6 +306,13 @@ foreach I = {4, 7, 10, 11, 14, 25} in
      let ParserMatchClass = NMJumpTargetAsmOperand;
   }
 
+def brtarget4s1_nm : Operand<OtherVT> {
+  let EncoderMethod = "getBranchTarget4OpValueNM";
+  let OperandType   = "OPERAND_PCREL";
+  let DecoderMethod = "DecodeBranchTargetNM";
+  let ParserMatchClass = NMJumpTargetAsmOperand;
+}
+
 foreach I = {10, 25} in
   def calltarget # I # _nm : Operand<iPTR> {
     let EncoderMethod = "getBranchTarget" # I # "OpValueNM";
@@ -562,13 +569,9 @@ class _Pool_P16_A2<bits<1> psel> : _Pool_P16<0b10000> {
   let Inst{3} = psel;
 }
 
-//TODO BEQZC_16 : _Pool_P16<0b10010>
-
 class _Pool_P16_ADDU<bits<1> psel> : _Pool_P16<0b10100> {
   let Inst{0} = psel;
 }
-
-// TODO BNEZC_16 : _Pool_P16<0b10110>
 
 class _Pool_P16_BR<bits<4> psel> : _Pool_P16<0b11010> {
   let Inst{3...0} = psel;
@@ -1684,16 +1687,28 @@ def BALC16_NM : CallNM<"balc", MipsJmpLink, calltarget10_nm>, BC16_Enc<0b00110>;
 
 def : NMPat<(MipsJmpLink (i32 texternalsym:$dst)), (BALC_NM texternalsym:$dst)>;
 
+class B4_Enc : _Pool_P16<0b11010> {
+  bits<3> rs;
+  bits<3> rt;
+  bits<4> offset;
+  let Inst{9...7} = rt;
+  let Inst{6...4} = rs;
+  let Inst{3...0} = offset;
+}
 
 def BEQC_NM : CBranchNM<"beqc", brtarget14_nm, seteq, GPRNM32Opnd>,
 	      B14_Enc<0b000>;
-def BGEC_NM : CBranchNM<"bgec", brtarget14_nm, setge, GPRNM32Opnd>,
+def BEQC16_NM : CBranchNM<"beqc16", brtarget4s1_nm, seteq, GPRNM3Opnd>,
+	      B4_Enc;
+def BGEC_NM : CBranchNM<"bgec", brtarget14_nm, setge, GPRNM3Opnd>,
 	      B14_Enc<0b010>;
 def BGEUC_NM : CBranchNM<"bgeuc", brtarget14_nm, setuge, GPRNM32Opnd>,
 	       B14_Enc<0b011>;
 
 def BNEC_NM : CBranchNM<"bnec", brtarget14_nm, setne, GPRNM32Opnd>,
 	      B14_Enc<0b100>;
+def BNEC16_NM : CBranchNM<"bnec16", brtarget4s1_nm, setne, GPRNM3Opnd>,
+	      B4_Enc;
 def BLTC_NM : CBranchNM<"bltc", brtarget14_nm, setlt, GPRNM32Opnd>,
 	      B14_Enc<0b110>;
 def BLTUC_NM : CBranchNM<"bltuc", brtarget14_nm, setult, GPRNM32Opnd>,

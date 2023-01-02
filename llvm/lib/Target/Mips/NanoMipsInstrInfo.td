@@ -600,6 +600,11 @@ class _Pool_P_TRAP<bits<1> isel> : _Pool_POOL32A0_0<0b000000>
   let Inst{10} = isel;
 }
 
+class _Pool_P_CMOVE<bits<1> isel> : _Pool_POOL32A0_0<0b100010>
+{
+  let Inst{10} = isel;
+}
+
 class _Pool_POOL32A7<bits<3> psel> : _Pool_P32A<0b111> {
   let Inst{5...3} = psel;
 }
@@ -2038,18 +2043,28 @@ def : NMPat<(atomic_store_8 addr:$a, GPR32:$v), (SB_NM GPR32:$v, addr:$a)>;
 def : NMPat<(atomic_store_16 addr:$a, GPR32:$v), (SH_NM GPR32:$v, addr:$a)>;
 def : NMPat<(atomic_store_32 addr:$a, GPR32:$v), (SW_NM GPR32:$v, addr:$a)>;
 
+class CondMove_Enc<bits<1> isel> : _Pool_P_CMOVE<isel>
+{
+  bits<5> rd;
+  bits<5> rs;
+  bits<5> rt;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{15...11} = rd;
+}
+
 // Conditional Moves
 def MOVZ_NM : InstNM<(outs GPRNM32Opnd:$rd),
                      (ins GPRNM32Opnd:$rs, GPRNM32Opnd:$rt, GPRNM32Opnd:$F),
                      "movz\t$rd, $rs, $rt",
-                     []>, InstSize32 {
+                     []>, CondMove_Enc<0b0> {
   let Constraints = "$F = $rd";
 }
 
 def MOVN_NM : InstNM<(outs GPRNM32Opnd:$rd),
                      (ins GPRNM32Opnd:$rs, GPRNM32Opnd:$rt, GPRNM32Opnd:$F),
                      "movn\t$rd, $rs, $rt",
-                     []>, InstSize32 {
+                     []>, CondMove_Enc<0b1> {
     let Constraints = "$F = $rd";
 }
 

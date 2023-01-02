@@ -1399,6 +1399,22 @@ MipsMCCodeEmitter::getUImm4AndValue(const MCInst &MI, unsigned OpNo,
 }
 
 unsigned
+MipsMCCodeEmitter::getUImm4MaskEncoding(const MCInst &MI, unsigned OpNo,
+					SmallVectorImpl<MCFixup> &Fixups,
+					const MCSubtargetInfo &STI) const {
+  assert(MI.getOperand(OpNo).isImm());
+  const MCOperand &MO = MI.getOperand(OpNo);
+  unsigned Value = MO.getImm();
+  switch (Value) {
+    case 0xff:   return 12;
+    case 0xffff: return 13;
+    default:	 return Value;
+  }
+  llvm_unreachable("Unexpected value");
+}
+
+
+unsigned
 MipsMCCodeEmitter::getRegisterListOpValue(const MCInst &MI, unsigned OpNo,
                                           SmallVectorImpl<MCFixup> &Fixups,
                                           const MCSubtargetInfo &STI) const {

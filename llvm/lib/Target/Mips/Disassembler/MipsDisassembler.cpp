@@ -618,6 +618,10 @@ static DecodeStatus DecodeImmM1To126(MCInst &Inst, unsigned Value,
 				     uint64_t Address,
 				     const void *Decoder);
 
+static DecodeStatus DecodeUImm4Mask(MCInst &Inst, unsigned Value,
+				    uint64_t Address,
+				    const void *Decoder);
+
 static MCDisassembler *createMipsDisassembler(
                        const Target &T,
                        const MCSubtargetInfo &STI,
@@ -2968,6 +2972,18 @@ static DecodeStatus DecodeImmM1To126(MCInst &Inst, unsigned Value,
 				     const void *Decoder) {
   if (Value == 127)
     Inst.addOperand(MCOperand::createImm(-1));
+  else
+    Inst.addOperand(MCOperand::createImm(Value));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeUImm4Mask(MCInst &Inst, unsigned Value,
+				    uint64_t Address,
+				    const void *Decoder) {
+  if (Value == 12)
+    Inst.addOperand(MCOperand::createImm(0xff));
+  else if (Value == 13)
+    Inst.addOperand(MCOperand::createImm(0xffff));
   else
     Inst.addOperand(MCOperand::createImm(Value));
   return MCDisassembler::Success;

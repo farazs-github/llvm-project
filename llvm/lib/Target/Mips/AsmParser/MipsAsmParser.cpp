@@ -1408,6 +1408,13 @@ public:
            getConstantImm() <= Top;
   }
 
+  bool isConstantUImmMask() const {
+    return (isConstantImm() &&
+	    ((getConstantImm() >= 0 &&  getConstantImm() < 11) ||
+	     (getConstantImm() == 0xff) || (getConstantImm() == 0xffff) ||
+	     (getConstantImm() == 0xe) ||  (getConstantImm() == 0xf)));
+  }
+
   template <signed Bottom, signed Top> bool isConstantNegImmRange() const {
     return isConstantImm() && getConstantImm() >= -Bottom &&
            getConstantImm() <= -Top;

@@ -301,6 +301,10 @@ public:
                             SmallVectorImpl<MCFixup> &Fixups,
                             const MCSubtargetInfo &STI) const;
 
+  unsigned getUImm4MaskEncoding(const MCInst &MI, unsigned OpNo,
+				SmallVectorImpl<MCFixup> &Fixups,
+				const MCSubtargetInfo &STI) const;
+
   unsigned getMovePRegPairOpValue(const MCInst &MI, unsigned OpNo,
                                   SmallVectorImpl<MCFixup> &Fixups,
                                   const MCSubtargetInfo &STI) const;

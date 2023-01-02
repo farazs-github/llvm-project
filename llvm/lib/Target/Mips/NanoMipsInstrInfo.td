@@ -58,6 +58,13 @@ def imm7M1To126 : IntImmLeaf<i32, [{
     return (Imm.getSExtValue() >= -1 &&  Imm.getSExtValue() < 127);
 }]>;
 
+// Immediate range for 16-bit AND immediate
+def imm4Mask : IntImmLeaf<i32, [{
+    return ((Imm.getZExtValue() >= 0 &&  Imm.getZExtValue() < 11) ||
+	   (Imm.getZExtValue() == 0xff) || (Imm.getZExtValue() == 0xffff) ||
+	   (Imm.getZExtValue() == 0xe) ||  (Imm.getZExtValue() == 0xf));
+}]>;
+
 class ConstantSImmRangeAsmOperandClass<int Bottom, int Top,
                                        list<AsmOperandClass> Supers = []>
     : AsmOperandClass {
@@ -83,9 +90,16 @@ class Imm7AsmOperandClass : AsmOperandClass {
   let PredicateMethod = "isConstantSImmRange<-1,126>";
 }
 
+class UImm4AsmOperandClass : AsmOperandClass {
+  let Name = "UImm4Mask";
+  let RenderMethod = "addUImmOperands<16>";
+  let PredicateMethod = "isConstantUImmMask";
+}
+
 def UImm12AsmOperandClass : UImmAsmOperandClass<12, []>;
 def UImm5AsmOperandClass : UImmAsmOperandClass<5, [UImm12AsmOperandClass]>;
 def Imm7AsmOperand : Imm7AsmOperandClass;
+def UImm4AsmOperand : UImm4AsmOperandClass;
 
 def SImm12AsmOperandClass : SImmAsmOperandClass<12, []>;
 def NImm12AsmOperandClass : NegImmAsmOperandClass<12, []>;
@@ -169,6 +183,12 @@ def uimm16_nm : Operand<i32> {
 def nimm7_nm : Operand<i32> {
   let ParserMatchClass = !cast<AsmOperandClass>("Imm7AsmOperand");
   let DecoderMethod = "DecodeImmM1To126";
+}
+def uimm4_nm : Operand<i32> {
+  let EncoderMethod = "getUImm4MaskEncoding";
+  let PrintMethod = "printUImm<16>";
+  let ParserMatchClass = !cast<AsmOperandClass>("UImm4AsmOperand");
+  let DecoderMethod = "DecodeUImm4Mask";
 }
 
 def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID">;
@@ -564,8 +584,6 @@ class _Pool_P16_RI<bits<2> psel> : _Pool_P16_MV<0b00000> {
 class _Pool_P16_SYSCALL<bits<1> psel> : _Pool_P16_RI<0b01> {
   let Inst{2} = psel;
 }
-
-// TODO ANDI_16 : _Pool_P16<0b11100>
 
 class _Pool_P_RI<bits<2> psel> : _Pool_P_ADDIU<0b00000> {
   let Inst{20...19} = psel;
@@ -1360,6 +1378,19 @@ let isReMaterializable = 1,isCodeGenOnly = 1 in {
 def LA_NM : RegImm48_Desc<"la", simm32_relaxed, GPRNM32Opnd>,
 		Op48_Enc<0b00011>;
 }
+
+class ANDI16_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<3> rt;
+  bits<3> rs;
+  bits<4> imm;
+  let Inst{9...7} = rt;
+  let Inst{6...4} = rs;
+  let Inst{3...0} = imm;
+}
+
+def ANDI16_NM : ArithLogicINM<"andi", uimm4_nm, GPRNM3Opnd,
+                               imm4Mask, add>, ANDI16_Enc<0b11100>;
 
 // Arithmetic and logical instructions with 2 register operands and immediate.
 class LoadUpperINM<string opstr, Operand Od, RegisterOperand RO,

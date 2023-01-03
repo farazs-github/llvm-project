@@ -1538,6 +1538,10 @@ public:
       && (getMemBase()->getGPR32Reg() == Mips::GP);
   }
 
+  bool isConstantUImm3Shift() const {
+    return (isConstantImm() && getConstantImm() > 0 && getConstantImm() <= 8);
+  }
+
   MipsOperand *getMemBase() const {
     assert((Kind == k_Memory) && "Invalid access!");
     return Mem.Base;

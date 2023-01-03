@@ -37,6 +37,8 @@ def imm32ZExt12ANDI :
   IntImmLeaf<i32, [{ return isUInt<12>(Imm.getZExtValue()) ||
                             Imm.getZExtValue() == 65535; }]>;
 def imm32ZExt5  : IntImmLeaf<i32, [{ return isUInt<5>(Imm.getZExtValue()); }]>;
+def imm32ZExt3  : IntImmLeaf<i32, [{ return Imm.getZExtValue() > 0 &&
+				  Imm.getZExtValue() <= 8;}]>;
 def imm32SExt12  : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue()); }]>;
 def imm32Neg12  : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue()) && Imm.getSExtValue() < 0; }]>;
 // True if (N + 1) fits in 12-bit field.
@@ -96,10 +98,17 @@ class UImm4AsmOperandClass : AsmOperandClass {
   let PredicateMethod = "isConstantUImmMask";
 }
 
+class UImm3ShiftAsmOperandClass : AsmOperandClass {
+  let Name = "UImm3Shift";
+  let RenderMethod = "addUImmOperands<4>";
+  let PredicateMethod = "isConstantUImm3Shift";
+}
+
 def UImm12AsmOperandClass : UImmAsmOperandClass<12, []>;
 def UImm5AsmOperandClass : UImmAsmOperandClass<5, [UImm12AsmOperandClass]>;
 def Imm7AsmOperand : Imm7AsmOperandClass;
 def UImm4AsmOperand : UImm4AsmOperandClass;
+def UImm3ShiftAsmOperand : UImm3ShiftAsmOperandClass;
 
 def SImm12AsmOperandClass : SImmAsmOperandClass<12, []>;
 def NImm12AsmOperandClass : NegImmAsmOperandClass<12, []>;
@@ -189,6 +198,12 @@ def uimm4_nm : Operand<i32> {
   let PrintMethod = "printUImm<16>";
   let ParserMatchClass = !cast<AsmOperandClass>("UImm4AsmOperand");
   let DecoderMethod = "DecodeUImm4Mask";
+}
+def uimm3shift_nm : Operand<i32> {
+  let EncoderMethod = "getUImm3ShiftEncoding";
+  let PrintMethod = "printUImm<4>";
+  let ParserMatchClass = !cast<AsmOperandClass>("UImm3ShiftAsmOperand");
+  let DecoderMethod = "DecodeUImm3Shift";
 }
 
 def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID">;
@@ -534,8 +549,8 @@ class _Pool_P16_SR<bits<1> psel> : _Pool_P16<0b00011> {
   let Inst{8} = psel;
 }
 
-class _Pool_P16_SHIFT<bits<1> psel> : _Pool_P16<0b00100> {
-  let Inst{3} = psel;
+class _Pool_P16_SHIFT<bits<1> isel> : _Pool_P16<0b00100> {
+  let Inst{3} = isel;
 }
 
 class _Pool_P16_4X4<bits<2> psel> : _Pool_P16<0b00111> {
@@ -760,7 +775,7 @@ class CondLogicI32_Enc<bits<4> psel> : _Pool_P_U12<psel> {
   let Inst{11...0} = imm;
 }
 
-class ShiftI32_Desc<string opstr, Operand Od, RegisterOperand RO,
+class ShiftI_Desc<string opstr, Operand Od, RegisterOperand RO,
                     SDPatternOperator imm_type = null_frag,
                     SDPatternOperator OpNode = null_frag> :
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>;
@@ -772,6 +787,15 @@ class ShiftI32_Enc<bits<4> psel> : _Pool_P_SHIFT<psel> {
   let Inst{25...21} = rt;
   let Inst{20...16} = rs;
   let Inst{4...0} = imm;
+}
+
+class ShiftI16_Enc<bits<1> isel> : _Pool_P16_SHIFT<isel> {
+  bits<3> rt;
+  bits<3> rs;
+  bits<3> imm;
+  let Inst{9...7} = rt;
+  let Inst{6...4} = rs;
+  let Inst{2...0} = imm;
 }
 
 class ExtBaseNM<RegisterOperand RO = GPRNM32Opnd> :
@@ -1352,13 +1376,17 @@ def SEQI_NM  : CondLogicI32_Desc<"seqi", uimm12_nm, GPRNM32Opnd, imm32ZExt12, se
 	       CondLogicI32_Enc<0b0110>;
 
 // P.SHIFT pool of instructions
-def SLL_NM  : ShiftI32_Desc<"sll", uimm5_nm, GPRNM32Opnd, imm32ZExt5, shl>,
+def SLL_NM  : ShiftI_Desc<"sll", uimm5_nm, GPRNM32Opnd, imm32ZExt5, shl>,
 	      ShiftI32_Enc<0b0000>;
-def SRL_NM  : ShiftI32_Desc<"srl", uimm5_nm, GPRNM32Opnd, imm32ZExt5, srl>,
+def SLL16_NM  : ShiftI_Desc<"sll", uimm3shift_nm, GPRNM3Opnd, imm32ZExt3, shl>,
+	      ShiftI16_Enc<0b0>;
+def SRL_NM  : ShiftI_Desc<"srl", uimm5_nm, GPRNM32Opnd, imm32ZExt5, srl>,
 	      ShiftI32_Enc<0b0010>;
-def SRA_NM  : ShiftI32_Desc<"sra", uimm5_nm, GPRNM32Opnd, imm32ZExt5, sra>,
+def SRL16_NM  : ShiftI_Desc<"srl", uimm3shift_nm, GPRNM3Opnd, imm32ZExt3, srl>,
+	      ShiftI16_Enc<0b1>;
+def SRA_NM  : ShiftI_Desc<"sra", uimm5_nm, GPRNM32Opnd, imm32ZExt5, sra>,
 	      ShiftI32_Enc<0b0100>;
-def ROTR_NM : ShiftI32_Desc<"rotr", uimm5_nm, GPRNM32Opnd, imm32ZExt5, rotr>,
+def ROTR_NM : ShiftI_Desc<"rotr", uimm5_nm, GPRNM32Opnd, imm32ZExt5, rotr>,
 	      ShiftI32_Enc<0b0110>;
 
 def EXT_NM : ExtBaseNM, ExtInsBase_Enc<0b1111>;

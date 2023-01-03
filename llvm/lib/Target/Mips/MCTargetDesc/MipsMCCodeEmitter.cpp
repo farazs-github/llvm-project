@@ -1546,4 +1546,18 @@ MipsMCCodeEmitter::getGPRNM4x4Reg(const MCInst &MI, unsigned OpNo,
   }
 }
 
+unsigned
+MipsMCCodeEmitter::getUImm3ShiftEncoding(const MCInst &MI, unsigned OpNo,
+					 SmallVectorImpl<MCFixup> &Fixups,
+					 const MCSubtargetInfo &STI) const {
+  assert(MI.getOperand(OpNo).isImm());
+  const MCOperand &MO = MI.getOperand(OpNo);
+  unsigned Value = MO.getImm();
+  if (Value == 8)
+    return 0;
+  else
+    return Value;
+  llvm_unreachable("Unexpected value");
+}
+
 #include "MipsGenMCCodeEmitter.inc"

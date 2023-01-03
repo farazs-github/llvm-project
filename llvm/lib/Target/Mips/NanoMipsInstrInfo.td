@@ -627,6 +627,11 @@ class _Pool_POOL32A7<bits<3> psel> : _Pool_P32A<0b111> {
   let Inst{5...3} = psel;
 }
 
+class _Pool_POOL32Axf_4<bits<7> isel> : _Pool_POOL32A7<0b111> {
+  let Inst{15...9} = isel;
+  let Inst{8...6} = 0b100;
+}
+
 class _Pool_PP_LSX<bit scaled, bits<4> isel> : _Pool_POOL32A7<0b000> {
   let Inst{6} = scaled;
   let Inst{10...7} = isel;
@@ -691,6 +696,20 @@ class ArithLogicR16_Enc<bits<2> isel>: _Pool_POOL16C_00<isel> {
   bits<3> rt;
   let Inst{9...7} = rt;
   let Inst{6...4} = rs;
+}
+
+class CLZO_Enc<bits<7> isel>: _Pool_POOL32Axf_4<isel> {
+  bits<5> rs;
+  bits<5> rt;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+}
+
+class LogicU32_Enc<bits<6> isel>: _Pool_POOL32A0_0<isel> {
+  bits<5> rs;
+  bits<5> rt;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
 }
 
 // 16-bit arithmetic instructions with 2 register operands, POOL16C_0
@@ -1254,22 +1273,32 @@ class ReadHardwareNM<RegisterOperand CPURegOperand, RegisterOperand RO> :
 }
 
 class SignExtInRegNM<string opstr, ValueType vt, RegisterOperand RO> :
-  InstNM<(outs RO:$rd), (ins RO:$rt), !strconcat(opstr, "\t$rd, $rt"),
-         [(set RO:$rd, (sext_inreg RO:$rt, vt))]>, InstSize32;
+  InstNM<(outs RO:$rt), (ins RO:$rs), !strconcat(opstr, "\t$rt, $rs"),
+         [(set RO:$rt, (sext_inreg RO:$rs, vt))]>;
 
 class LoadScaledAddressNM<string opstr, RegisterOperand RO> :
   InstNM<(outs RO:$rd), (ins RO:$rs, RO:$rt, uimm2:$shift),
          !strconcat(opstr, "\t$rd, $rs, $rt, $shift"),
-         [(set RO:$rd, (add (shl RO:$rs, immZExt2:$shift), RO:$rt))]>,
-  InstSize32;
+         [(set RO:$rd, (add (shl RO:$rs, immZExt2:$shift), RO:$rt))]>;
+
+class LoadScaledAddress_Enc: _Pool_POOL32A7<0b001> {
+  bits<5> rd;
+  bits<5> rs;
+  bits<5> rt;
+  bits<2> shift;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{15...11} = rd;
+  let Inst{10...9} = shift;
+}
 
 class CountLeading0NM<string opstr, RegisterOperand RO>:
-  InstNM<(outs RO:$rd), (ins RO:$rs), !strconcat(opstr, "\t$rd, $rs"),
-         [(set RO:$rd, (ctlz RO:$rs))]>, InstSize32;
+  InstNM<(outs RO:$rt), (ins RO:$rs), !strconcat(opstr, "\t$rt, $rs"),
+         [(set RO:$rt, (ctlz RO:$rs))]>;
 
 class CountLeading1NM<string opstr, RegisterOperand RO>:
-  InstNM<(outs RO:$rd), (ins RO:$rs), !strconcat(opstr, "\t$rd, $rs"),
-         [(set RO:$rd, (ctlz (not RO:$rs)))]>, InstSize32;
+  InstNM<(outs RO:$rt), (ins RO:$rs), !strconcat(opstr, "\t$rt, $rs"),
+         [(set RO:$rt, (ctlz (not RO:$rs)))]>;
 
 class ReverseNM<string opstr, RegisterOperand RO, SDNode OpNode>:
   InstNM<(outs RO:$rd), (ins RO:$rs), !strconcat(opstr, "\t$rd, $rs"),
@@ -1400,13 +1429,13 @@ def ADDIU48_NM : ArithLogicINM<"addiu", simm32_relaxed, GPRNM32Opnd,
 def ADDIUPC48_NM : LoadAddressPCRelNM<"addiu", GPRNM32Opnd, sym32_pc_nm,
                                       addrpcrel>, Op48_Enc<0b00011>;
 
-def LSA_NM : LoadScaledAddressNM<"lsa", GPRNM32Opnd>;
+def LSA_NM : LoadScaledAddressNM<"lsa", GPRNM32Opnd>, LoadScaledAddress_Enc;
 
-def SEB_NM : SignExtInRegNM<"seb", i8, GPRNM32Opnd>;
-def SEH_NM : SignExtInRegNM<"seh", i16, GPRNM32Opnd>;
+def SEB_NM : SignExtInRegNM<"seb", i8, GPRNM32Opnd>, LogicU32_Enc<0b000001>;
+def SEH_NM : SignExtInRegNM<"seh", i16, GPRNM32Opnd>, LogicU32_Enc<0b000101>;
 
-def CLZ_NM : CountLeading0NM<"clz", GPRNM32Opnd>;
-def CLO_NM : CountLeading1NM<"clo", GPRNM32Opnd>;
+def CLZ_NM : CountLeading0NM<"clz", GPRNM32Opnd>, CLZO_Enc<0b0101101>;
+def CLO_NM : CountLeading1NM<"clo", GPRNM32Opnd>, CLZO_Enc<0b0100101>;
 
 def BITREVW_NM : ReverseNM<"bitrevw", GPRNM32Opnd, bitreverse>;
 def BYTEREVW_NM : ReverseNM<"byterevw", GPRNM32Opnd, bswap>;

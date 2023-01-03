@@ -632,6 +632,19 @@ class _Pool_POOL32Axf_4<bits<7> isel> : _Pool_POOL32A7<0b111> {
   let Inst{8...6} = 0b100;
 }
 
+class _Pool_POOL32Axf_5<bits<2> psel> : _Pool_POOL32A7<0b111> {
+  let Inst{8...6} = 0b101;
+  let Inst{15...14} = psel;
+}
+
+class _Pool_POOL32Axf_5_group1<bits<5> isel> : _Pool_POOL32Axf_5<0b01> {
+  let Inst{13...9} = isel;
+}
+
+class _Pool_POOL32Axf_5_group3<bits<5> isel> : _Pool_POOL32Axf_5<0b11> {
+  let Inst{13...9} = isel;
+}
+
 class _Pool_PP_LSX<bit scaled, bits<4> isel> : _Pool_POOL32A7<0b000> {
   let Inst{6} = scaled;
   let Inst{10...7} = isel;
@@ -2178,3 +2191,36 @@ defm : MovzPats0NM<GPRNM32, GPRNM32, MOVZ_NM, SLT_NM, SLTU_NM, SLTI_NM,
 defm : MovzPats1<GPRNM32, GPRNM32, MOVZ_NM, XOR_NM>, ISA_NANOMIPS;
 defm : MovzPats2NM<GPRNM32, GPRNM32, MOVZ_NM, XORI_NM>;
 defm : MovnPats<GPRNM32, GPRNM32, MOVN_NM, XOR_NM>, ISA_NANOMIPS;
+
+class ToggleInterrupts_Enc<bits<5> isel> : _Pool_POOL32Axf_5_group1<isel> {
+  bits<5> rt;
+  let Inst{25...21} = rt;
+}
+
+def DI_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins),
+                   "di\t$rt", []>, ToggleInterrupts_Enc<0b00011>;
+
+def EI_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins),
+                   "ei\t$rt", []>, ToggleInterrupts_Enc<0b01011>;
+
+// Instruction with no operands
+class MnemonicOnly<string opstr>:
+    InstNM<(outs), (ins), opstr, []>;
+
+def ERET_NM : MnemonicOnly<"eret">, _Pool_POOL32Axf_5_group3<0b11001> {
+  let Inst{16} = 0b0;
+}
+
+def ERETNC_NM : MnemonicOnly<"eretnc">, _Pool_POOL32Axf_5_group3<0b11001> {
+  let Inst{16} = 0b1;
+}
+
+def DERET_NM : MnemonicOnly<"deret">, _Pool_POOL32Axf_5_group3<0b10001>;
+
+def NOP_NM : MipsInstAlias<"nop", (SLL_NM ZERO_NM, ZERO_NM, 0)>;
+
+def EHB_NM : MipsInstAlias<"ehb", (SLL_NM ZERO_NM, ZERO_NM, 3)>;
+
+def PAUSE_NM : MipsInstAlias<"pause", (SLL_NM ZERO_NM, ZERO_NM, 5)>;
+
+def SYNC_NM : MipsInstAlias<"sync", (SLL_NM ZERO_NM, ZERO_NM, 6)>;

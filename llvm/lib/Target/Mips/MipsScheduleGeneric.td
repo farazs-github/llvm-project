@@ -432,6 +432,8 @@ def : InstRW<[GenericWriteTrap], (instrs BREAK16_MMR6, BREAK_MMR6, SDBBP_MMR6,
 
 def : InstRW<[GenericWriteTrap], (instrs TEQ_NM, TNE_NM)>;
 
+def : InstRW<[GenericWriteJump], (instrs ERET_NM, ERETNC_NM, DERET_NM)>;
+
 // MIPS64
 // ======
 
@@ -555,6 +557,11 @@ def : InstRW<[GenericWriteCOPOther], (instrs DMFC2, DMTC2)>;
 // dependant.
 def : InstRW<[GenericWriteMove], (instrs CFC2_MM, CTC2_MM)>;
 
+
+// nanoMIPS
+// =============
+
+def : InstRW<[GenericWriteCOP0], (instrs DI_NM, EI_NM)>;
 
 // MIPS MT ASE - hasMT
 // ====================

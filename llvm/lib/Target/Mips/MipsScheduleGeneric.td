@@ -432,7 +432,8 @@ def : InstRW<[GenericWriteTrap], (instrs BREAK16_MMR6, BREAK_MMR6, SDBBP_MMR6,
 
 def : InstRW<[GenericWriteTrap], (instrs TEQ_NM, TNE_NM)>;
 
-def : InstRW<[GenericWriteJump], (instrs ERET_NM, ERETNC_NM, DERET_NM)>;
+def : InstRW<[GenericWriteJump], (instrs ERET_NM, ERETNC_NM, DERET_NM,
+				 SIGRIE_NM, BREAK_NM, SDBBP_NM, SYSCALL_NM)>;
 
 // MIPS64
 // ======

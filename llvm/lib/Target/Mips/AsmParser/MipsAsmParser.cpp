@@ -6400,6 +6400,9 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_SImm19_Lsl2:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected both 19-bit signed immediate and multiple of 4");
+  case Match_UImm19:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected 19-bit unsigned immediate");
   case Match_UImm20_0:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected 20-bit unsigned immediate");

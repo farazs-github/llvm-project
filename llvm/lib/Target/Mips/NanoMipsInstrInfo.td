@@ -206,6 +206,13 @@ def uimm3shift_nm : Operand<i32> {
   let DecoderMethod = "DecodeUImm3Shift";
 }
 
+def UImm19AsmOperand : UImmAsmOperandClass<19, []>;
+
+def uimm19_nm : Operand<i32> {
+  let PrintMethod = "printUImm<19>";
+  let ParserMatchClass = UImm19AsmOperand;
+}
+
 def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID">;
 
 def mem_nm_gp7s2 : mem_generic {
@@ -2224,3 +2231,21 @@ def EHB_NM : MipsInstAlias<"ehb", (SLL_NM ZERO_NM, ZERO_NM, 3)>;
 def PAUSE_NM : MipsInstAlias<"pause", (SLL_NM ZERO_NM, ZERO_NM, 5)>;
 
 def SYNC_NM : MipsInstAlias<"sync", (SLL_NM ZERO_NM, ZERO_NM, 6)>;
+
+class IntExcpFlow_Enc<bits<2> isel> : _Pool_P_RI<isel>
+{
+  bits<19> imm;
+  let Inst{18...0} = imm;
+}
+
+def SIGRIE_NM : InstNM<(outs), (ins uimm19_nm:$imm),
+                       "sigrie\t$imm", []>, IntExcpFlow_Enc<0b00>;
+
+def BREAK_NM : InstNM<(outs), (ins uimm19_nm:$imm),
+                      "break\t$imm", []>, IntExcpFlow_Enc<0b10>;
+
+def SDBBP_NM : InstNM<(outs), (ins uimm19_nm:$imm),
+                      "sdbbp\t$imm", []>, IntExcpFlow_Enc<0b11>;
+
+def SYSCALL_NM : InstNM<(outs), (ins uimm19_nm:$imm),
+                       "syscall\t$imm", []>, IntExcpFlow_Enc<0b01>;

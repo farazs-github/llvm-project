@@ -206,11 +206,22 @@ def uimm3shift_nm : Operand<i32> {
   let DecoderMethod = "DecodeUImm3Shift";
 }
 
-def UImm19AsmOperand : UImmAsmOperandClass<19, []>;
+class NMUImmAsmOperandClass<int Bits, list<AsmOperandClass> Supers = []> : AsmOperandClass {
+  let Name = "NMUImm" # Bits;
+  let RenderMethod = "addUImmOperands<" # Bits # ">";
+  let PredicateMethod = "isConstantUImm<" # Bits # ">";
+  let SuperClasses = Supers;
+}
+
+def UImm19AsmOperand : NMUImmAsmOperandClass<19>;
+def UImm18AsmOperand : NMUImmAsmOperandClass<18>;
 
 def uimm19_nm : Operand<i32> {
-  let PrintMethod = "printUImm<19>";
   let ParserMatchClass = UImm19AsmOperand;
+}
+
+def uimm18_nm : Operand<i32> {
+  let ParserMatchClass = UImm18AsmOperand;
 }
 
 def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID">;
@@ -2247,5 +2258,7 @@ def BREAK_NM : InstNM<(outs), (ins uimm19_nm:$imm),
 def SDBBP_NM : InstNM<(outs), (ins uimm19_nm:$imm),
                       "sdbbp\t$imm", []>, IntExcpFlow_Enc<0b11>;
 
-def SYSCALL_NM : InstNM<(outs), (ins uimm19_nm:$imm),
-                       "syscall\t$imm", []>, IntExcpFlow_Enc<0b01>;
+def SYSCALL_NM : InstNM<(outs), (ins uimm18_nm:$imm),
+                       "syscall\t$imm", []>, IntExcpFlow_Enc<0b01> {
+  let Inst{18} = 0b0;
+}

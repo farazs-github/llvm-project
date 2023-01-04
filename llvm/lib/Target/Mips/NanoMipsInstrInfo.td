@@ -215,6 +215,8 @@ class NMUImmAsmOperandClass<int Bits, list<AsmOperandClass> Supers = []> : AsmOp
 
 def UImm19AsmOperand : NMUImmAsmOperandClass<19>;
 def UImm18AsmOperand : NMUImmAsmOperandClass<18>;
+def UImm3AsmOperand : NMUImmAsmOperandClass<3, [UImm19AsmOperand]>;
+def UImm2AsmOperand : NMUImmAsmOperandClass<2, [UImm18AsmOperand]>;
 
 def uimm19_nm : Operand<i32> {
   let ParserMatchClass = UImm19AsmOperand;
@@ -222,6 +224,14 @@ def uimm19_nm : Operand<i32> {
 
 def uimm18_nm : Operand<i32> {
   let ParserMatchClass = UImm18AsmOperand;
+}
+
+def uimm3_nm : Operand<i32> {
+  let ParserMatchClass = UImm3AsmOperand;
+}
+
+def uimm2_nm : Operand<i32> {
+  let ParserMatchClass = UImm2AsmOperand;
 }
 
 def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID">;
@@ -2249,6 +2259,12 @@ class IntExcpFlow_Enc<bits<2> isel> : _Pool_P_RI<isel>
   let Inst{18...0} = imm;
 }
 
+class IntExcpFlow16_Enc<bits<2> isel> : _Pool_P16_RI<isel>
+{
+  bits<3> imm;
+  let Inst{2...0} = imm;
+}
+
 def SIGRIE_NM : InstNM<(outs), (ins uimm19_nm:$imm),
                        "sigrie\t$imm", []>, IntExcpFlow_Enc<0b00>;
 
@@ -2261,4 +2277,15 @@ def SDBBP_NM : InstNM<(outs), (ins uimm19_nm:$imm),
 def SYSCALL_NM : InstNM<(outs), (ins uimm18_nm:$imm),
                        "syscall\t$imm", []>, IntExcpFlow_Enc<0b01> {
   let Inst{18} = 0b0;
+}
+
+def BREAK16_NM : InstNM<(outs), (ins uimm3_nm:$imm),
+                      "break\t$imm", []>, IntExcpFlow16_Enc<0b10>;
+
+def SDBBP16_NM : InstNM<(outs), (ins uimm3_nm:$imm),
+                      "sdbbp\t$imm", []>, IntExcpFlow16_Enc<0b11>;
+
+def SYSCALL16_NM : InstNM<(outs), (ins uimm2_nm:$imm),
+                       "syscall\t$imm", []>, IntExcpFlow16_Enc<0b01> {
+  let Inst{2} = 0b0;
 }

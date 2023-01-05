@@ -1309,9 +1309,7 @@ class UnalignedStore<string opstr, SDNode OpNode,
 
 class ReadHardwareNM<RegisterOperand CPURegOperand, RegisterOperand RO> :
   InstNM<(outs CPURegOperand:$rt), (ins RO:$hs, uimm5:$sel),
-  "rdhwr\t$rt, $hs, $sel", []>, InstSize32 {
-  let isCodeGenOnly = 1;
-}
+  "rdhwr\t$rt, $hs, $sel", []>;
 
 class SignExtInRegNM<string opstr, ValueType vt, RegisterOperand RO> :
   InstNM<(outs RO:$rt), (ins RO:$rs), !strconcat(opstr, "\t$rt, $rs"),
@@ -1550,7 +1548,16 @@ def ALUIPC_NM : RegImmNM<"aluipc", simm32s12_nm, GPRNM32Opnd, imm32SExt20s12>, L
 
 def LEA_ADDiu_NM : EffectiveAddressNM<"addiu", GPRNM32Opnd>, InstSize32;
 
-def RDHWR_NM : ReadHardwareNM<GPRNM32Opnd, HWRegsOpnd>;
+def RDHWR_NM : ReadHardwareNM<GPRNM32Opnd, HWRegsOpnd>,
+	       _Pool_POOL32A0_0<0b011100> {
+  bits<5> rt;
+  bits<5> hs;
+  bits<5> sel;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = hs;
+  let Inst{15...11} = sel;
+}
+
 
 def ADJCALLSTACKDOWN_NM : AdjustStack<callseq_start>;
 def ADJCALLSTACKUP_NM   : AdjustStack<callseq_end>;
@@ -2289,3 +2296,16 @@ def SYSCALL16_NM : InstNM<(outs), (ins uimm2_nm:$imm),
                        "syscall\t$imm", []>, IntExcpFlow16_Enc<0b01> {
   let Inst{2} = 0b0;
 }
+
+class ShadowRW_Enc<bits<5> isel>: _Pool_POOL32Axf_5_group3<isel> {
+  bits<5> rs;
+  bits<5> rt;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+}
+
+def WRPGPR_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
+                       "wrpgpr\t$rt,$rs", []>, ShadowRW_Enc<0b11000>;
+
+def RDPGPR_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
+                       "rdpgpr\t$rt,$rs", []>, ShadowRW_Enc<0b10000>;

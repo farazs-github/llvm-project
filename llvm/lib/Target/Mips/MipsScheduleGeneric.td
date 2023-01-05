@@ -292,7 +292,7 @@ def : InstRW<[GenericWriteDIVU], (instrs DDIVU, DMODU)>;
 // ========
 
 def : InstRW<[GenericWriteALU], (instrs MOVN_NM, MOVZ_NM)>;
-def : InstRW<[GenericWriteMove], (instrs RDHWR_NM)>;
+def : InstRW<[GenericWriteMove], (instrs RDHWR_NM, WRPGPR_NM, RDPGPR_NM)>;
 
 // CTISTD Pipeline
 // ---------------

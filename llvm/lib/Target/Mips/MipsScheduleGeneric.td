@@ -478,7 +478,8 @@ def : InstRW<[GenericWriteJump], (instrs PseudoReturnNM,
                                          TAILCALLREG_NM)>;
 
 def : InstRW<[GenericWriteJumpAndLink], (instrs BALC_NM, MOVEBALC_NM, JALRC_NM,
-                                                JALRCPseudo, BALRSC_NM)>;
+                                                JALRCHB_NM, JALRC16_NM,
+						JALRCPseudo, BALRSC_NM)>;
 
 // COP0 Pipeline
 // =============

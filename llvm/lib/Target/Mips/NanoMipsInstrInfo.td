@@ -1506,6 +1506,7 @@ def OR16_NM  : ArithLogicR16_Desc<"or	", GPRNM3Opnd>,
 	       ArithLogicR16_Enc<0b11>;
 
 def JRC_NM : IndirectBranchNM<"jrc", GPRNM32Opnd>, IndirectBranch16_Enc<0>;
+def JALRC16_NM : IndirectBranchNM<"jalrc", GPRNM32Opnd>, IndirectBranch16_Enc<1>;
 
 def MOVEBALC_NM : MoveBalcBase;
 
@@ -1603,6 +1604,8 @@ let hasPostISelHook = 1, isCall = 1, isCTI = 1, Defs = [RA_NM] in {
 
   def JALRC_NM : IndirectCallNM<"jalrc", GPRNM32Opnd, GPRNM32Opnd>,
 	         IndirectCallNM_Enc<0b0000>;
+  def JALRCHB_NM : IndirectCallNM<"jalrc.hb", GPRNM32Opnd, GPRNM32Opnd>,
+	           IndirectCallNM_Enc<0b0001>;
   def JALRCPseudo : PseudoInstNM<(outs), (ins GPRNM32Opnd:$rs),
                                  [(MipsJmpLink GPRNM32Opnd:$rs)]>,
     PseudoInstExpansion<(JALRC_NM RA_NM, GPRNM32Opnd:$rs)>;

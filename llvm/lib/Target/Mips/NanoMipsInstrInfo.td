@@ -113,8 +113,6 @@ def UImm3ShiftAsmOperand : UImm3ShiftAsmOperandClass;
 def SImm12AsmOperandClass : SImmAsmOperandClass<12, []>;
 def NImm12AsmOperandClass : NegImmAsmOperandClass<12, []>;
 def NaImm12AsmOperandClass : ConstantSImmRangeAsmOperandClass<4095, 1, []>;
-def UImm3Plus1AsmOperandClass :
-  ConstantUImmAsmOperandClass<3, [UImm5AsmOperandClass], 1>;
 
 class SImmScaledAsmOperandClass<int Bits, int Align, list<AsmOperandClass> Supers = []>
     : AsmOperandClass{
@@ -146,8 +144,6 @@ class NMMemUimmAsmOperand<int Width, int Shift = 0,
   let RenderMethod = "addNMMemOperands";
   let ParserMethod = "parseMemOperand";
   let PredicateMethod = "isMemWithBaseUimmOffset<" # Width # ", " # Shift # ", " # RegClass # ">";
-  let DiagnosticType = !if(!eq(Shift, 0), "MemUImm" # Width,
-                                          "MemUImm" # Width # "Lsl" # Shift);
 }
 
 class NMMemSimmAsmOperand<int Width, int Shift = 0,
@@ -158,8 +154,6 @@ class NMMemSimmAsmOperand<int Width, int Shift = 0,
   let RenderMethod = "addNMMemOperands";
   let ParserMethod = "parseMemOperand";
   let PredicateMethod = "isMemWithBaseSimmOffset<" # Width # ", " # Shift # ", " # RegClass # ">";
-  let DiagnosticType = !if(!eq(Shift, 0), "MemUImm" # Width,
-                                          "MemUImm" # Width # "Lsl" # Shift);
 }
 
 def NMJumpTargetAsmOperand : AsmOperandClass {
@@ -170,11 +164,12 @@ def NMJumpTargetAsmOperand : AsmOperandClass {
 }
 
 class NMUImmAsmOperandClass<int Bits,
-			    list<AsmOperandClass> Supers = []> :
+			    list<AsmOperandClass> Supers = [],
+			    int Offset = 0> :
 			    AsmOperandClass {
-  let Name = "NMUImm" # Bits;
-  let RenderMethod = "addUImmOperands<" # Bits # ">";
-  let PredicateMethod = "isConstantUImm<" # Bits # ">";
+  let Name = "NMUImm" # Bits # "_" # Offset;
+  let RenderMethod = "addConstantUImmOperands<" # Bits # "," # Offset # ">";
+  let PredicateMethod = "isConstantUImm<" # Bits # "," # Offset # ">";
   let SuperClasses = Supers;
 }
 
@@ -196,7 +191,7 @@ def uimm1_nm : Operand<i32> {
 }
 def uimm3plus1_nm : Operand<i32> {
   let PrintMethod = "printUImm<3, 1>";
-  let ParserMatchClass = !cast<AsmOperandClass>("UImm3Plus1AsmOperandClass");
+  let ParserMatchClass = NMUImmAsmOperandClass<3, [], 1>;
 }
 def nimm12_nm : Operand<i32> {
   let PrintMethod = "printUImm<12>";

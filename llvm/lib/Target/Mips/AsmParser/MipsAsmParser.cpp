@@ -1473,7 +1473,7 @@ public:
 	|| !MipsMCRegisterClasses[ClassID].contains(getMemBase()->getGPRNM32Reg()))
       return false;
     if (isConstantMemOff())
-      return isShiftedUInt<Bits, ShiftAmount>(getConstantMemOff());
+      return isShiftedInt<Bits, ShiftAmount>(getConstantMemOff());
     return getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
   }
 

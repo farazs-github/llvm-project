@@ -169,13 +169,30 @@ def NMJumpTargetAsmOperand : AsmOperandClass {
   let RenderMethod = "addImmOperands";
 }
 
+class NMUImmAsmOperandClass<int Bits,
+			    list<AsmOperandClass> Supers = []> :
+			    AsmOperandClass {
+  let Name = "NMUImm" # Bits;
+  let RenderMethod = "addUImmOperands<" # Bits # ">";
+  let PredicateMethod = "isConstantUImm<" # Bits # ">";
+  let SuperClasses = Supers;
+}
+
 def uimm12_nm : Operand<i32> {
   let PrintMethod = "printUImm<12>";
   let ParserMatchClass = !cast<AsmOperandClass>("UImm12AsmOperandClass");
 }
 def uimm5_nm : Operand<i32> {
   let PrintMethod = "printUImm<5>";
-  let ParserMatchClass = !cast<AsmOperandClass>("UImm5AsmOperandClass");
+  let ParserMatchClass = NMUImmAsmOperandClass<5>;
+}
+def uimm4_nm : Operand<i32> {
+  let PrintMethod = "printUImm<4>";
+  let ParserMatchClass = NMUImmAsmOperandClass<4>;
+}
+def uimm1_nm : Operand<i32> {
+  let PrintMethod = "printUImm<1>";
+  let ParserMatchClass = NMUImmAsmOperandClass<1>;
 }
 def uimm3plus1_nm : Operand<i32> {
   let PrintMethod = "printUImm<3, 1>";
@@ -193,7 +210,7 @@ def nimm7_nm : Operand<i32> {
   let ParserMatchClass = !cast<AsmOperandClass>("Imm7AsmOperand");
   let DecoderMethod = "DecodeImmM1To126";
 }
-def uimm4_nm : Operand<i32> {
+def uimm4mask_nm : Operand<i32> {
   let EncoderMethod = "getUImm4MaskEncoding";
   let PrintMethod = "printUImm<16>";
   let ParserMatchClass = !cast<AsmOperandClass>("UImm4AsmOperand");
@@ -204,13 +221,6 @@ def uimm3shift_nm : Operand<i32> {
   let PrintMethod = "printUImm<4>";
   let ParserMatchClass = !cast<AsmOperandClass>("UImm3ShiftAsmOperand");
   let DecoderMethod = "DecodeUImm3Shift";
-}
-
-class NMUImmAsmOperandClass<int Bits, list<AsmOperandClass> Supers = []> : AsmOperandClass {
-  let Name = "NMUImm" # Bits;
-  let RenderMethod = "addUImmOperands<" # Bits # ">";
-  let PredicateMethod = "isConstantUImm<" # Bits # ">";
-  let SuperClasses = Supers;
 }
 
 def UImm19AsmOperand : NMUImmAsmOperandClass<19>;
@@ -1416,6 +1426,9 @@ def DIVU_NM  : DivMod<"divu", udiv>,
 	       ArithLogicR32_Enc<0b011011>;
 def MODU_NM  : DivMod<"modu", urem>,
 	       ArithLogicR32_Enc<0b011111>;
+def SOV_NM  : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
+		     "sov\t$rt, $rs", []>,
+		     LogicU32_Enc<0b111110>;
 
 // 16-bit register operations
 let FastISelShouldIgnore = 1, isCommutable=1 in {
@@ -1520,7 +1533,7 @@ class ANDI16_Enc<bits<5> isel> : _Pool_P16<isel>
   let Inst{3...0} = imm;
 }
 
-def ANDI16_NM : ArithLogicINM<"andi", uimm4_nm, GPRNM3Opnd,
+def ANDI16_NM : ArithLogicINM<"andi", uimm4mask_nm, GPRNM3Opnd,
                                imm4Mask, add>, ANDI16_Enc<0b11100>;
 
 // Arithmetic and logical instructions with 2 register operands and immediate.
@@ -2309,3 +2322,36 @@ def WRPGPR_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
 
 def RDPGPR_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
                        "rdpgpr\t$rt,$rs", []>, ShadowRW_Enc<0b10000>;
+
+def EXTW_NM : InstNM<(outs GPRNM32Opnd:$rd),
+		     (ins GPRNM32Opnd:$rs, GPRNM32Opnd:$rt, uimm5_nm:$shift),
+		     "extw\t$rd,$rs,$rt,$shift", []>,
+		     _Pool_POOL32A7<0b011> {
+  bits<5> rd;
+  bits<5> rs;
+  bits<5> rt;
+  bits<5> shift;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{15...11} = rd;
+  let Inst{10...6} = shift;
+}
+
+def ROTX_NM : InstNM<(outs GPRNM32Opnd:$rt),
+		     (ins GPRNM32Opnd:$rs, uimm4_nm:$shiftx,
+		      uimm5_nm:$shift, uimm1_nm:$stripe),
+		     "rotx\t$rt,$rs,$shift,$shiftx,$stripe", []>,
+		     _Pool_P_U12<0b1101> {
+  bits<5> rt;
+  bits<5> rs;
+  bits<5> shift;
+  bits<4> shiftx;
+  bits<1> stripe;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{10...7} = shiftx;
+  let Inst{4...0} = shift;
+  let Inst{6} = stripe;
+  let Inst{11} = 0;
+  let Inst{5} = 0;
+}

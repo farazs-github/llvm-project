@@ -190,7 +190,6 @@ def uimm1_nm : Operand<i32> {
   let ParserMatchClass = NMUImmAsmOperandClass<1>;
 }
 def uimm3plus1_nm : Operand<i32> {
-  let PrintMethod = "printUImm<3, 1>";
   let ParserMatchClass = NMUImmAsmOperandClass<3, [], 1>;
 }
 def nimm12_nm : Operand<i32> {
@@ -1271,15 +1270,14 @@ def RESTORE_NM : SaveRestore<"restore">, InstSize32;
 def RESTOREJRC_NM : SaveRestore<"restore.jrc">, InstSize32;
 
 class LoadMultipleNM<string opstr> :
-    InstNM<(outs GPRNM32Opnd:$rt), (ins mem_nms9:$addr, uimm3plus1_nm:$count),
+    InstNM<(outs GPRNM32Opnd:$rt),
+	   (ins mem_nms9:$addr, uimm3plus1_nm:$count),
            !strconcat(opstr, "\t$rt, $addr, $count"), []> {
-  let DecoderMethod = "DecodeMem";
   let mayLoad = 1;
 }
 class StoreMultipleNM<string opstr> :
     InstNM<(outs), (ins GPRNM32Opnd:$rt, mem_nms9:$addr, uimm3plus1_nm:$count),
            !strconcat(opstr, "\t$rt, $addr, $count"), []> {
-  let DecoderMethod = "DecodeMem";
   let mayStore = 1;
 }
 
@@ -2044,8 +2042,10 @@ def UALWM_NM : LoadMultipleNM<"ualwm">, LSMem_S9_Mult_Enc<0b0101>;
 def SWM_NM : StoreMultipleNM<"swm">, LSMem_S9_Mult_Enc<0b1100>;
 def UASWM_NM : StoreMultipleNM<"uaswm">, LSMem_S9_Mult_Enc<0b1101>;
 
-def UALW_NM : UnalignedLoad<"ualw", NMUnalignedLW>, LSMem_S9_Enc<0b101, 0b0000>;
-def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b1000>;
+def UALW_NM : MipsInstAlias<"ualw $rt, $addr",
+			    (UALWM_NM GPRNM32Opnd:$rt, mem_nms9:$addr, 1)>;
+def UASW_NM : MipsInstAlias<"uasw $rt, $addr",
+			    (UASWM_NM GPRNM32Opnd:$rt, mem_nms9:$addr, 1)>;
 
 //def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
 
@@ -2134,9 +2134,9 @@ def : NMPat<(i32 (extloadi16 addrindexed:$addr)), (LHUX_NM addrindexed:$addr, 0)
 
 // Catching out-of-range immediate unaligned loads/stores.
 def : NMPat<(i32 (NMUnalignedLW GPRNM32:$rs, GPRNM32:$src)),
-            (UALW_NM GPRNM32:$rs, 0, GPRNM32:$src)>;
+            (UALWM_NM GPRNM32:$rs, GPRNM32:$src, 1)>;
 def : NMPat<(NMUnalignedSW GPRNM32:$rt, GPRNM32:$rs),
-            (UASW_NM GPRNM32:$rt, GPRNM32:$rs, 0)>;
+            (UASWM_NM GPRNM32:$rt, GPRNM32:$rs, 0, 1)>;
 def : NMPat<(i32 (NMUnalignedLH GPRNM32:$rs, GPRNM32:$src)),
             (UALH_NM GPRNM32:$rs, 0, GPRNM32:$src)>;
 def : NMPat<(NMUnalignedSH GPRNM32:$rt, GPRNM32:$rs),

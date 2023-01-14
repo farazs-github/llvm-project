@@ -332,9 +332,9 @@ bool NMLoadStoreOpt::generateSaveOrRestore(MachineBasicBlock &MBB,
     // because it needs to be the last instruction in the basic block. If
     // possible, it will be generated with NewStackOffset.
     unsigned Opcode = IsRestore
-                          ? ((Return && !NewStackOffset) ? Mips::RESTOREJRC_NM
+                          ? ((Return && !NewStackOffset) ? Mips::RESTOREJRC16_NM
                                                          : Mips::RESTORE_NM)
-                          : Mips::SAVE_NM;
+                          : Mips::SAVE16_NM;
     auto InsertBefore =
         std::next(MBBIter((Return && !NewStackOffset) ? Return : AdjustStack));
     auto DL = Return ? Return->getDebugLoc() : AdjustStack->getDebugLoc();
@@ -371,7 +371,7 @@ bool NMLoadStoreOpt::generateSaveOrRestore(MachineBasicBlock &MBB,
           // In case return is also consumed, we should put restore.jrc after
           // return, to make sure it is very last instruction.
           InsertBefore = std::next(MBBIter(Return));
-          BuildMI(MBB, InsertBefore, DL, TII->get(Mips::RESTOREJRC_NM))
+          BuildMI(MBB, InsertBefore, DL, TII->get(Mips::RESTOREJRC16_NM))
               .addImm(NewStackOffset);
           MBB.erase(Return);
         } else {

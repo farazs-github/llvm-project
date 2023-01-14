@@ -208,6 +208,7 @@ class MipsAsmParser : public MCTargetAsmParser {
   OperandMatchResultTy parseJumpTarget(OperandVector &Operands);
   OperandMatchResultTy parseInvNum(OperandVector &Operands);
   OperandMatchResultTy parseRegisterList(OperandVector &Operands);
+  OperandMatchResultTy parseNMRegisterList(OperandVector &Operands);
 
   bool searchSymbolAlias(OperandVector &Operands);
 
@@ -946,6 +947,15 @@ public:
     return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index);
   }
 
+  // Find the next (or previous) i'th register in sequence for NanoMips
+  unsigned getGPRNM32RegNext(int i = 1) const {
+    assert(isRegIdx() && (RegIdx.Kind & RegKind_GPR) &&
+	   ((signed)RegIdx.Index + i >= 0) && (RegIdx.Index + i <= 31) &&
+	   "Invalid access!");
+    unsigned ClassID = Mips::GPRNM32RegClassID;
+    return RegIdx.RegInfo->getRegClass(ClassID).getRegister(RegIdx.Index + i);
+  }
+
   unsigned getGPRNM4ZeroReg() const {
     assert(isRegIdx() && (RegIdx.Kind & RegKind_GPR) && "Invalid access!");
     unsigned ClassID = Mips::GPRNM32RegClassID;
@@ -1659,6 +1669,31 @@ public:
   }
 
   bool isRegList() const { return Kind == k_RegList; }
+
+  bool isNMRegList16() const {
+    if (!isRegList())
+      return false;
+
+    // List must not be empty
+    unsigned Size = RegList.List->size();
+    if (Size == 0)
+      return false;
+
+    // List must start with $fp or $ra
+    unsigned R0 = RegList.List->front();
+    unsigned R1 = RegList.List->back();
+    if (!(R0 == Mips::FP_NM || R0 == Mips::RA_NM))
+      return false;
+
+    // If $gp is specified, it must be part of a
+    // contiguous sequence of registers
+    if (R0 == Mips::FP_NM && R1 == Mips::GP_NM)
+      return (Size == 15);
+    if (R0 == Mips::RA_NM && R1 == Mips::GP_NM)
+      return (Size == 14);
+
+    return true;
+  }
 
   StringRef getToken() const {
     assert(Kind == k_Token && "Invalid access!");
@@ -7255,6 +7290,82 @@ MipsAsmParser::parseRegisterList(OperandVector &Operands) {
   SMLoc E = Parser.getTok().getLoc();
   Operands.push_back(MipsOperand::CreateRegList(Regs, S, E, *this));
   parseMemOperand(Operands);
+  return MatchOperand_Success;
+}
+
+OperandMatchResultTy
+MipsAsmParser::parseNMRegisterList(OperandVector &Operands) {
+  MCAsmParser &Parser = getParser();
+  SmallVector<unsigned, 16> Regs;
+  unsigned RegNo;
+  unsigned PrevReg = Mips::NoRegister;
+  bool RegRange = false;
+  SmallVector<std::unique_ptr<MCParsedAsmOperand>, 16> TmpOperands;
+  MipsOperand *RegFirst;
+
+  if (Parser.getTok().isNot(AsmToken::Dollar))
+    return MatchOperand_ParseFail;
+
+  SMLoc S = Parser.getTok().getLoc();
+
+  while (parseAnyRegister(TmpOperands) == MatchOperand_Success) {
+    SMLoc E = getLexer().getLoc();
+    MipsOperand &Reg = static_cast<MipsOperand &>(*TmpOperands.back());
+    RegNo = Reg.getGPRNM32Reg();
+
+    if (RegRange) {
+      unsigned i = 1;
+      PrevReg = RegFirst->getGPRNM32RegNext(i++);
+      while (PrevReg != RegNo) {
+	if (PrevReg == Mips::RA_NM) {
+	  Error(E, "invalid register range");
+	  return MatchOperand_ParseFail;
+	}
+	Regs.push_back(PrevReg);
+	PrevReg = RegFirst->getGPRNM32RegNext(i++);
+      }
+      RegRange = false;
+    }
+    else if (PrevReg == Mips::RA_NM && RegNo != Mips::S0_NM) {
+        Error(E, "register sequence must continue at $s0 after $ra");
+        return MatchOperand_ParseFail;
+    }
+    else if (Regs.size() == Regs.capacity()) {
+        Error(E, "too many registers in list");
+        return MatchOperand_ParseFail;
+    } else if ((PrevReg != Mips::RA_NM) &&
+	       (PrevReg != Mips::NoRegister) &&
+	       (Reg.getGPRNM32RegNext(-1) != PrevReg) &&
+	       (RegNo != Mips::GP_NM)) {
+        Error(E, "consecutive register numbers expected");
+        return MatchOperand_ParseFail;
+    }
+
+    Regs.push_back(RegNo);
+
+    if (Parser.getTok().is(AsmToken::Minus)) {
+      RegRange = true;
+      RegFirst = &Reg;
+    }
+
+    if (Parser.getTok().is(AsmToken::EndOfStatement))
+      break;
+
+    if (Parser.getTok().isNot(AsmToken::Minus) &&
+	Parser.getTok().isNot(AsmToken::Comma)) {
+      Error(E, "',' or '-' expected");
+      return MatchOperand_ParseFail;
+    }
+
+    Lex(); // Consume comma or minus
+    if (Parser.getTok().isNot(AsmToken::Dollar))
+      break;
+
+    PrevReg = RegNo;
+  }
+
+  SMLoc E = Parser.getTok().getLoc();
+  Operands.push_back(MipsOperand::CreateRegList(Regs, S, E, *this));
   return MatchOperand_Success;
 }
 

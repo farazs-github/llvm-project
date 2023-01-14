@@ -173,9 +173,28 @@ class NMUImmAsmOperandClass<int Bits,
   let SuperClasses = Supers;
 }
 
+class NMUImmScaledAsmOperandClass<int Bits,
+			          int Shift = 0,
+				  list<AsmOperandClass> Supers = []> :
+    AsmOperandClass {
+  let Name = "NMUImm" # Bits # "_s" # Shift;
+  let RenderMethod = "addConstantUImmOperands<32>";
+  let PredicateMethod = "isScaledUImm<" # Bits # "," # Shift # ">";
+  let SuperClasses = Supers;
+}
+
 def uimm12_nm : Operand<i32> {
   let PrintMethod = "printUImm<12>";
   let ParserMatchClass = !cast<AsmOperandClass>("UImm12AsmOperandClass");
+}
+
+def uimm12s3_nm : Operand<i32> {
+  let PrintMethod = "printUImm<12>";
+  let ParserMatchClass = NMUImmScaledAsmOperandClass<9, 3, []>;
+}
+def uimm8s4_nm : Operand<i32> {
+  let PrintMethod = "printUImm<8>";
+  let ParserMatchClass = NMUImmScaledAsmOperandClass<4, 4, [uimm12s3_nm.ParserMatchClass]>;
 }
 def uimm5_nm : Operand<i32> {
   let PrintMethod = "printUImm<5>";
@@ -1252,22 +1271,75 @@ class AdjustStack<SDPatternOperator operator> :
   let hasNoSchedulingInfo = 1;
 }
 
-def nmreglist : Operand<i32> {
-  let PrintMethod = "printNanoMipsRegisterList";
+class NMRegListAsmOperandClass<list<AsmOperandClass> Supers = []>
+    : AsmOperandClass {
+  let Name = "NMRegList32";
+  let RenderMethod = "addRegListOperands";
+  let PredicateMethod = "isRegList";
+  let SuperClasses = Supers;
+  let ParserMethod = "parseNMRegisterList";
 }
 
-class SaveRestore<string opstr> :
+class NMRegList16AsmOperandClass<list<AsmOperandClass> Supers = []>
+    : AsmOperandClass {
+  let Name = "NMRegList16";
+  let PredicateMethod = "isNMRegList16";
+  let RenderMethod = "addRegListOperands";
+  let SuperClasses = Supers;
+  let ParserMethod = "parseNMRegisterList";
+}
+
+def nmreglist16 : Operand<OtherVT> {
+  let PrintMethod = "printNanoMipsRegisterList";
+  let ParserMatchClass = NMRegList16AsmOperandClass<>;
+  let DecoderMethod = "DecodeNMRegList16Operand";
+  let EncoderMethod = "getNMRegList16Encoding";
+}
+
+def nmreglist : Operand<OtherVT> {
+  let PrintMethod = "printNanoMipsRegisterList";
+  let ParserMatchClass = NMRegListAsmOperandClass<>;
+  let DecoderMethod = "DecodeNMRegListOperand";
+  let EncoderMethod = "getNMRegListEncoding";
+}
+
+class SaveRestore<string opstr, Operand Od, Operand RL> :
   InstNM<(outs),
-         (ins uimm12_nm:$adj, nmreglist:$regs, variable_ops),
+         (ins Od:$adj, RL:$regs, variable_ops),
          !strconcat(opstr, "\t$adj$regs"), []> {
   let Defs = [SP_NM];
   let Uses = [SP_NM];
   let hasSideEffects = 1;
-  let isCodeGenOnly = 1;
 }
-def SAVE_NM : SaveRestore<"save">, InstSize32;
-def RESTORE_NM : SaveRestore<"restore">, InstSize32;
-def RESTOREJRC_NM : SaveRestore<"restore.jrc">, InstSize32;
+
+class _Pool_PP_SR<bits<2> isel> : _Pool_P_U12<0b0011> {
+  let Inst{20} = 0;
+  let Inst{1...0} = isel;
+}
+
+class SaveRestore32_Enc<bits<2> isel> : _Pool_PP_SR<isel> {
+  bits<12> adj;
+  bits<10> regs;
+  let Inst{11...3} = adj{11...3};
+  let Inst{25...21} = regs{9...5};
+  let Inst{19...16} = regs{4...1};
+  let Inst{2} = regs{0};
+}
+
+def SAVE_NM : SaveRestore<"save", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b00>;
+def RESTORE_NM : SaveRestore<"restore", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b10>;
+def RESTOREJRC_NM : SaveRestore<"restore.jrc", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b11>;
+
+class SaveRestore16_Enc<bits<1> isel> : _Pool_P16_SR<isel> {
+  bits<8> adj;
+  bits<5> regs;
+  let Inst{7...4} = adj{7...4};
+  let Inst{9} = regs{4};
+  let Inst{3...0} = regs{3...0};
+}
+
+def SAVE16_NM : SaveRestore<"save", uimm8s4_nm, nmreglist16>, SaveRestore16_Enc<0b0>;
+def RESTOREJRC16_NM : SaveRestore<"restore.jrc", uimm8s4_nm, nmreglist16>, SaveRestore16_Enc<0b1>;
 
 class LoadMultipleNM<string opstr> :
     InstNM<(outs GPRNM32Opnd:$rt),

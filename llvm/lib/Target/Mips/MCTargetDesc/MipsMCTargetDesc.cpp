@@ -144,7 +144,20 @@ public:
     unsigned NumOps = Inst.getNumOperands();
     if (NumOps == 0)
       return false;
-    switch (Info->get(Inst.getOpcode()).OpInfo[NumOps - 1].OperandType) {
+
+    // FIXME: Can't figure out why OperandType is UNKNOWN for
+    // NanoMips register lists so work-around it for now
+    unsigned Opcode = Inst.getOpcode();
+    switch (Opcode) {
+      case Mips::SAVE_NM:
+      case Mips::RESTORE_NM:
+      case Mips::RESTOREJRC_NM:
+      case Mips::SAVE16_NM:
+      case Mips::RESTOREJRC16_NM:
+	return false;
+    }
+
+    switch (Info->get(Opcode).OpInfo[NumOps - 1].OperandType) {
     case MCOI::OPERAND_UNKNOWN:
     case MCOI::OPERAND_IMMEDIATE: {
       // j, jal, jalx, jals

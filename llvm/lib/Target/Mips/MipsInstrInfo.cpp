@@ -1198,7 +1198,7 @@ void llvm::MipsInstrInfo::buildOutlinedFrame(
       Et = std::prev(MBB.end());
     }
 
-    MachineInstr *SaveRAtoStack = BuildMI(MF, DebugLoc(), get(Mips::SAVE_NM))
+    MachineInstr *SaveRAtoStack = BuildMI(MF, DebugLoc(), get(Mips::SAVE16_NM))
                                       .addImm(16)
                                       .addReg(Mips::RA_NM);
 
@@ -1306,7 +1306,7 @@ MachineBasicBlock::iterator MipsInstrInfo::insertOutlinedCall(
   // Default case. Save and Restore from stack pointer :
   else {
 
-    SaveRA = BuildMI(MF, DebugLoc(), get(Mips::SAVE_NM))
+    SaveRA = BuildMI(MF, DebugLoc(), get(Mips::SAVE16_NM))
                  .addImm(16)
                  .addReg(Mips::RA_NM);
 

@@ -1502,9 +1502,8 @@ def DIVU_NM  : DivMod<"divu", udiv>,
 	       ArithLogicR32_Enc<0b011011>;
 def MODU_NM  : DivMod<"modu", urem>,
 	       ArithLogicR32_Enc<0b011111>;
-def SOV_NM  : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
-		     "sov\t$rt, $rs", []>,
-		     LogicU32_Enc<0b111110>;
+def SOV_NM   : ArithLogicR32_Desc<"sov", GPRNM32Opnd>,
+	       ArithLogicR32_Enc<0b111110>;
 
 // 16-bit register operations
 let FastISelShouldIgnore = 1, isCommutable=1 in {

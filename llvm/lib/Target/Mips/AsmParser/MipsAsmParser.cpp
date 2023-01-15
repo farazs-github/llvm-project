@@ -6206,7 +6206,9 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
     if (Inst.getOperand(0).getReg() == Inst.getOperand(1).getReg())
       return Match_RequiresDifferentOperands;
     return Match_Success;
-  case Mips::DINS: {
+  case Mips::DINS:
+  case Mips::EXT_NM:
+  case Mips::INS_NM: {
     assert(Inst.getOperand(2).isImm() && Inst.getOperand(3).isImm() &&
            "Operands must be immediates for dins!");
     const signed Pos = Inst.getOperand(2).getImm();

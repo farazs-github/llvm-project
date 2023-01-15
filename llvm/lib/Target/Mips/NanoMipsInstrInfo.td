@@ -708,7 +708,6 @@ class Arith4x4_Desc<string opstr, RegisterOperand RO,
 	!strconcat(opstr, "\t$dst, $rt, $rs"),
 	   [(set RO:$dst, (OpNode RO:$rt, RO:$rs))]> {
   Format Form = FrmR;
-  let Constraints = "$rt = $dst";
 }
 
 class Arith4x4_Enc<bits<2> isel>:  _Pool_P16_4X4<isel> {
@@ -744,9 +743,7 @@ class ArithLogicR16_Desc<string opstr, RegisterOperand RO,
 		    SDPatternOperator OpNode = null_frag>:
     InstNM<(outs RO:$dst), (ins RO:$rs, RO:$rt),
 	!strconcat(opstr, "\t$dst, $rs, $rt"),
-	   [(set RO:$dst, (OpNode RO:$rs, RO:$rt))]> {
-  let Constraints = "$dst = $rt";
-}
+	   [(set RO:$dst, (OpNode RO:$rs, RO:$rt))]>;
 
 class ArithLogicR16U_Desc<string opstr, RegisterOperand RO,
 		    		 SDPatternOperator OpNode = null_frag>:

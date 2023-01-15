@@ -1572,8 +1572,10 @@ def BYTEREVW_NM : ReverseNM<"byterevw", GPRNM32Opnd, bswap>;
 def TEQ_NM : Trap_Desc<"teq", GPRNM32Opnd, uimm5_nm>, Trap_Enc<0b0>;
 def TNE_NM : Trap_Desc<"tne", GPRNM32Opnd, uimm5_nm>, Trap_Enc<0b1>;
 
-def NOT_NM   : ArithLogicR16U_Desc<"not", GPRNM3Opnd, not>,
+def NOT16_NM : ArithLogicR16U_Desc<"not", GPRNM3Opnd, not>,
 	       ArithLogicR16_Enc<0b00>;
+def NOT_NM : MipsInstAlias<"not $rt, $rs",
+			    (NOR_NM GPRNM32Opnd:$rt, GPRNM32Opnd:$rs, ZERO_NM)>;
 def XOR16_NM : ArithLogicR16_Desc<"xor", GPRNM3Opnd>,
 	       ArithLogicR16_Enc<0b01>;
 def AND16_NM : ArithLogicR16_Desc<"and", GPRNM3Opnd>,

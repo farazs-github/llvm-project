@@ -219,6 +219,10 @@ def uimm16_nm : Operand<i32> {
   let PrintMethod = "printUImm<16>";
   let ParserMatchClass = !cast<AsmOperandClass>("SImm16AsmOperandClass");
 }
+def uimm5s1_nm : Operand<i32> {
+  let PrintMethod = "printUImm<5>";
+  let ParserMatchClass = NMUImmScaledAsmOperandClass<4, 1>;
+}
 def nimm7_nm : Operand<i32> {
   let ParserMatchClass = !cast<AsmOperandClass>("Imm7AsmOperand");
   let DecoderMethod = "DecodeImmM1To126";
@@ -2417,18 +2421,18 @@ def EXTW_NM : InstNM<(outs GPRNM32Opnd:$rd),
 }
 
 def ROTX_NM : InstNM<(outs GPRNM32Opnd:$rt),
-		     (ins GPRNM32Opnd:$rs, uimm4_nm:$shiftx,
+		     (ins GPRNM32Opnd:$rs, uimm5s1_nm:$shiftx,
 		      uimm5_nm:$shift, uimm1_nm:$stripe),
 		     "rotx\t$rt, $rs, $shift, $shiftx, $stripe", []>,
 		     _Pool_P_U12<0b1101> {
   bits<5> rt;
   bits<5> rs;
   bits<5> shift;
-  bits<4> shiftx;
+  bits<5> shiftx;
   bits<1> stripe;
   let Inst{25...21} = rt;
   let Inst{20...16} = rs;
-  let Inst{10...7} = shiftx;
+  let Inst{10...7} = shiftx{4...1};
   let Inst{4...0} = shift;
   let Inst{6} = stripe;
   let Inst{11} = 0;

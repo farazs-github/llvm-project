@@ -185,7 +185,7 @@ class NMUImmScaledAsmOperandClass<int Bits,
 
 def uimm12_nm : Operand<i32> {
   let PrintMethod = "printUImm<12>";
-  let ParserMatchClass = !cast<AsmOperandClass>("UImm12AsmOperandClass");
+  let ParserMatchClass = NMUImmAsmOperandClass<12>;
 }
 
 def uimm12s3_nm : Operand<i32> {
@@ -1522,7 +1522,7 @@ def ORI_NM   : CondLogicI32_Desc<"ori", uimm12_nm, GPRNM32Opnd, imm32ZExt12, or>
 	       CondLogicI32_Enc<0b0000>;
 def XORI_NM  : CondLogicI32_Desc<"xori", uimm12_nm, GPRNM32Opnd, imm32ZExt12, xor>,
 	       CondLogicI32_Enc<0b0001>;
-def ANDI_NM  : CondLogicI32_Desc<"andi", uimm16, GPRNM32Opnd, imm32ZExt12ANDI, and>,
+def ANDI_NM  : CondLogicI32_Desc<"andi", uimm12_nm, GPRNM32Opnd, imm32ZExt12ANDI, and>,
 	       CondLogicI32_Enc<0b0010>;
 def SLTI_NM  : CondLogicI32_Desc<"slti", uimm12_nm, GPRNM32Opnd, imm32ZExt12, setlt>,
 	       CondLogicI32_Enc<0b0100>;

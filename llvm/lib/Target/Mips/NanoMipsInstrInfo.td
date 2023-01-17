@@ -911,7 +911,7 @@ class ExtInsBase_Enc<bits<4> isel> : _Pool_P_EXT_INS<isel> {
 
 class Trap_Desc<string opstr, RegisterOperand RO, Operand ImmOp> :
   InstNM<(outs), (ins RO:$rs, RO:$rt, ImmOp:$imm),
-         !strconcat(opstr, "\t$rt, $rs, $imm"), []> {
+	 !strconcat(opstr, "\t$rs, $rt, $imm"), []> {
   let hasSideEffects = 1;
   let isCTI = 1;
 }

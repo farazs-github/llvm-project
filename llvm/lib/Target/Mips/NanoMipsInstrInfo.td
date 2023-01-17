@@ -596,9 +596,7 @@ class _Pool_P16<bits<5> psel> : InstSize16 {
   let Inst{15-10} = {psel{4...2}, 0b1, psel{1...0}};
 }
 
-class _Pool_P16_MV<bits<5> psel> : _Pool_P16<0b00000> {
-  let Inst{9...5} = psel;
-}
+class _Pool_P16_MV : _Pool_P16<0b00000>;
 
 class _Pool_P16_SR<bits<1> psel> : _Pool_P16<0b00011> {
   let Inst{8} = psel;
@@ -647,8 +645,9 @@ class _Pool_P16_BR<bits<4> psel> : _Pool_P16<0b11010> {
   let Inst{3...0} = psel;
 }
 
-class _Pool_P16_RI<bits<2> psel> : _Pool_P16_MV<0b00000> {
+class _Pool_P16_RI<bits<2> psel> : _Pool_P16_MV {
   let Inst{4...3} = psel;
+  let Inst{9...5} = 0b00000;
 }
 
 class _Pool_P16_SYSCALL<bits<1> psel> : _Pool_P16_RI<0b01> {
@@ -1843,7 +1842,7 @@ class BBit_Enc<bits<3> isel> : _Pool_P_BRI<isel>
   let Inst{0} =  offset{11};
 }
 
-class MOVE_Enc<bits<5> isel> : _Pool_P16<isel>
+class MOVE_Enc : _Pool_P16_MV
 {
   bits<5> rt;
   bits<5> rs;
@@ -2144,7 +2143,7 @@ def LWPC_NM : LoadPCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01111>
 
 let isMoveReg = 1 in {
 def MOVE16_NM : InstNM<(outs GPRNM32NZOpnd:$rt), (ins GPRNM32Opnd:$rs),
-                      "move\t$rt, $rs", []>, MOVE_Enc<0b00100>;
+                      "move\t$rt, $rs", []>, MOVE_Enc;
 
 def MOVEP_NM : InstNM<(outs GPRNM2R1Opnd:$dst1, GPRNM2R2Opnd:$dst2),
 		      (ins GPRNM4ZOpnd:$src1, GPRNM4ZOpnd:$src2),

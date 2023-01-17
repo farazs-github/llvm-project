@@ -1677,7 +1677,7 @@ public:
     // List must not be empty
     unsigned Size = RegList.List->size();
     if (Size == 0)
-      return false;
+      return true;
 
     // List must start with $fp or $ra
     unsigned R0 = RegList.List->front();
@@ -1828,6 +1828,16 @@ public:
                 MipsAsmParser &Parser) {
     assert(Regs.size() > 0 && "Empty list not allowed");
 
+    auto Op = std::make_unique<MipsOperand>(k_RegList, Parser);
+    Op->RegList.List = new SmallVector<unsigned, 10>(Regs.begin(), Regs.end());
+    Op->StartLoc = StartLoc;
+    Op->EndLoc = EndLoc;
+    return Op;
+  }
+
+  static std::unique_ptr<MipsOperand>
+  CreateRegListNM(SmallVectorImpl<unsigned> &Regs, SMLoc StartLoc, SMLoc EndLoc,
+		  MipsAsmParser &Parser) {
     auto Op = std::make_unique<MipsOperand>(k_RegList, Parser);
     Op->RegList.List = new SmallVector<unsigned, 10>(Regs.begin(), Regs.end());
     Op->StartLoc = StartLoc;
@@ -7303,9 +7313,6 @@ MipsAsmParser::parseNMRegisterList(OperandVector &Operands) {
   SmallVector<std::unique_ptr<MCParsedAsmOperand>, 16> TmpOperands;
   MipsOperand *RegFirst;
 
-  if (Parser.getTok().isNot(AsmToken::Dollar))
-    return MatchOperand_ParseFail;
-
   SMLoc S = Parser.getTok().getLoc();
 
   while (parseAnyRegister(TmpOperands) == MatchOperand_Success) {
@@ -7364,8 +7371,41 @@ MipsAsmParser::parseNMRegisterList(OperandVector &Operands) {
     PrevReg = RegNo;
   }
 
+  /* Parse an alternate format with count and start-reg instead
+     of register list  */
+  if (Regs.size() == 0) {
+    if (getLexer().getTok().is(AsmToken::Integer)) {
+      unsigned Count = Parser.getTok().getIntVal();
+      Lex();
+      SMLoc E = Parser.getTok().getLoc();
+      if (Count > 16) {
+	Error(E, "too many registers in list");
+	return MatchOperand_ParseFail;
+      }
+      if (Count >  0) {
+	if (Parser.getTok().isNot(AsmToken::Minus) &&
+	    Parser.getTok().isNot(AsmToken::Comma)) {
+	  Error(E, "',' or '-' expected");
+	  return MatchOperand_ParseFail;
+	}
+	Lex(); // Consume comma or minus
+	E = Parser.getTok().getLoc();
+	if (parseAnyRegister(TmpOperands) == MatchOperand_Success) {
+	  MipsOperand &Reg = static_cast<MipsOperand &>(*TmpOperands.back());
+	  unsigned i = 1;
+	  while (i < Count)
+	    Regs.push_back(Reg.getGPRNM32RegNext(i++));
+	}
+	else
+	  return MatchOperand_ParseFail;
+      }
+    }
+    else
+      return MatchOperand_ParseFail;
+  }
+
   SMLoc E = Parser.getTok().getLoc();
-  Operands.push_back(MipsOperand::CreateRegList(Regs, S, E, *this));
+  Operands.push_back(MipsOperand::CreateRegListNM(Regs, S, E, *this));
   return MatchOperand_Success;
 }
 

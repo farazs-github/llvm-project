@@ -1330,6 +1330,13 @@ def SAVE_NM : SaveRestore<"save", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b0
 def RESTORE_NM : SaveRestore<"restore", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b10>;
 def RESTOREJRC_NM : SaveRestore<"restore.jrc", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b11>;
 
+def SAVE_NOREG_NM : MipsInstAlias<"save $adj",
+				  (SAVE_NM uimm12s3_nm:$adj, 0)>;
+def RESTORE_NOREG_NM : MipsInstAlias<"restore $adj",
+				     (RESTORE_NM uimm12s3_nm:$adj, 0)>;
+def RESTOREJRC_NOREG_NM : MipsInstAlias<"restore.jrc $adj",
+					(RESTOREJRC_NM uimm12s3_nm:$adj, 0)>;
+
 class SaveRestore16_Enc<bits<1> isel> : _Pool_P16_SR<isel> {
   bits<8> adj;
   bits<5> regs;
@@ -1340,6 +1347,10 @@ class SaveRestore16_Enc<bits<1> isel> : _Pool_P16_SR<isel> {
 
 def SAVE16_NM : SaveRestore<"save", uimm8s4_nm, nmreglist16>, SaveRestore16_Enc<0b0>;
 def RESTOREJRC16_NM : SaveRestore<"restore.jrc", uimm8s4_nm, nmreglist16>, SaveRestore16_Enc<0b1>;
+def SAVE16_NOREG_NM : MipsInstAlias<"save $adj",
+				    (SAVE16_NM uimm8s4_nm:$adj, 0)>;
+def RESTOREJRC16_NOREG_NM : MipsInstAlias<"restore.jrc $adj",
+					  (RESTOREJRC16_NM uimm8s4_nm:$adj, 0)>;
 
 class LoadMultipleNM<string opstr> :
     InstNM<(outs GPRNM32Opnd:$rt),

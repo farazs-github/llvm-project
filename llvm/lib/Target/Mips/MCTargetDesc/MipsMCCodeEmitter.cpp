@@ -1567,17 +1567,16 @@ MipsMCCodeEmitter::getNMRegListEncoding(const MCInst &MI, unsigned OpNo,
 					const MCSubtargetInfo &STI) const {
   unsigned res = 0;
   unsigned gp = 0;
-  // Register list operand is always first operand of instruction and it is
-  // placed before memory operand (register + imm).
-  for (unsigned I = OpNo; I < MI.getNumOperands(); I++) {
-    unsigned Reg = MI.getOperand(I).getReg();
-    unsigned RegNo = Ctx.getRegisterInfo()->getEncodingValue(Reg);
-    if (res == 0)
-      res |= (RegNo << 4);
-    if (RegNo == 28)
-      gp = 1;
-    res++;
-  }
+  if (!MI.getOperand(OpNo).isImm() || MI.getOperand(OpNo).getImm() != 0)
+    for (unsigned I = OpNo; I < MI.getNumOperands(); I++) {
+      unsigned Reg = MI.getOperand(I).getReg();
+      unsigned RegNo = Ctx.getRegisterInfo()->getEncodingValue(Reg);
+      if (res == 0)
+	res |= (RegNo << 4);
+      if (RegNo == 28)
+	gp = 1;
+      res++;
+    }
   return (res << 1 | gp);
 }
 
@@ -1585,15 +1584,16 @@ unsigned
 MipsMCCodeEmitter::getNMRegList16Encoding(const MCInst &MI, unsigned OpNo,
 					  SmallVectorImpl<MCFixup> &Fixups,
 					  const MCSubtargetInfo &STI) const {
-  unsigned res = 0x10;
-  // Register list operand is always first operand of instruction and it is
-  // placed before memory operand (register + imm).
-  for (unsigned I = OpNo; I < MI.getNumOperands(); I++) {
-    unsigned Reg = MI.getOperand(I).getReg();
-    unsigned RegNo = Ctx.getRegisterInfo()->getEncodingValue(Reg);
-    if (RegNo == 30)
-      res &= 0xf;
-    res++;
+  unsigned res = 0;
+  if (!MI.getOperand(OpNo).isImm() || MI.getOperand(OpNo).getImm() != 0) {
+    res = 0x10;
+    for (unsigned I = OpNo; I < MI.getNumOperands(); I++) {
+      unsigned Reg = MI.getOperand(I).getReg();
+      unsigned RegNo = Ctx.getRegisterInfo()->getEncodingValue(Reg);
+      if (RegNo == 30)
+	res &= 0xf;
+      res++;
+    }
   }
   return res;
 }

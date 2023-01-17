@@ -1589,9 +1589,9 @@ def MOVEBALC_NM : MoveBalcBase;
 
 let isReMaterializable = 1 in {
 def LI16_NM : LoadImmediateNM<"li", GPRNM3Opnd, nimm7_nm, imm7M1To126>,
-    	      LI16_Enc<0b11000>;
-def Li_NM : LoadAddressAbsNM<"li", GPRNM32Opnd, sym32_abs_nm,
-    	      		       addrpcrel>, Op48_Enc<0b00000>;
+	      LI16_Enc<0b11000>;
+def LI48_NM : LoadAddressAbsNM<"li", GPRNM32Opnd, sym32_abs_nm,
+			       addrpcrel>, Op48_Enc<0b00000>;
 def LAGPB_NM : LoadAddressGPRelNM<"addiu", GPRNM32Opnd, sym32_gp_nm,
                                       addrgprel>, Op48_Enc<0b00010>;
 } // isReMaterializable = 1
@@ -1688,7 +1688,7 @@ let hasPostISelHook = 1, isCall = 1, isCTI = 1, Defs = [RA_NM] in {
     PseudoInstExpansion<(JALRC_NM RA_NM, GPRNM32Opnd:$rs)>;
 }
 
-def : NMPat<(i32 imm32_NM:$imm), (Li_NM imm:$imm)>;
+def : NMPat<(i32 imm32_NM:$imm), (LI48_NM imm:$imm)>;
 
 def : NMPat<(MipsFullAddr tglobaltlsaddr:$in), (LA_NM tglobaltlsaddr:$in)>;
 def : NMPat<(MipsFullAddr tblockaddress:$in), (LA_NM tblockaddress:$in)>;

@@ -2397,14 +2397,14 @@ class ShadowRW_Enc<bits<5> isel>: _Pool_POOL32Axf_5_group3<isel> {
 }
 
 def WRPGPR_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
-                       "wrpgpr\t$rt,$rs", []>, ShadowRW_Enc<0b11000>;
+                       "wrpgpr\t$rt, $rs", []>, ShadowRW_Enc<0b11000>;
 
 def RDPGPR_NM : InstNM<(outs GPRNM32Opnd:$rt), (ins GPRNM32Opnd:$rs),
-                       "rdpgpr\t$rt,$rs", []>, ShadowRW_Enc<0b10000>;
+                       "rdpgpr\t$rt, $rs", []>, ShadowRW_Enc<0b10000>;
 
 def EXTW_NM : InstNM<(outs GPRNM32Opnd:$rd),
 		     (ins GPRNM32Opnd:$rs, GPRNM32Opnd:$rt, uimm5_nm:$shift),
-		     "extw\t$rd,$rs,$rt,$shift", []>,
+		     "extw\t$rd, $rs, $rt, $shift", []>,
 		     _Pool_POOL32A7<0b011> {
   bits<5> rd;
   bits<5> rs;
@@ -2419,7 +2419,7 @@ def EXTW_NM : InstNM<(outs GPRNM32Opnd:$rd),
 def ROTX_NM : InstNM<(outs GPRNM32Opnd:$rt),
 		     (ins GPRNM32Opnd:$rs, uimm4_nm:$shiftx,
 		      uimm5_nm:$shift, uimm1_nm:$stripe),
-		     "rotx\t$rt,$rs,$shift,$shiftx,$stripe", []>,
+		     "rotx\t$rt, $rs, $shift, $shiftx, $stripe", []>,
 		     _Pool_P_U12<0b1101> {
   bits<5> rt;
   bits<5> rs;

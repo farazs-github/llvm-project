@@ -1507,9 +1507,9 @@ def SOV_NM   : ArithLogicR32_Desc<"sov", GPRNM32Opnd>,
 
 // 16-bit register operations
 let FastISelShouldIgnore = 1, isCommutable=1 in {
-def SUBu16_NM  : AddSubR16_Desc<"subu", GPRNM3Opnd, sub>,
+def SUBu16_NM  : AddSubR16_Desc<"subu", GPRNM16R3Opnd, sub>,
 		 AddSubR16_Enc<0b1>;
-def ADDu16_NM : AddSubR16_Desc<"addu", GPRNM3Opnd, add>,
+def ADDu16_NM : AddSubR16_Desc<"addu", GPRNM16R3Opnd, add>,
 		AddSubR16_Enc<0b0>;
 def ADDu4x4_NM : Arith4x4_Desc<"addu", GPRNM4Opnd, add>,
 		 Arith4x4_Enc<0b00>;
@@ -1534,11 +1534,11 @@ def SEQI_NM  : CondLogicI32_Desc<"seqi", uimm12_nm, GPRNM32Opnd, imm32ZExt12, se
 // P.SHIFT pool of instructions
 def SLL_NM  : ShiftI_Desc<"sll", uimm5_nm, GPRNM32Opnd, imm32ZExt5, shl>,
 	      ShiftI32_Enc<0b0000>;
-def SLL16_NM  : ShiftI_Desc<"sll", uimm3shift_nm, GPRNM3Opnd, imm32ZExt3, shl>,
+def SLL16_NM  : ShiftI_Desc<"sll", uimm3shift_nm, GPRNM16R3Opnd, imm32ZExt3, shl>,
 	      ShiftI16_Enc<0b0>;
 def SRL_NM  : ShiftI_Desc<"srl", uimm5_nm, GPRNM32Opnd, imm32ZExt5, srl>,
 	      ShiftI32_Enc<0b0010>;
-def SRL16_NM  : ShiftI_Desc<"srl", uimm3shift_nm, GPRNM3Opnd, imm32ZExt3, srl>,
+def SRL16_NM  : ShiftI_Desc<"srl", uimm3shift_nm, GPRNM16R3Opnd, imm32ZExt3, srl>,
 	      ShiftI16_Enc<0b1>;
 def SRA_NM  : ShiftI_Desc<"sra", uimm5_nm, GPRNM32Opnd, imm32ZExt5, sra>,
 	      ShiftI32_Enc<0b0100>;
@@ -1550,10 +1550,10 @@ def INS_NM : InsBaseNM, ExtInsBase_Enc<0b1110>;
 
 def ADDiu_NM : AddiU32<"addiu", uimm16_simm12, GPRNM32NZOpnd, GPRNM32Opnd,
                              imm32SExt12OrZExt16, add>;
-def ADDIU48_NM : ArithLogicINM<"addiu", simm32_relaxed, GPRNM32Opnd,
+def ADDIU48_NM : ArithLogicINM<"addiu", simm32_relaxed, GPRNM48Opnd,
                                imm32_NM, add>, Op48_Enc<0b00001>;
 
-def ADDIUPC48_NM : LoadAddressPCRelNM<"addiu", GPRNM32Opnd, sym32_pc_nm,
+def ADDIUPC48_NM : LoadAddressPCRelNM<"addiu", GPRNM48Opnd, sym32_pc_nm,
                                       addrpcrel>, Op48_Enc<0b00011>;
 
 def LSA_NM : LoadScaledAddressNM<"lsa", GPRNM32Opnd>, LoadScaledAddress_Enc;
@@ -1571,15 +1571,15 @@ def BYTEREVW_NM : ReverseNM<"byterevw", GPRNM32Opnd, bswap>;
 def TEQ_NM : Trap_Desc<"teq", GPRNM32Opnd, uimm5_nm>, Trap_Enc<0b0>;
 def TNE_NM : Trap_Desc<"tne", GPRNM32Opnd, uimm5_nm>, Trap_Enc<0b1>;
 
-def NOT16_NM : ArithLogicR16U_Desc<"not", GPRNM3Opnd, not>,
+def NOT16_NM : ArithLogicR16U_Desc<"not", GPRNM16R3Opnd, not>,
 	       ArithLogicR16_Enc<0b00>;
 def NOT_NM : MipsInstAlias<"not $rt, $rs",
 			    (NOR_NM GPRNM32Opnd:$rt, GPRNM32Opnd:$rs, ZERO_NM)>;
-def XOR16_NM : ArithLogicR16_Desc<"xor", GPRNM3Opnd>,
+def XOR16_NM : ArithLogicR16_Desc<"xor", GPRNM16R3Opnd>,
 	       ArithLogicR16_Enc<0b01>;
-def AND16_NM : ArithLogicR16_Desc<"and", GPRNM3Opnd>,
+def AND16_NM : ArithLogicR16_Desc<"and", GPRNM16R3Opnd>,
 	       ArithLogicR16_Enc<0b10>;
-def OR16_NM  : ArithLogicR16_Desc<"or	", GPRNM3Opnd>,
+def OR16_NM  : ArithLogicR16_Desc<"or	", GPRNM16R3Opnd>,
 	       ArithLogicR16_Enc<0b11>;
 
 def JRC_NM : IndirectBranchNM<"jrc", GPRNM32Opnd>, IndirectBranch16_Enc<0>;
@@ -1588,11 +1588,11 @@ def JALRC16_NM : IndirectBranchNM<"jalrc", GPRNM32Opnd>, IndirectBranch16_Enc<1>
 def MOVEBALC_NM : MoveBalcBase;
 
 let isReMaterializable = 1 in {
-def LI16_NM : LoadImmediateNM<"li", GPRNM3Opnd, nimm7_nm, imm7M1To126>,
+def LI16_NM : LoadImmediateNM<"li", GPRNM16R3Opnd, nimm7_nm, imm7M1To126>,
 	      LI16_Enc<0b11000>;
-def LI48_NM : LoadAddressAbsNM<"li", GPRNM32Opnd, sym32_abs_nm,
+def LI48_NM : LoadAddressAbsNM<"li", GPRNM48Opnd, sym32_abs_nm,
 			       addrpcrel>, Op48_Enc<0b00000>;
-def LAGPB_NM : LoadAddressGPRelNM<"addiu", GPRNM32Opnd, sym32_gp_nm,
+def LAGPB_NM : LoadAddressGPRelNM<"addiu", GPRNM48Opnd, sym32_gp_nm,
                                       addrgprel>, Op48_Enc<0b00010>;
 } // isReMaterializable = 1
 
@@ -1611,7 +1611,7 @@ class ANDI16_Enc<bits<5> isel> : _Pool_P16<isel>
   let Inst{3...0} = imm;
 }
 
-def ANDI16_NM : ArithLogicINM<"andi", uimm4mask_nm, GPRNM3Opnd,
+def ANDI16_NM : ArithLogicINM<"andi", uimm4mask_nm, GPRNM16R3Opnd,
                                imm4Mask, add>, ANDI16_Enc<0b11100>;
 
 // Arithmetic and logical instructions with 2 register operands and immediate.
@@ -1896,16 +1896,16 @@ class B4_Enc : _Pool_P16<0b11010> {
 
 def BEQC_NM : CBranchNM<"beqc", brtarget14_nm, seteq, GPRNM32Opnd>,
 	      B14_Enc<0b000>;
-def BEQC16_NM : CBranchNM<"beqc16", brtarget4s1_nm, seteq, GPRNM3Opnd>,
+def BEQC16_NM : CBranchNM<"beqc16", brtarget4s1_nm, seteq, GPRNM16R3Opnd>,
 	      B4_Enc;
-def BGEC_NM : CBranchNM<"bgec", brtarget14_nm, setge, GPRNM3Opnd>,
+def BGEC_NM : CBranchNM<"bgec", brtarget14_nm, setge, GPRNM16R3Opnd>,
 	      B14_Enc<0b010>;
 def BGEUC_NM : CBranchNM<"bgeuc", brtarget14_nm, setuge, GPRNM32Opnd>,
 	       B14_Enc<0b011>;
 
 def BNEC_NM : CBranchNM<"bnec", brtarget14_nm, setne, GPRNM32Opnd>,
 	      B14_Enc<0b100>;
-def BNEC16_NM : CBranchNM<"bnec16", brtarget4s1_nm, setne, GPRNM3Opnd>,
+def BNEC16_NM : CBranchNM<"bnec16", brtarget4s1_nm, setne, GPRNM16R3Opnd>,
 	      B4_Enc;
 def BLTC_NM : CBranchNM<"bltc", brtarget14_nm, setlt, GPRNM32Opnd>,
 	      B14_Enc<0b110>;
@@ -2011,27 +2011,27 @@ def LWSP16_NM : LoadMemoryNM16<"lw", GPRNM32Opnd, mem_nm_sp5s2, load, addrsp5s2,
 	        LSSPRegMem16_Enc<0b00101>;  // Broken
 def SWSP16_NM : StoreMemoryNM16<"sw", GPRNM32Opnd, mem_nm_sp5s2, store, addrsp5s2, II_SW>,
 	        LSSPRegMem16_Enc<0b10101>; // Broken
-def LWGP16_NM : LoadMemoryNM16<"lw", GPRNM3Opnd, mem_nm_gp7s2, load, addrgp7s2, II_LW>,
+def LWGP16_NM : LoadMemoryNM16<"lw", GPRNM16R3Opnd, mem_nm_gp7s2, load, addrgp7s2, II_LW>,
 	        LSGPRegMem16_Enc<0b01001>;
-def SWGP16_NM : StoreMemoryNM16<"sw", GPRNM3ZOpnd, mem_nm_gp7s2, store, addrgp7s2, II_SW>,
+def SWGP16_NM : StoreMemoryNM16<"sw", GPRNM16R3ZOpnd, mem_nm_gp7s2, store, addrgp7s2, II_SW>,
 	        LSGPRegMem16_Enc<0b11001>;
 
-def LW16_NM : LoadMemoryNM16<"lw", GPRNM3Opnd, mem_nm6s2, load, addruimm6s2, II_LW>,
+def LW16_NM : LoadMemoryNM16<"lw", GPRNM16R3Opnd, mem_nm6s2, load, addruimm6s2, II_LW>,
     	      LSMem16_Enc<0b00001>;
-def SW16_NM : StoreMemoryNM16<"sw", GPRNM3ZOpnd, mem_nm6s2, store, addruimm6s2, II_SW>,
+def SW16_NM : StoreMemoryNM16<"sw", GPRNM16R3ZOpnd, mem_nm6s2, store, addruimm6s2, II_SW>,
     	      LSMem16_Enc<0b10001>;
-def LH16_NM : LoadMemoryNM16<"lh", GPRNM3Opnd, mem_nm3s1, sextloadi16, addruimm3s1, II_LH>,
+def LH16_NM : LoadMemoryNM16<"lh", GPRNM16R3Opnd, mem_nm3s1, sextloadi16, addruimm3s1, II_LH>,
     	      LHMem16_Enc<0b00>;
-def LHU16_NM : LoadMemoryNM16<"lhu", GPRNM3Opnd, mem_nm3s1, zextloadi16, addruimm3s1, II_LH>,
+def LHU16_NM : LoadMemoryNM16<"lhu", GPRNM16R3Opnd, mem_nm3s1, zextloadi16, addruimm3s1, II_LH>,
     	      LHMem16_Enc<0b10>;
-def SH16_NM : StoreMemoryNM16<"sh", GPRNM3ZOpnd, mem_nm3s1, truncstorei16, addruimm3s1, II_SH>,
+def SH16_NM : StoreMemoryNM16<"sh", GPRNM16R3ZOpnd, mem_nm3s1, truncstorei16, addruimm3s1, II_SH>,
     	      LHMem16_Enc<0b01>;
 
-def LB16_NM : LoadMemoryNM16<"lb", GPRNM3Opnd, mem_nm2, sextloadi8, addruimm2, II_LB>,
+def LB16_NM : LoadMemoryNM16<"lb", GPRNM16R3Opnd, mem_nm2, sextloadi8, addruimm2, II_LB>,
     	      LBMem16_Enc<0b00>;
-def LBU16_NM : LoadMemoryNM16<"lbu", GPRNM3Opnd, mem_nm2, zextloadi8, addruimm2, II_LB>,
+def LBU16_NM : LoadMemoryNM16<"lbu", GPRNM16R3Opnd, mem_nm2, zextloadi8, addruimm2, II_LB>,
     	      LBMem16_Enc<0b10>;
-def SB16_NM : StoreMemoryNM16<"sb", GPRNM3ZOpnd, mem_nm2, truncstorei8, addruimm2, II_SB>,
+def SB16_NM : StoreMemoryNM16<"sb", GPRNM16R3ZOpnd, mem_nm2, truncstorei8, addruimm2, II_SB>,
 	      LBMem16_Enc<0b01>;
 
 def LWGP_NM : LoadMemoryNM<"lw", mem_nm_gp19s2, load, addrgp19s2, II_LW>,

@@ -40,7 +40,7 @@ def imm32ZExt5  : IntImmLeaf<i32, [{ return isUInt<5>(Imm.getZExtValue()); }]>;
 def imm32ZExt3  : IntImmLeaf<i32, [{ return Imm.getZExtValue() > 0 &&
 				  Imm.getZExtValue() <= 8;}]>;
 def imm32SExt12  : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue()); }]>;
-def imm32Neg12  : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue()) && Imm.getSExtValue() < 0; }]>;
+def imm32Neg12  : IntImmLeaf<i32, [{ return isInt<13>(Imm.getSExtValue()) && Imm.getSExtValue() < 0; }]>;
 // True if (N + 1) fits in 12-bit field.
 def immZExt12Plus1 : PatLeaf<(imm), [{
   return isUInt<13>(N->getZExtValue()) && isUInt<12>(N->getZExtValue() + 1);
@@ -48,9 +48,6 @@ def immZExt12Plus1 : PatLeaf<(imm), [{
 def immZExt7Plus1 : PatLeaf<(imm), [{
   return isUInt<8>(N->getZExtValue()) && isUInt<7>(N->getZExtValue() + 1);
 }]>;
-// Immediate range for signed 12-bit
-def imm32SExt12OrZExt16 : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue())
-                                           || isUInt<16>(Imm.getZExtValue()); }]>;
 // Immediate range for signed 20-bit upper part
 def imm32SExt20s12 : IntImmLeaf<i32, [{ return isInt<32>(Imm.getSExtValue())
                                        && (Imm.getZExtValue() % 4096 == 0); }]>;
@@ -59,6 +56,20 @@ def imm32SExt20s12 : IntImmLeaf<i32, [{ return isInt<32>(Imm.getSExtValue())
 def imm7M1To126 : IntImmLeaf<i32, [{
     return (Imm.getSExtValue() >= -1 &&  Imm.getSExtValue() < 127);
 }]>;
+
+// Immediate range for unsigned 18-bit
+def imm32ZExt18 : IntImmLeaf<i32, [{ return isInt<18>(Imm.getZExtValue());}]>;
+
+// Immediate range for unsigned 18-bit
+def imm32ZExt4 : IntImmLeaf<i32, [{ return isInt<4>(Imm.getZExtValue());}]>;
+
+// Immediate range for unsigned 21-bit word-aligned
+def imm32ZExt21s2 : IntImmLeaf<i32, [{ return isInt<21>(Imm.getZExtValue()) &&
+					      (Imm.getZExtValue() % 4 == 0); }]>;
+
+// Immediate range for unsigned 21-bit word-aligned
+def imm32ZExt8s2 : IntImmLeaf<i32, [{ return isInt<8>(Imm.getZExtValue()) &&
+					     (Imm.getZExtValue() % 4 == 0); }]>;
 
 // Immediate range for 16-bit AND immediate
 def imm4Mask : IntImmLeaf<i32, [{
@@ -80,10 +91,9 @@ class ConstantSImmRangeAsmOperandClass<int Bottom, int Top,
 class NegImmAsmOperandClass<int Bits, list<AsmOperandClass> Supers = []>
     : AsmOperandClass {
   let Name = "NegImm" # Bits;
-  let RenderMethod = "addSImmOperands<" # Bits # ">";
+  let RenderMethod = "addSImmOperands<" # 32 # ">";
   let PredicateMethod = "isNegImm<" # Bits # ">";
   let SuperClasses = Supers;
-  let DiagnosticType = "SImm" # Bits;
 }
 
 class Imm7AsmOperandClass : AsmOperandClass {
@@ -212,8 +222,9 @@ def uimm3plus1_nm : Operand<i32> {
   let ParserMatchClass = NMUImmAsmOperandClass<3, [], 1>;
 }
 def nimm12_nm : Operand<i32> {
-  let PrintMethod = "printUImm<12>";
-  let ParserMatchClass = !cast<AsmOperandClass>("NaImm12AsmOperandClass");
+  let ParserMatchClass = !cast<AsmOperandClass>("NImm12AsmOperandClass");
+  let EncoderMethod = "getNegImm12Encoding";
+  let DecoderMethod = "DecodeNegImm12";
 }
 def uimm16_nm : Operand<i32> {
   let PrintMethod = "printUImm<16>";
@@ -222,6 +233,18 @@ def uimm16_nm : Operand<i32> {
 def uimm5s1_nm : Operand<i32> {
   let PrintMethod = "printUImm<5>";
   let ParserMatchClass = NMUImmScaledAsmOperandClass<4, 1>;
+}
+def uimm5s2_nm : Operand<i32> {
+  let PrintMethod = "printUImm<5>";
+  let ParserMatchClass = NMUImmScaledAsmOperandClass<3, 2, [uimm16_nm.ParserMatchClass]>;
+}
+def uimm21s2_nm : Operand<i32> {
+  let PrintMethod = "printUImm<21>";
+  let ParserMatchClass = NMUImmScaledAsmOperandClass<19, 2, [uimm16_nm.ParserMatchClass]>;
+}
+def uimm8s2_nm : Operand<i32> {
+  let PrintMethod = "printUImm<8>";
+  let ParserMatchClass = NMUImmScaledAsmOperandClass<6, 2, [uimm16_nm.ParserMatchClass]>;
 }
 def nimm7_nm : Operand<i32> {
   let ParserMatchClass = !cast<AsmOperandClass>("Imm7AsmOperand");
@@ -802,6 +825,16 @@ class ArithLogicINM2Reg<string opstr, Operand Od, RegisterOperand DRO,
   let isReMaterializable = 1;
 }
 
+class ArithLogicINM1Reg<string opstr, Operand Od, RegisterOperand DRO,
+		        SDPatternOperator imm_type = null_frag,
+		        SDPatternOperator OpNode = null_frag> :
+  InstNM<(outs), (ins  DRO:$rt, Od:$imm),
+	 !strconcat(opstr, "\t$rt, $imm"),
+	 [(set DRO:$rt, (OpNode DRO:$rt, imm_type:$imm))]> {
+  let isReMaterializable = 1;
+}
+
+
 // Arithmetic and logical instructions with 2 register operands and immediate.
 class ArithLogicINM<string opstr, Operand Od, RegisterOperand RO,
 		    SDPatternOperator imm_type = null_frag,
@@ -813,18 +846,11 @@ class ArithLogicI32<string opstr, Operand Od, RegisterOperand RO,
 		    SDPatternOperator OpNode = null_frag> :
   ArithLogicINM<opstr, Od, RO, imm_type, OpNode>;
 
-class AddiU32<string opstr, Operand Od, RegisterOperand DRO,
-		    RegisterOperand SRO,
-		    SDPatternOperator imm_type = null_frag,
-		    SDPatternOperator OpNode = null_frag> :
-  ArithLogicINM2Reg<opstr, Od, DRO, SRO, imm_type, OpNode>, _Pool_P32<0b00000> {
-  bits<5> rt;
-  bits<5> rs;
-  bits<16> imm;
-  let Inst{25...21} = rt;
-  let Inst{20...16} = rs;
-  let Inst{15...0} = imm;
-}
+class AddImmediate<string opstr, Operand Od, RegisterOperand DRO,
+		   RegisterOperand SRO,
+		   SDPatternOperator imm_type = null_frag,
+		   SDPatternOperator OpNode = null_frag> :
+  ArithLogicINM2Reg<opstr, Od, DRO, SRO, imm_type, OpNode>;
 
 class LoadUpperI32<string opstr, Operand Od, RegisterOperand RO,
 		   SDPatternOperator imm_type = null_frag,
@@ -1548,8 +1574,70 @@ def ROTR_NM : ShiftI_Desc<"rotr", uimm5_nm, GPRNM32Opnd, imm32ZExt5, rotr>,
 def EXT_NM : ExtBaseNM, ExtInsBase_Enc<0b1111>;
 def INS_NM : InsBaseNM, ExtInsBase_Enc<0b1110>;
 
-def ADDiu_NM : AddiU32<"addiu", uimm16_simm12, GPRNM32NZOpnd, GPRNM32Opnd,
-                             imm32SExt12OrZExt16, add>;
+def ADDIUGPB_NM : AddImmediate<"addiu", uimm18_nm, GPRNM32Opnd, GPRNMGPOpnd,
+			       imm32ZExt18, add>, _Pool_P_GP_BH<0b011> {
+  bits<5> rt;
+  bits<18> imm;
+  let Inst{25...21} = rt;
+  let Inst{17...0} = imm;
+}
+
+def ADDIUGPW_NM : AddImmediate<"addiu", uimm21s2_nm, GPRNM32Opnd, GPRNMGPOpnd,
+			       imm32ZExt21s2, add>, _Pool_P_GP_W<0b00> {
+  bits<5> rt;
+  bits<21> imm;
+  let Inst{25...21} = rt;
+  let Inst{20...2} = imm{20...2};
+}
+
+def ADDiu_NM : AddImmediate<"addiu", uimm16_nm, GPRNM32NZOpnd, GPRNM32Opnd,
+                            imm32ZExt16, add>, _Pool_P32<0b00000> {
+  bits<5> rt;
+  bits<5> rs;
+  bits<16> imm;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = rs;
+  let Inst{15...0} = imm;
+}
+
+def ADDIUNEG_NM : AddImmediate<"addiu", nimm12_nm, GPRNM32Opnd, GPRNM32Opnd,
+                               imm32Neg12, add>, CondLogicI32_Enc<0b1000>;
+
+def ADDIUR2_NM : AddImmediate<"addiu", uimm5s2_nm, GPRNM16R3Opnd, GPRNM16R3Opnd,
+                              imm32ZExt5, add>, _Pool_P16_A2<0b0> {
+  bits<3> rt;
+  bits<3> rs;
+  bits<5> imm;
+  let Inst{9...7} = rt;
+  let Inst{6...4} = rs;
+  let Inst{2...0} = imm{4...2};
+}
+
+class RegConstraint<string C> {
+  string Constraints = C;
+}
+class NoEncode<string E> {
+  string DisableEncoding = E;
+}
+
+def ADDIURS5_NM : AddImmediate<"addiu", uimm4_nm, GPRNM16R5NZOpnd, GPRNM16R5NZOpnd,
+			       imm32ZExt4, add>, _Pool_P16_A2<0b1>, NoEncode<"$rs">  {
+  bits<5> rt;
+  bits<4> imm;
+  let Inst{9...5} = rt;
+  let Inst{4} = imm{3};
+  let Inst{2...0} = imm{2...0};
+  let Constraints = "$rs = $rt";
+}
+
+def ADDIUR1SP_NM : AddImmediate<"addiu", uimm8s2_nm, GPRNM16R3Opnd, GPRNMSPOpnd,
+			        imm32ZExt8s2, add>, _Pool_P16_A1<0b1> {
+  bits<3> rt;
+  bits<8> imm;
+  let Inst{9...7} = rt;
+  let Inst{5...0} = imm{7...2};
+}
+
 def ADDIU48_NM : ArithLogicINM<"addiu", simm32_relaxed, GPRNM48Opnd,
                                imm32_NM, add>, Op48_Enc<0b00001>;
 

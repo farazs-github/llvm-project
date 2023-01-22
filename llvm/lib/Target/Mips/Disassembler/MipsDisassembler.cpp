@@ -636,6 +636,11 @@ static DecodeStatus DecodeNMRegList16Operand(MCInst &Inst,
 					   uint64_t Address,
 					   const void *Decoder);
 
+static DecodeStatus DecodeNegImm12(MCInst &Inst,
+				   unsigned Insn,
+				   uint64_t Address,
+				   const void *Decoder);
+
 static MCDisassembler *createMipsDisassembler(
                        const Target &T,
                        const MCSubtargetInfo &STI,
@@ -3051,4 +3056,13 @@ static DecodeStatus DecodeNMRegList16Operand(MCInst &Inst,
   return DecodeNMRegListOperand(Inst,
 				(RegStart << 5) | (RegCount << 1),
 				Address, Decoder);
+}
+
+static DecodeStatus DecodeNegImm12(MCInst &Inst,
+				   unsigned Insn,
+				   uint64_t Address,
+				   const void *Decoder) {
+  unsigned Imm = fieldFromInstruction(Insn, 0, 12);
+  Inst.addOperand(MCOperand::createImm(-Imm));
+  return MCDisassembler::Success;
 }

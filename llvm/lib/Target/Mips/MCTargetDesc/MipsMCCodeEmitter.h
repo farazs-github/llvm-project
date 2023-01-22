@@ -358,6 +358,9 @@ public:
   unsigned getNMRegList16Encoding(const MCInst &MI, unsigned OpNo,
 				  SmallVectorImpl<MCFixup> &Fixups,
 				  const MCSubtargetInfo &STI) const;
+  unsigned getNegImm12Encoding(const MCInst &MI, unsigned OpNo,
+			       SmallVectorImpl<MCFixup> &Fixups,
+			       const MCSubtargetInfo &STI) const;
 
 private:
   void LowerCompactBranch(MCInst& Inst) const;

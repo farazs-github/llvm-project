@@ -1598,4 +1598,12 @@ MipsMCCodeEmitter::getNMRegList16Encoding(const MCInst &MI, unsigned OpNo,
   return res;
 }
 
+unsigned
+MipsMCCodeEmitter::getNegImm12Encoding(const MCInst &MI, unsigned OpNo,
+				       SmallVectorImpl<MCFixup> &Fixups,
+				       const MCSubtargetInfo &STI) const {
+  int res = MI.getOperand(OpNo).getImm();
+  return (unsigned) -res;
+}
+
 #include "MipsGenMCCodeEmitter.inc"

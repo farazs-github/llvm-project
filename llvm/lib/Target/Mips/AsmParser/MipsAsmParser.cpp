@@ -1393,7 +1393,7 @@ public:
   }
 
   template <unsigned Bits> bool isNegImm() const {
-    return (isConstantImm() ? isInt<Bits>(getConstantImm()) : isImm()) && getConstantImm() < 0;
+    return (isConstantImm() && getConstantImm() < 0 && isUInt<Bits>(-getConstantImm()));
   }
   
   template <unsigned Bits> bool isUImm() const {
@@ -6258,6 +6258,7 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
   case Mips::ADDIU48_NM:
   case Mips::ADDu4x4_NM:
   case Mips::MUL4x4_NM:
+  case Mips::ADDIURS5_NM:
     if (Inst.getOperand(0).getReg() != Inst.getOperand(1).getReg())
       return Match_RequiresSameSrcAndDst;
     return Match_Success;

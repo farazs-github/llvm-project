@@ -1926,7 +1926,7 @@ class B14_Enc<bits<3> isel> : _Pool_P_BR12<isel>
   bits<5> rs;
   bits<15> offset;
   let Inst{25...21} = rt;
-  let Inst{20...16} = rt;
+  let Inst{20...16} = rs;
   let Inst{13...1} = offset{13...1};
   let Inst{0} =  offset{14};
 }
@@ -2019,7 +2019,7 @@ def BEQC_NM : CBranchNM<"beqc", brtarget14_nm, seteq, GPRNM32Opnd>,
 	      B14_Enc<0b000>;
 def BEQC16_NM : CBranchNM<"beqc16", brtarget4s1_nm, seteq, GPRNM16R3Opnd>,
 	      B4_Enc;
-def BGEC_NM : CBranchNM<"bgec", brtarget14_nm, setge, GPRNM16R3Opnd>,
+def BGEC_NM : CBranchNM<"bgec", brtarget14_nm, setge, GPRNM32Opnd>,
 	      B14_Enc<0b010>;
 def BGEUC_NM : CBranchNM<"bgeuc", brtarget14_nm, setuge, GPRNM32Opnd>,
 	       B14_Enc<0b011>;

@@ -234,24 +234,12 @@ public:
   unsigned getSizeInsEncoding(const MCInst &MI, unsigned OpNo,
                               SmallVectorImpl<MCFixup> &Fixups,
                               const MCSubtargetInfo &STI) const;
-  unsigned getBranchTarget25OpValueNM(const MCInst &MI, unsigned OpNo,
-				      SmallVectorImpl<MCFixup> &Fixups,
-				      const MCSubtargetInfo &STI) const;
-  unsigned getBranchTarget14OpValueNM(const MCInst &MI, unsigned OpNo,
-				      SmallVectorImpl<MCFixup> &Fixups,
-				      const MCSubtargetInfo &STI) const;
-  unsigned getBranchTarget11OpValueNM(const MCInst &MI, unsigned OpNo,
-				      SmallVectorImpl<MCFixup> &Fixups,
-				      const MCSubtargetInfo &STI) const;
-  unsigned getBranchTarget10OpValueNM(const MCInst &MI, unsigned OpNo,
-				      SmallVectorImpl<MCFixup> &Fixups,
-				      const MCSubtargetInfo &STI) const;
-  unsigned getBranchTarget4OpValueNM(const MCInst &MI, unsigned OpNo,
-				     SmallVectorImpl<MCFixup> &Fixups,
-				     const MCSubtargetInfo &STI) const;
-  unsigned getBranchTarget7OpValueNM(const MCInst &MI, unsigned OpNo,
-				     SmallVectorImpl<MCFixup> &Fixups,
-				     const MCSubtargetInfo &STI) const;
+
+  template <unsigned Bits>
+  unsigned getBranchTargetOpValueNM(const MCInst &MI, unsigned OpNo,
+				    SmallVectorImpl<MCFixup> &Fixups,
+				    const MCSubtargetInfo &STI) const;
+
   unsigned getMemEncodingNMImm9(const MCInst &MI, unsigned OpNo,
                                  SmallVectorImpl<MCFixup> &Fixups,
                                  const MCSubtargetInfo &STI) const;

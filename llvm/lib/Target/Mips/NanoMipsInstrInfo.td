@@ -402,27 +402,27 @@ def mem_nmrx : mem_generic {
 
 foreach I = {4, 7, 10, 11, 14, 25} in
   def brtarget # I # _nm : Operand<OtherVT> {
-     let EncoderMethod = "getBranchTarget" # I # "OpValueNM";
+    let EncoderMethod = "getBranchTargetOpValueNM<" # I # ">";
      let OperandType   = "OPERAND_PCREL";
-     let DecoderMethod = "DecodeBranchTargetNM";
+     let DecoderMethod = "DecodeBranchTargetNM<" # I # ">";
      let ParserMatchClass = NMJumpTargetAsmOperand;
   }
 
 def brtarget4s1_nm : Operand<OtherVT> {
-  let EncoderMethod = "getBranchTarget4OpValueNM";
+  let EncoderMethod = "getBranchTargetOpValueNM<4>";
   let OperandType   = "OPERAND_PCREL";
-  let DecoderMethod = "DecodeBranchTargetNM";
+  let DecoderMethod = "DecodeBranchTargetNM<4>";
   let ParserMatchClass = NMJumpTargetAsmOperand;
 }
 
-foreach I = {10, 25} in
+foreach I = {10, 21, 25} in
   def calltarget # I # _nm : Operand<iPTR> {
-    let EncoderMethod = "getBranchTarget" # I # "OpValueNM";
+    let EncoderMethod = "getBranchTargetOpValueNM<" # I #	">";
     let ParserMatchClass = NMJumpTargetAsmOperand;
   }
 
 def jmptarget_nm   : Operand<OtherVT> {
-  let EncoderMethod = "getBranchTarget25OpValueNM";
+  let EncoderMethod = "getBranchTargetOpValueNM<25>";
   let ParserMatchClass = NMJumpTargetAsmOperand;
 }
 
@@ -1706,7 +1706,22 @@ def OR16_NM  : ArithLogicR16_Desc<"or	", GPRNM16R3Opnd>,
 def JRC_NM : IndirectBranchNM<"jrc", GPRNM32Opnd>, IndirectBranch16_Enc<0>;
 def JALRC16_NM : IndirectBranchNM<"jalrc", GPRNM32Opnd>, IndirectBranch16_Enc<1>;
 
-def MOVEBALC_NM : MoveBalcBase;
+def MOVEBALC_NM : InstNM<(outs GPRNM1R1Opnd:$rd),
+			    (ins GPRNM4ZOpnd:$rt, calltarget21_nm:$addr),
+			    "move.balc\t$rd, $rt, $addr", []>,
+			    _Pool_P32<0b00010> {
+  let isCall = 1;
+  let isCTI = 1;
+  let Defs = [RA_NM];
+  bits<5> rt;
+  bits<1> rd;
+  bits<22> addr;
+  let Inst{25} = rt{4};
+  let Inst{24} = rd;
+  let Inst{23...21} = rt{2...0};
+  let Inst{20...1} = addr{20...1};
+  let Inst{0} = addr{21};
+}
 
 let isReMaterializable = 1 in {
 def LI16_NM : LoadImmediateNM<"li", GPRNM16R3Opnd, nimm7_nm, imm7M1To126>,

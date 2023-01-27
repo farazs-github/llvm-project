@@ -262,11 +262,26 @@ getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
   return 0;
 }
 
+static unsigned
+getNMRelocForSize(unsigned Size) {
+  switch (Size) {
+    default: llvm_unreachable("Unhandled fixup kind!");
+    case 25: return Mips::fixup_NANOMIPS_PC25_S1;
+    case 21: return Mips::fixup_NANOMIPS_PC21_S1;
+    case 14: return Mips::fixup_NANOMIPS_PC14_S1;
+    case 11: return Mips::fixup_NANOMIPS_PC11_S1;
+    case 10: return Mips::fixup_NANOMIPS_PC10_S1;
+    case 7: return Mips::fixup_NANOMIPS_PC7_S1;
+    case 4: return Mips::fixup_NANOMIPS_PC4_S1;
+  }
+}
+
 /// getBranchTargetOpValue - Return binary encoding of the branch
 /// target operand. If the machine operand requires relocation,
 /// record the relocation and return zero.
+template <unsigned Bits>
 unsigned MipsMCCodeEmitter::
-getBranchTarget25OpValueNM(const MCInst &MI, unsigned OpNo,
+getBranchTargetOpValueNM(const MCInst &MI, unsigned OpNo,
                          SmallVectorImpl<MCFixup> &Fixups,
                          const MCSubtargetInfo &STI) const {
   const MCOperand &MO = MI.getOperand(OpNo);
@@ -280,117 +295,7 @@ getBranchTarget25OpValueNM(const MCInst &MI, unsigned OpNo,
   const MCExpr *FixupExpression = MCBinaryExpr::createAdd(
       MO.getExpr(), MCConstantExpr::create(0, Ctx), Ctx);
   Fixups.push_back(MCFixup::create(0, FixupExpression,
-                                   MCFixupKind(Mips::fixup_NANOMIPS_PC25_S1)));
-  return 0;
-}
-
-/// getBranchTarget11OpValue - Return binary encoding of the branch
-/// target operand. If the machine operand requires relocation,
-/// record the relocation and return zero.
-unsigned MipsMCCodeEmitter::
-getBranchTarget11OpValueNM(const MCInst &MI, unsigned OpNo,
-                         SmallVectorImpl<MCFixup> &Fixups,
-                         const MCSubtargetInfo &STI) const {
-  const MCOperand &MO = MI.getOperand(OpNo);
-
-  // If the destination is an immediate, divide by 2.
-  if (MO.isImm()) return MO.getImm() >> 1;
-
-  assert(MO.isExpr() &&
-         "getBranchTargetOpValue expects only expressions or immediates");
-
-  const MCExpr *FixupExpression = MCBinaryExpr::createAdd(
-      MO.getExpr(), MCConstantExpr::create(0, Ctx), Ctx);
-  Fixups.push_back(MCFixup::create(0, FixupExpression,
-                                   MCFixupKind(Mips::fixup_NANOMIPS_PC11_S1)));
-  return 0;
-}
-
-/// getBranchTarget11OpValue - Return binary encoding of the branch
-/// target operand. If the machine operand requires relocation,
-/// record the relocation and return zero.
-unsigned MipsMCCodeEmitter::
-getBranchTarget10OpValueNM(const MCInst &MI, unsigned OpNo,
-                         SmallVectorImpl<MCFixup> &Fixups,
-                         const MCSubtargetInfo &STI) const {
-  const MCOperand &MO = MI.getOperand(OpNo);
-
-  // If the destination is an immediate, divide by 2.
-  if (MO.isImm()) return MO.getImm() >> 1;
-
-  assert(MO.isExpr() &&
-         "getBranchTargetOpValue expects only expressions or immediates");
-
-  const MCExpr *FixupExpression = MCBinaryExpr::createAdd(
-      MO.getExpr(), MCConstantExpr::create(0, Ctx), Ctx);
-  Fixups.push_back(MCFixup::create(0, FixupExpression,
-                                   MCFixupKind(Mips::fixup_NANOMIPS_PC10_S1)));
-  return 0;
-}
-
-/// getBranchTarget14OpValue - Return binary encoding of the branch
-/// target operand. If the machine operand requires relocation,
-/// record the relocation and return zero.
-unsigned MipsMCCodeEmitter::
-getBranchTarget14OpValueNM(const MCInst &MI, unsigned OpNo,
-                         SmallVectorImpl<MCFixup> &Fixups,
-                         const MCSubtargetInfo &STI) const {
-  const MCOperand &MO = MI.getOperand(OpNo);
-
-  // If the destination is an immediate, divide by 2.
-  if (MO.isImm()) return MO.getImm() >> 1;
-
-  assert(MO.isExpr() &&
-         "getBranchTargetOpValue expects only expressions or immediates");
-
-  const MCExpr *FixupExpression = MCBinaryExpr::createAdd(
-      MO.getExpr(), MCConstantExpr::create(0, Ctx), Ctx);
-  Fixups.push_back(MCFixup::create(0, FixupExpression,
-                                   MCFixupKind(Mips::fixup_NANOMIPS_PC14_S1)));
-  return 0;
-}
-
-/// getBranchTarget4OpValue - Return binary encoding of the branch
-/// target operand. If the machine operand requires relocation,
-/// record the relocation and return zero.
-unsigned MipsMCCodeEmitter::
-getBranchTarget4OpValueNM(const MCInst &MI, unsigned OpNo,
-                         SmallVectorImpl<MCFixup> &Fixups,
-                         const MCSubtargetInfo &STI) const {
-  const MCOperand &MO = MI.getOperand(OpNo);
-
-  // If the destination is an immediate, divide by 2.
-  if (MO.isImm()) return MO.getImm() >> 1;
-
-  assert(MO.isExpr() &&
-         "getBranchTargetOpValue expects only expressions or immediates");
-
-  const MCExpr *FixupExpression = MCBinaryExpr::createAdd(
-      MO.getExpr(), MCConstantExpr::create(0, Ctx), Ctx);
-  Fixups.push_back(MCFixup::create(0, FixupExpression,
-                                   MCFixupKind(Mips::fixup_NANOMIPS_PC4_S1)));
-  return 0;
-}
-
-/// getBranchTarget7OpValue - Return binary encoding of the branch
-/// target operand. If the machine operand requires relocation,
-/// record the relocation and return zero.
-unsigned MipsMCCodeEmitter::
-getBranchTarget7OpValueNM(const MCInst &MI, unsigned OpNo,
-                         SmallVectorImpl<MCFixup> &Fixups,
-                         const MCSubtargetInfo &STI) const {
-  const MCOperand &MO = MI.getOperand(OpNo);
-
-  // If the destination is an immediate, divide by 2.
-  if (MO.isImm()) return MO.getImm() >> 1;
-
-  assert(MO.isExpr() &&
-         "getBranchTargetOpValue expects only expressions or immediates");
-
-  const MCExpr *FixupExpression = MCBinaryExpr::createAdd(
-      MO.getExpr(), MCConstantExpr::create(0, Ctx), Ctx);
-  Fixups.push_back(MCFixup::create(0, FixupExpression,
-                                   MCFixupKind(Mips::fixup_NANOMIPS_PC7_S1)));
+                                   MCFixupKind(getNMRelocForSize(Bits))));
   return 0;
 }
 

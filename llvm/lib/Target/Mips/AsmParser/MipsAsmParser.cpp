@@ -1987,6 +1987,12 @@ public:
     return (RegIdx.Index >= 5 && RegIdx.Index <= 8);
   }
 
+  bool isNM1R1AsmReg() const {
+    if (!(isRegIdx() && RegIdx.Kind))
+      return false;
+    return (RegIdx.Index == 4 || RegIdx.Index == 5);
+  }
+
   enum NM_REG_TYPE {
 	NMR,
 	NMR_NZ,
@@ -1995,7 +2001,8 @@ public:
 	NMR_4,
 	NMR_4Z,
 	NMR_2R1,
-	NMR_2R2
+	NMR_2R2,
+	NMR_1R1
   };
 
   template <unsigned rt = Mips::GPRNM32RegClassID>
@@ -2021,6 +2028,8 @@ public:
 	return isNM2R1AsmReg();
       case Mips::GPRNM2R2RegClassID:
 	return isNM2R2AsmReg();
+      case Mips::GPRNM1R1RegClassID:
+	return isNM1R1AsmReg();
       default:
 	return (RegIdx.Index < 32);
     }

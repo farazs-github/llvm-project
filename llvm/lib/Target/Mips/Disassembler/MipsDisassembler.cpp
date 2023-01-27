@@ -161,6 +161,11 @@ static DecodeStatus DecodeGPRNM2R2RegisterClass(MCInst &Inst,
 					    uint64_t Address,
 					    const void *Decoder);
 
+static DecodeStatus DecodeGPRNM1R1RegisterClass(MCInst &Inst,
+						unsigned RegNo,
+						uint64_t Address,
+						const void *Decoder);
+
 static DecodeStatus DecodePtrRegisterClass(MCInst &Inst,
                                            unsigned Insn,
                                            uint64_t Address,
@@ -315,11 +320,7 @@ static DecodeStatus DecodeBranchTarget26MM(MCInst &Inst,
 
 // DecodeBranchTargetMM - Decode nanoMIPS branch offset, which is
 // shifted left by 1 bit.
-static DecodeStatus DecodeBranchTarget25NM(MCInst &Inst,
-					   unsigned Offset,
-					   uint64_t Address,
-					   const void *Decoder);
-
+template <unsigned bits>
 static DecodeStatus DecodeBranchTargetNM(MCInst &Inst,
 					   unsigned Offset,
 					   uint64_t Address,
@@ -1757,6 +1758,18 @@ static DecodeStatus DecodeGPRNM2R2RegisterClass(MCInst &Inst,
   return MCDisassembler::Success;
 }
 
+static DecodeStatus DecodeGPRNM1R1RegisterClass(MCInst &Inst,
+						unsigned RegNo,
+						uint64_t Address,
+						const void *Decoder) {
+  if (RegNo != 0 && RegNo != 1)
+    return MCDisassembler::Fail;
+  RegNo += 4;
+  unsigned Reg = getReg(Decoder, Mips::GPRNM32RegClassID, RegNo);
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
 static DecodeStatus DecodePtrRegisterClass(MCInst &Inst,
                                            unsigned RegNo,
                                            uint64_t Address,
@@ -2658,21 +2671,12 @@ static DecodeStatus DecodeBranchTarget26MM(MCInst &Inst,
   return MCDisassembler::Success;
 }
 
-static DecodeStatus DecodeBranchTarget25NM(MCInst &Inst,
-  unsigned Offset,
-  uint64_t Address,
-  const void *Decoder) {
-  int32_t BranchOffset = SignExtend32<25>(Offset << 1);
-
-  Inst.addOperand(MCOperand::createImm(BranchOffset));
-  return MCDisassembler::Success;
-}
-
+template <unsigned Bits = 16>
 static DecodeStatus DecodeBranchTargetNM(MCInst &Inst,
   unsigned Offset,
   uint64_t Address,
   const void *Decoder) {
-  int32_t BranchOffset = SignExtend32<16>(Offset << 1);
+  int32_t BranchOffset = SignExtend32<Bits>(Offset << 1);
 
   Inst.addOperand(MCOperand::createImm(BranchOffset));
   return MCDisassembler::Success;

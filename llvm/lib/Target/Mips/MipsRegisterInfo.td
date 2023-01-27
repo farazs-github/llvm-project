@@ -384,6 +384,10 @@ def GPRNM2R2 :
   RegisterClass<"Mips", [i32], 32,
                 (add A1_NM, A2_NM, A3_NM, A4_NM)>;
 
+def GPRNM1R1 :
+  RegisterClass<"Mips", [i32], 32,
+                (add A0_NM, A1_NM)>;
+
 class GPR32Class<list<ValueType> regTypes> :
   RegisterClass<"Mips", regTypes, 32, (add
   // Reserved
@@ -800,6 +804,11 @@ def GPRNM2R1Opnd : RegisterOperand<GPRNM2R1> {
 
 def GPRNM2R2Opnd : RegisterOperand<GPRNM2R2> {
   let ParserMatchClass = GPRNMAsmOperandClass<"2Reg2", "GPRNM2R2RegClassID",
+					      [GPRNM4Opnd.ParserMatchClass]>;
+}
+
+def GPRNM1R1Opnd : RegisterOperand<GPRNM1R1> {
+  let ParserMatchClass = GPRNMAsmOperandClass<"1Reg1", "GPRNM1R1RegClassID",
 					      [GPRNM4Opnd.ParserMatchClass]>;
 }
 

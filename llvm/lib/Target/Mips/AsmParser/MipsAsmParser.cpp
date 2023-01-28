@@ -6115,6 +6115,10 @@ MipsAsmParser::checkEarlyTargetMatchPredicate(MCInst &Inst,
     return Match_Success;
   case Mips::DATI:
   case Mips::DAHI:
+  case Mips::ADDIURS5_NM:
+  case Mips::ADDIU48_NM:
+  case Mips::ADDu4x4_NM:
+  case Mips::MUL4x4_NM:
     if (static_cast<MipsOperand &>(*Operands[1])
             .isValidForTie(static_cast<MipsOperand &>(*Operands[2])))
       return Match_Success;
@@ -6253,13 +6257,6 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
   case Mips::AND16_NM: case Mips::OR16_NM:
   case Mips::XOR16_NM:
     if (Inst.getOperand(0).getReg() != Inst.getOperand(2).getReg())
-      return Match_RequiresSameSrcAndDst;
-    return Match_Success;
-  case Mips::ADDIU48_NM:
-  case Mips::ADDu4x4_NM:
-  case Mips::MUL4x4_NM:
-  case Mips::ADDIURS5_NM:
-    if (Inst.getOperand(0).getReg() != Inst.getOperand(1).getReg())
       return Match_RequiresSameSrcAndDst;
     return Match_Success;
   case Mips::MOVEP_NM:

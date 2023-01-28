@@ -121,6 +121,16 @@ static DecodeStatus DecodeGPRNM4RegisterClass(MCInst &Inst,
 					    uint64_t Address,
 					    const void *Decoder);
 
+static DecodeStatus DecodeGPRNMSPRegisterClass(MCInst &Inst,
+					    unsigned RegNo,
+					    uint64_t Address,
+					    const void *Decoder);
+
+static DecodeStatus DecodeGPRNMGPRegisterClass(MCInst &Inst,
+					    unsigned RegNo,
+					    uint64_t Address,
+					    const void *Decoder);
+
 static DecodeStatus DecodeGPRNM3ZRegisterClass(MCInst &Inst,
 					    unsigned RegNo,
 					    uint64_t Address,
@@ -489,6 +499,9 @@ static DecodeStatus DecodeInsSize(MCInst &Inst,
                                   unsigned Insn,
                                   uint64_t Address,
                                   const void *Decoder);
+
+static DecodeStatus DecodeSimm32(MCInst &Inst, unsigned Insn,
+				 uint64_t Address, const void *Decoder);
 
 static DecodeStatus DecodeSimm19Lsl2(MCInst &Inst, unsigned Insn,
                                      uint64_t Address, const void *Decoder);
@@ -1639,6 +1652,22 @@ static DecodeStatus DecodeGPRNM3RegisterClass(MCInst &Inst,
   return MCDisassembler::Success;
 }
 
+static DecodeStatus DecodeGPRNMSPRegisterClass(MCInst &Inst,
+                                               unsigned RegNo,
+                                               uint64_t Address,
+                                               const void *Decoder) {
+  Inst.addOperand(MCOperand::createReg(Mips::SP_NM));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeGPRNMGPRegisterClass(MCInst &Inst,
+                                               unsigned RegNo,
+                                               uint64_t Address,
+                                               const void *Decoder) {
+  Inst.addOperand(MCOperand::createReg(Mips::GP_NM));
+  return MCDisassembler::Success;
+}
+
 static DecodeStatus DecodeGPRNM3ZRegisterClass(MCInst &Inst,
                                             unsigned RegNo,
                                             uint64_t Address,
@@ -2728,6 +2757,12 @@ static DecodeStatus DecodeInsSize(MCInst &Inst,
   int Pos = Inst.getOperand(2).getImm();
   int Size = (int) Insn - Pos + 1;
   Inst.addOperand(MCOperand::createImm(SignExtend32<16>(Size)));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeSimm32(MCInst &Inst, unsigned Insn,
+				 uint64_t Address, const void *Decoder) {
+  Inst.addOperand(MCOperand::createImm(Insn));
   return MCDisassembler::Success;
 }
 

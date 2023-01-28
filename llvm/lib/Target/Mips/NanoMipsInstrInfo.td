@@ -183,6 +183,16 @@ class NMUImmAsmOperandClass<int Bits,
   let SuperClasses = Supers;
 }
 
+class NMSImmAsmOperandClass<int Bits,
+			    list<AsmOperandClass> Supers = [],
+			    int Offset = 0> :
+			    AsmOperandClass {
+  let Name = "NMSImm" # Bits # "_" # Offset;
+  let RenderMethod = "addSImmOperands<" # Bits # ">";
+  let PredicateMethod = "isConstantSImm<" # Bits # "," # Offset # ">";
+  let SuperClasses = Supers;
+}
+
 class NMUImmScaledAsmOperandClass<int Bits,
 			          int Shift = 0,
 				  list<AsmOperandClass> Supers = []> :
@@ -210,9 +220,8 @@ def uimm5_nm : Operand<i32> {
   let PrintMethod = "printUImm<5>";
   let ParserMatchClass = NMUImmAsmOperandClass<5>;
 }
-def uimm4_nm : Operand<i32> {
-  let PrintMethod = "printUImm<4>";
-  let ParserMatchClass = NMUImmAsmOperandClass<4>;
+def simm4_nm : Operand<i32> {
+  let ParserMatchClass = NMSImmAsmOperandClass<4>;
 }
 def uimm1_nm : Operand<i32> {
   let PrintMethod = "printUImm<1>";
@@ -228,7 +237,7 @@ def nimm12_nm : Operand<i32> {
 }
 def uimm16_nm : Operand<i32> {
   let PrintMethod = "printUImm<16>";
-  let ParserMatchClass = !cast<AsmOperandClass>("SImm16AsmOperandClass");
+  let ParserMatchClass = !cast<AsmOperandClass>("UImm16AsmOperandClass");
 }
 def uimm5s1_nm : Operand<i32> {
   let PrintMethod = "printUImm<5>";
@@ -438,6 +447,12 @@ def sym32_abs_nm : Operand<iPTRAny> {
   let ParserMatchClass = SymAsmOperandAbs;
 }
 
+def simm32_nm : Operand<i32> {
+  let ParserMatchClass = NMSImmAsmOperandClass<32>;
+  let DecoderMethod = "DecodeSimm32";
+  let EncoderMethod = "getSImm32Encoding";
+}
+
 def simm32power2 : IntImmLeaf<i32, [{ return isPowerOf2_32(Imm.getSExtValue()); }]>;
 
 def uimm16_simm12 : Operand<i32>;
@@ -462,6 +477,13 @@ def addrgprel : ComplexPattern<iPTR, 2, "selectAddrSym", [frameindex]>;
 def Log2XForm : SDNodeXForm<imm, [{ return CurDAG->getTargetConstant(Log2_32(N->getZExtValue()),
                                                                    SDLoc(N), MVT::i32);
                                   }]>;
+
+class RegConstraint<string C> {
+  string Constraints = C;
+}
+class NoEncode<string E> {
+  string DisableEncoding = E;
+}
 
 //===----------------------------------------------------------------------===//
 //
@@ -1233,6 +1255,14 @@ class Op48_Enc<bits<5> isel> : _Pool_P48I<isel> {
   let Inst{15...0} = addr{31...16};
 }
 
+class Op48_Imm_Enc<bits<5> isel> : _Pool_P48I<isel> {
+  bits<5> rt;
+  bits<32> imm;
+  let Inst{41...37} = rt;
+  let Inst{31...16} = imm{15...0};
+  let Inst{15...0} = imm{31...16};
+}
+
 class LoadPCBase<DAGOperand RO, DAGOperand MO, ComplexPattern Addr> :
     InstNM<(outs RO:$rt),
            (ins MO:$addr), "lwpc\t$rt, $addr", 
@@ -1538,9 +1568,11 @@ def SUBu16_NM  : AddSubR16_Desc<"subu", GPRNM16R3Opnd, sub>,
 def ADDu16_NM : AddSubR16_Desc<"addu", GPRNM16R3Opnd, add>,
 		AddSubR16_Enc<0b0>;
 def ADDu4x4_NM : Arith4x4_Desc<"addu", GPRNM4Opnd, add>,
-		 Arith4x4_Enc<0b00>;
+		 Arith4x4_Enc<0b00>, RegConstraint<"$rt = $dst">,
+		 NoEncode<"$rt">;
 def MUL4x4_NM  : Arith4x4_Desc<"mul", GPRNM4Opnd, mul>,
-    		  Arith4x4_Enc<0b01>;
+		  Arith4x4_Enc<0b01>, RegConstraint<"$rt = $dst">,
+		  NoEncode<"$rt">;
 }
 
 // P.U12 pool of instructions
@@ -1574,16 +1606,18 @@ def ROTR_NM : ShiftI_Desc<"rotr", uimm5_nm, GPRNM32Opnd, imm32ZExt5, rotr>,
 def EXT_NM : ExtBaseNM, ExtInsBase_Enc<0b1111>;
 def INS_NM : InsBaseNM, ExtInsBase_Enc<0b1110>;
 
-def ADDIUGPB_NM : AddImmediate<"addiu", uimm18_nm, GPRNM32Opnd, GPRNMGPOpnd,
-			       imm32ZExt18, add>, _Pool_P_GP_BH<0b011> {
+def ADDIUGPB_NM : AddImmediate<"addiu", uimm18_nm, GPRNM32Opnd,
+				GPRNMGPOpnd, imm32ZExt18, add>,
+				_Pool_P_GP_BH<0b011>, NoEncode<"$rs"> {
   bits<5> rt;
   bits<18> imm;
   let Inst{25...21} = rt;
   let Inst{17...0} = imm;
 }
 
-def ADDIUGPW_NM : AddImmediate<"addiu", uimm21s2_nm, GPRNM32Opnd, GPRNMGPOpnd,
-			       imm32ZExt21s2, add>, _Pool_P_GP_W<0b00> {
+def ADDIUGPW_NM : AddImmediate<"addiu", uimm21s2_nm, GPRNM32Opnd,
+				GPRNMGPOpnd, imm32ZExt21s2, add>,
+				_Pool_P_GP_W<0b00>, NoEncode<"$rs"> {
   bits<5> rt;
   bits<21> imm;
   let Inst{25...21} = rt;
@@ -1613,15 +1647,9 @@ def ADDIUR2_NM : AddImmediate<"addiu", uimm5s2_nm, GPRNM16R3Opnd, GPRNM16R3Opnd,
   let Inst{2...0} = imm{4...2};
 }
 
-class RegConstraint<string C> {
-  string Constraints = C;
-}
-class NoEncode<string E> {
-  string DisableEncoding = E;
-}
-
-def ADDIURS5_NM : AddImmediate<"addiu", uimm4_nm, GPRNM16R5NZOpnd, GPRNM16R5NZOpnd,
-			       imm32ZExt4, add>, _Pool_P16_A2<0b1>, NoEncode<"$rs">  {
+def ADDIURS5_NM : AddImmediate<"addiu", simm4_nm, GPRNM16R5NZOpnd, GPRNM16R5NZOpnd,
+			       imm32ZExt4, add>, _Pool_P16_A2<0b1>,
+			       RegConstraint<"$rs = $rt">, NoEncode<"$rs">  {
   bits<5> rt;
   bits<4> imm;
   let Inst{9...5} = rt;
@@ -1630,16 +1658,21 @@ def ADDIURS5_NM : AddImmediate<"addiu", uimm4_nm, GPRNM16R5NZOpnd, GPRNM16R5NZOp
   let Constraints = "$rs = $rt";
 }
 
-def ADDIUR1SP_NM : AddImmediate<"addiu", uimm8s2_nm, GPRNM16R3Opnd, GPRNMSPOpnd,
-			        imm32ZExt8s2, add>, _Pool_P16_A1<0b1> {
+def ADDIUR1SP_NM : AddImmediate<"addiu", uimm8s2_nm, GPRNM16R3Opnd,
+				GPRNMSPOpnd, imm32ZExt8s2, add>,
+				_Pool_P16<0b01100>,
+				NoEncode<"$rs"> {
   bits<3> rt;
   bits<8> imm;
   let Inst{9...7} = rt;
+  let Inst{6} = 0b1;
   let Inst{5...0} = imm{7...2};
 }
 
-def ADDIU48_NM : ArithLogicINM<"addiu", simm32_relaxed, GPRNM48Opnd,
-                               imm32_NM, add>, Op48_Enc<0b00001>;
+def ADDIU48_NM : ArithLogicINM<"addiu", simm32_nm, GPRNM48Opnd,
+                               imm32_NM, add>, Op48_Imm_Enc<0b00001>,
+			       RegConstraint<"$rs = $rt">;
+
 
 def ADDIUPC48_NM : LoadAddressPCRelNM<"addiu", GPRNM48Opnd, sym32_pc_nm,
                                       addrpcrel>, Op48_Enc<0b00011>;
@@ -1679,7 +1712,7 @@ let isReMaterializable = 1 in {
 def LI16_NM : LoadImmediateNM<"li", GPRNM16R3Opnd, nimm7_nm, imm7M1To126>,
 	      LI16_Enc<0b11000>;
 def LI48_NM : LoadAddressAbsNM<"li", GPRNM48Opnd, sym32_abs_nm,
-			       addrpcrel>, Op48_Enc<0b00000>;
+			       addrpcrel>, Op48_Imm_Enc<0b00000>;
 def LAGPB_NM : LoadAddressGPRelNM<"addiu", GPRNM48Opnd, sym32_gp_nm,
                                       addrgprel>, Op48_Enc<0b00010>;
 } // isReMaterializable = 1

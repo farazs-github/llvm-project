@@ -1606,4 +1606,15 @@ MipsMCCodeEmitter::getNegImm12Encoding(const MCInst &MI, unsigned OpNo,
   return (unsigned) -res;
 }
 
+unsigned
+MipsMCCodeEmitter::getSImm32Encoding(const MCInst &MI, unsigned OpNo,
+				     SmallVectorImpl<MCFixup> &Fixups,
+				     const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+  assert(MO.isImm() && "getSImm32Encoding expects only an immediate");
+  int Res = static_cast<signed>(MO.getImm());
+  return Res;
+}
+
+
 #include "MipsGenMCCodeEmitter.inc"

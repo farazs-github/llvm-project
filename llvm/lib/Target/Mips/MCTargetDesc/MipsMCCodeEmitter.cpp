@@ -693,13 +693,10 @@ getSymGPRel(const MCInst &MI, unsigned OpNo,
 	    SmallVectorImpl<MCFixup> &Fixups,
 	    const MCSubtargetInfo &STI) const {
   const MCExpr *Expr;
-  unsigned RegBits=getMachineOpValue(MI, MI.getOperand(OpNo), Fixups,
-				     STI);
-
-  assert(MI.getOperand(OpNo).isReg() && RegBits == 28);
-  const MCOperand MO = MI.getOperand(OpNo+1);
+  const MCOperand MO = MI.getOperand(OpNo);
 
   if (MO.isExpr()) {
+    Expr = MO.getExpr();
     const MipsMCExpr *MipsExpr = cast<MipsMCExpr>(Expr);
     assert (MipsExpr->getKind() == MipsMCExpr::MEK_GPREL);
     Expr = MO.getExpr();

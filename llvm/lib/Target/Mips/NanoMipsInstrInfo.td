@@ -1247,7 +1247,7 @@ class StoreMemoryNM4x4<string opstr, RegisterOperand RO, DAGOperand MO,
   string BaseOpcode = opstr;
 }
 
-class Op48_Enc<bits<5> isel> : _Pool_P48I<isel> {
+class Op48_Addr_Enc<bits<5> isel> : _Pool_P48I<isel> {
   bits<5> rt;
   bits<32> addr;
   let Inst{41...37} = rt;
@@ -1485,15 +1485,16 @@ class ReverseNM<string opstr, RegisterOperand RO, SDNode OpNode>:
   InstNM<(outs RO:$rd), (ins RO:$rs), !strconcat(opstr, "\t$rd, $rs"),
          [(set RO:$rd, (OpNode RO:$rs))]>, InstSize32;
 
-class LoadAddressPCRelNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexPattern Addr> :
+class LoadAddressPCRelNM<string opstr, RegisterOperand RO,
+			 DAGOperand MO, ComplexPattern Addr> :
   InstNM<(outs RO:$rt), (ins MO:$addr),
          !strconcat(opstr, "\t$rt, $addr"),
          [(set RO:$rt, Addr:$addr)]>;
 
 class LoadAddressGPRelNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexPattern Addr> :
-  InstNM<(outs RO:$rt), (ins MO:$addr),
-         !strconcat(opstr, "\t$rt, $addr"),
-         [(set RO:$rt, Addr:$addr)]>;
+  InstNM<(outs RO:$rt), (ins GPRNMGPOpnd:$rs, MO:$addr),
+         !strconcat(opstr, "\t$rt, $rs, $addr"),
+         [(set RO:$rt, (add GPRNMGPOpnd:$rs, Addr:$addr))]>;
 
 class LoadAddressAbsNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexPattern Addr> :
   InstNM<(outs RO:$rt), (ins MO:$addr),
@@ -1673,9 +1674,11 @@ def ADDIU48_NM : ArithLogicINM<"addiu", simm32_nm, GPRNM48Opnd,
                                imm32_NM, add>, Op48_Imm_Enc<0b00001>,
 			       RegConstraint<"$rs = $rt">;
 
+def ADDIUPC48_NM : LoadAddressPCRelNM<"addiupc", GPRNM48Opnd, sym32_pc_nm,
+				      addrpcrel>, Op48_Addr_Enc<0b00011>;
 
-def ADDIUPC48_NM : LoadAddressPCRelNM<"addiu", GPRNM48Opnd, sym32_pc_nm,
-                                      addrpcrel>, Op48_Enc<0b00011>;
+def LAPC_NM : MipsInstAlias<"lapc $rt, $addr",
+			    (ADDIUPC48_NM GPRNM32Opnd: $rt, sym32_pc_nm:$addr)>;
 
 def LSA_NM : LoadScaledAddressNM<"lsa", GPRNM32Opnd>, LoadScaledAddress_Enc;
 
@@ -1728,14 +1731,15 @@ def LI16_NM : LoadImmediateNM<"li", GPRNM16R3Opnd, nimm7_nm, imm7M1To126>,
 	      LI16_Enc<0b11000>;
 def LI48_NM : LoadAddressAbsNM<"li", GPRNM48Opnd, sym32_abs_nm,
 			       addrpcrel>, Op48_Imm_Enc<0b00000>;
-def LAGPB_NM : LoadAddressGPRelNM<"addiu", GPRNM48Opnd, sym32_gp_nm,
-                                      addrgprel>, Op48_Enc<0b00010>;
+def ADDIUGP48_NM : LoadAddressGPRelNM<"addiu.b32", GPRNM48Opnd, sym32_gp_nm,
+				      addrgprel>, Op48_Addr_Enc<0b00010>;
 } // isReMaterializable = 1
 
-let isReMaterializable = 1,isCodeGenOnly = 1 in {
-def LA_NM : RegImm48_Desc<"la", simm32_relaxed, GPRNM32Opnd>,
-		Op48_Enc<0b00011>;
-}
+def ADDIUB32_NM : MipsInstAlias<"addiu.b32 $rt, $rs, $addr",
+				(ADDIUGP48_NM GPRNM48Opnd:$rt,
+				GPRNMGPOpnd:$rs, sym32_gp_nm:$addr)>;
+def LA_NM : MipsInstAlias<"la $rt, $addr",
+			  (ADDIUPC48_NM GPRNM48Opnd:$rt, sym32_pc_nm:$addr)>;
 
 class ANDI16_Enc<bits<5> isel> : _Pool_P16<isel>
 {
@@ -1826,9 +1830,9 @@ let hasPostISelHook = 1, isCall = 1, isCTI = 1, Defs = [RA_NM] in {
 
 def : NMPat<(i32 imm32_NM:$imm), (LI48_NM imm:$imm)>;
 
-def : NMPat<(MipsFullAddr tglobaltlsaddr:$in), (LA_NM tglobaltlsaddr:$in)>;
-def : NMPat<(MipsFullAddr tblockaddress:$in), (LA_NM tblockaddress:$in)>;
-def : NMPat<(MipsFullAddr tjumptable:$in), (LA_NM tjumptable:$in)>;
+def : NMPat<(MipsFullAddr tglobaltlsaddr:$in), (ADDIUPC48_NM tglobaltlsaddr:$in)>;
+def : NMPat<(MipsFullAddr tblockaddress:$in), (ADDIUPC48_NM tblockaddress:$in)>;
+def : NMPat<(MipsFullAddr tjumptable:$in), (ADDIUPC48_NM tjumptable:$in)>;
 
 def : NMPat<(not (or GPRNM32:$rs, GPRNM32:$rt)),
             (NOR_NM GPRNM32:$rs, GPRNM32:$rt)>;
@@ -2274,8 +2278,8 @@ def LW4x4_NM : LoadMemoryNM16<"lw", GPRNM4Opnd, mem_nm2s2, load, addruimm2s2, II
 def SW4x4_NM : StoreMemoryNM4x4<"sw", GPRNM4Opnd, mem_nm2s2, store, addruimm2s2, II_SW>,
 	       LSMem4x4_Enc<0b11101>;
 
-def SWPC_NM : StorePCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01011>;
-def LWPC_NM : LoadPCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Enc<0b01111>;
+def SWPC_NM : StorePCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Addr_Enc<0b01011>;
+def LWPC_NM : LoadPCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Addr_Enc<0b01111>;
 
 let isMoveReg = 1 in {
 def MOVE16_NM : InstNM<(outs GPRNM32NZOpnd:$rt), (ins GPRNM32Opnd:$rs),
@@ -2378,10 +2382,10 @@ def alignedglobaladdr : PatFrag<(ops),
     }]>;
 
 def : NMPat<(MipsFullAddr alignedglobaladdr:$in),
-            (LA_NM  alignedglobaladdr:$in)>;
+            (ADDIUPC48_NM  alignedglobaladdr:$in)>;
 
 def : NMPat<(MipsFullAddr tglobaladdr:$in),
-            (LAGPB_NM tglobaladdr:$in)>;
+            (ADDIUGP48_NM GP_NM, tglobaladdr:$in)>;
 
 
 // Atomic load patterns.

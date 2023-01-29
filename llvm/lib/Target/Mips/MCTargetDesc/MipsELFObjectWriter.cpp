@@ -649,6 +649,10 @@ bool MipsELFObjectWriter::needsRelocateWithSymbol(const MCSymbol &Sym,
            needsRelocateWithSymbol(Sym, (Type >> 8) & 0xff) ||
            needsRelocateWithSymbol(Sym, (Type >> 16) & 0xff);
 
+  // Conservative assumption for NanoMips, let the linker handle it!
+  if (getEMachine() == ELF::EM_NANOMIPS)
+    return true;
+
   switch (Type) {
   default:
     errs() << Type << "\n";

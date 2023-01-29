@@ -716,6 +716,29 @@ bool MipsAsmBackend::shouldForceRelocation(const MCAssembler &Asm,
   case Mips::fixup_MICROMIPS_TLS_TPREL_HI16:
   case Mips::fixup_MICROMIPS_TLS_TPREL_LO16:
   case Mips::fixup_MICROMIPS_JALR:
+  case Mips::fixup_NANOMIPS_PC25_S1:
+  case Mips::fixup_NANOMIPS_PC21_S1:
+  case Mips::fixup_NANOMIPS_PC14_S1:
+  case Mips::fixup_NANOMIPS_PC11_S1:
+  case Mips::fixup_NANOMIPS_PC10_S1:
+  case Mips::fixup_NANOMIPS_PC7_S1:
+  case Mips::fixup_NANOMIPS_PC4_S1:
+  case Mips::fixup_NANOMIPS_PCHI20:
+  case Mips::fixup_NANOMIPS_GOTPC_I32:
+  case Mips::fixup_NANOMIPS_GOTPC_HI20:
+  case Mips::fixup_NANOMIPS_TLS_GOTTPREL_PC_I32:
+  case Mips::fixup_NANOMIPS_COPY:
+  case Mips::fixup_NANOMIPS_ALIGN:
+  case Mips::fixup_NANOMIPS_FILL:
+  case Mips::fixup_NANOMIPS_MAX:
+  case Mips::fixup_NANOMIPS_INSN32:
+  case Mips::fixup_NANOMIPS_FIXED:
+  case Mips::fixup_NANOMIPS_NORELAX:
+  case Mips::fixup_NANOMIPS_SAVERESTORE:
+  case Mips::fixup_NANOMIPS_INSN16:
+  case Mips::fixup_NANOMIPS_JUMPTABLE_LOAD:
+  case Mips::fixup_NANOMIPS_JALR32:
+  case Mips::fixup_NANOMIPS_JALR16:
     return true;
   }
 }

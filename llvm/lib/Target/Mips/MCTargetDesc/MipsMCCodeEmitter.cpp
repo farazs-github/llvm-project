@@ -677,12 +677,12 @@ getSymPCRel(const MCInst &MI, unsigned OpNo,
   const MCOperand &MO = MI.getOperand(OpNo);
   if (MO.isExpr()) {
     Expr = MO.getExpr();
-    Fixups.push_back(MCFixup::create(0, Expr,
+    Fixups.push_back(MCFixup::create(2, Expr,
 				     MCFixupKind(Mips::fixup_NANOMIPS_PC_I32)));
   }
   else if (MO.isImm()) {
     Expr = MCConstantExpr::create(static_cast<unsigned>(MO.getImm()), Ctx);
-    Fixups.push_back(MCFixup::create(0, Expr,
+    Fixups.push_back(MCFixup::create(2, Expr,
 				     MCFixupKind(Mips::fixup_NANOMIPS_PC_I32)));
   }
   return 0;
@@ -707,7 +707,7 @@ getSymGPRel(const MCInst &MI, unsigned OpNo,
   else if (MO.isImm())
     Expr = MCConstantExpr::create(static_cast<unsigned>(MO.getImm()), Ctx);
 
-  Fixups.push_back(MCFixup::create(0, Expr,
+  Fixups.push_back(MCFixup::create(2, Expr,
 				   MCFixupKind(Mips::fixup_NANOMIPS_GPREL_I32)));
   return 0;
 }
@@ -718,7 +718,7 @@ getSymAbs(const MCInst &MI, unsigned OpNo,
 	  const MCSubtargetInfo &STI) const {
   const MCOperand &MO = MI.getOperand(OpNo);
   if (MO.isExpr())
-    Fixups.push_back(MCFixup::create(0, MO.getExpr(),
+    Fixups.push_back(MCFixup::create(2, MO.getExpr(),
 				     MCFixupKind(Mips::fixup_NANOMIPS_I32)));
   else if (MO.isImm())
     return MO.getImm();

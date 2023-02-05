@@ -1626,7 +1626,7 @@ def ADDIUGPW_NM : AddImmediate<"addiu", uimm21s2_nm, GPRNM32Opnd,
   let Inst{20...2} = imm{20...2};
   let DisableEncoding="$rs";
 }
-}
+
 def ADDiu_NM : AddImmediate<"addiu", uimm16_nm, GPRNM32NZOpnd, GPRNM32Opnd,
                             imm32ZExt16, add>, _Pool_P32<0b00000> {
   bits<5> rt;

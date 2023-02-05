@@ -1487,7 +1487,8 @@ MipsMCCodeEmitter::getNMRegList16Encoding(const MCInst &MI, unsigned OpNo,
 					  SmallVectorImpl<MCFixup> &Fixups,
 					  const MCSubtargetInfo &STI) const {
   unsigned res = 0;
-  if (!MI.getOperand(OpNo).isImm() || MI.getOperand(OpNo).getImm() != 0) {
+  if (OpNo < MI.getNumOperands() &&
+      (!MI.getOperand(OpNo).isImm() || MI.getOperand(OpNo).getImm() != 0)) {
     res = 0x10;
     for (unsigned I = OpNo; I < MI.getNumOperands(); I++) {
       unsigned Reg = MI.getOperand(I).getReg();

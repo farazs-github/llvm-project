@@ -1608,23 +1608,25 @@ def EXT_NM : ExtBaseNM, ExtInsBase_Enc<0b1111>;
 def INS_NM : InsBaseNM, ExtInsBase_Enc<0b1110>;
 
 def ADDIUGPB_NM : AddImmediate<"addiu", uimm18_nm, GPRNM32Opnd,
-				GPRNMGPOpnd, imm32ZExt18, add>,
+				GPRNM32Opnd, imm32ZExt18, add>,
 				_Pool_P_GP_BH<0b011>, NoEncode<"$rs"> {
   bits<5> rt;
   bits<18> imm;
   let Inst{25...21} = rt;
   let Inst{17...0} = imm;
+  let DisableEncoding="$rs";
 }
 
 def ADDIUGPW_NM : AddImmediate<"addiu", uimm21s2_nm, GPRNM32Opnd,
-				GPRNMGPOpnd, imm32ZExt21s2, add>,
+				GPRNM32Opnd, imm32ZExt21s2, add>,
 				_Pool_P_GP_W<0b00>, NoEncode<"$rs"> {
   bits<5> rt;
   bits<21> imm;
   let Inst{25...21} = rt;
   let Inst{20...2} = imm{20...2};
+  let DisableEncoding="$rs";
 }
-
+}
 def ADDiu_NM : AddImmediate<"addiu", uimm16_nm, GPRNM32NZOpnd, GPRNM32Opnd,
                             imm32ZExt16, add>, _Pool_P32<0b00000> {
   bits<5> rt;

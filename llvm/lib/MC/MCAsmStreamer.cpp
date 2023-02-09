@@ -2166,7 +2166,7 @@ void MCAsmStreamer::AddEncodingComment(const MCInst &Inst,
     for (unsigned j = 0; j != Info.TargetSize; ++j) {
       unsigned Index = F.getOffset() * 8 + Info.TargetOffset + j;
       assert(Index < Code.size() * 8 && "Invalid offset in fixup!");
-      FixupMap[Index] = 1 + i;
+      FixupMap[(Index + 16) % (Code.size() * 8)] = 1 + i;
     }
   }
 

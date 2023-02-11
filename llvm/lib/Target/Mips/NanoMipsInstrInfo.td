@@ -1676,7 +1676,7 @@ def ADDIU48_NM : ArithLogicINM<"addiu", simm32_nm, GPRNM48Opnd,
                                imm32_NM, add>, Op48_Imm_Enc<0b00001>,
 			       RegConstraint<"$rs = $rt">;
 
-def ADDIUPC48_NM : LoadAddressPCRelNM<"addiupc", GPRNM48Opnd, sym32_pc_nm,
+def ADDIUPC48_NM : LoadAddressPCRelNM<"lapc", GPRNM48Opnd, sym32_pc_nm,
 				      addrpcrel>, Op48_Addr_Enc<0b00011>;
 
 def LAPC_NM : MipsInstAlias<"lapc $rt, $addr",

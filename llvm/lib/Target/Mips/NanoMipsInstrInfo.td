@@ -293,7 +293,52 @@ def uimm2_nm : Operand<i32> {
   let ParserMatchClass = UImm2AsmOperand;
 }
 
-def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID">;
+def MemNMGP19S2Parser : NMMemUimmAsmOperand<19,2,
+    "Mips::GPRNMGPRegClassID">;
+
+def mem_nm_gp19s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let OperandType = "OPERAND_NM_GPREL21";
+  let OperandNamespace = "NanoMips";
+  let DecoderMethod = "DecodeMemNM<21,false,Mips::GPRNMGPRegClassID>";
+  let ParserMatchClass = MemNMGP19S2Parser;
+}
+
+def mem_nm_gp18 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let DecoderMethod = "DecodeMemNM<18,false,Mips::GPRNMGPRegClassID>";
+  let OperandType = "OPERAND_NM_GPREL18";
+  let OperandNamespace = "NanoMips";
+  let ParserMatchClass = NMMemUimmAsmOperand<18,0,"Mips::GPRNMGPRegClassID">;
+}
+
+def mem_nm_gp17s1 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMGP";
+  let DecoderMethod = "DecodeMemNM<18,false,Mips::GPRNMGPRegClassID>";
+  let OperandType = "OPERAND_NM_GPREL18";
+  let OperandNamespace = "NanoMips";
+  let ParserMatchClass = NMMemUimmAsmOperand<17,1,"Mips::GPRNMGPRegClassID">;
+}
+
+def MemNMU12Parser : NMMemUimmAsmOperand<12,0,
+    "Mips::GPRNM32RegClassID",[MemNMGP19S2Parser]>;
+
+def mem_nmu12 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm12";
+  let DecoderMethod = "DecodeMemNM<12,false,Mips::GPRNM32RegClassID>";
+  let ParserMatchClass = MemNMU12Parser;
+}
+
+def MemNMS9Parser : NMMemSimmAsmOperand<9,0,
+    "Mips::GPRNM32RegClassID",[MemNMGP19S2Parser]>;
+
+def mem_nms9 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm9";
+  let DecoderMethod = "DecodeMemNM<9,true,Mips::GPRNM32RegClassID>";
+  let ParserMatchClass = MemNMS9Parser;
+}
+
+def MemNMGP7S2Parser : NMMemUimmAsmOperand<7,2,"Mips::GPRNMGPRegClassID",[MemNMS9Parser]>;
 
 def mem_nm_gp7s2 : mem_generic {
   let EncoderMethod = "getMemEncodingNMGP";
@@ -343,51 +388,6 @@ def mem_nm2s2 : mem_generic {
   let EncoderMethod = "getMemEncodingNMImm2S2";
   let ParserMatchClass = MemNM2S2Parser;
   let DecoderMethod = "DecodeMemNM4x4";
-}
-
-def MemNMGP19S2Parser : NMMemUimmAsmOperand<19,2,
-    "Mips::GPRNMGPRegClassID",[MemNMGP7S2Parser]>;
-
-def mem_nm_gp19s2 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMGP";
-  let OperandType = "OPERAND_NM_GPREL21";
-  let OperandNamespace = "NanoMips";
-  let DecoderMethod = "DecodeMemNM<21,false,Mips::GPRNMGPRegClassID>";
-  let ParserMatchClass = MemNMGP7S2Parser;
-}
-
-def mem_nm_gp18 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMGP";
-  let DecoderMethod = "DecodeMemNM<18,false,Mips::GPRNMGPRegClassID>";
-  let OperandType = "OPERAND_NM_GPREL18";
-  let OperandNamespace = "NanoMips";
-  let ParserMatchClass = NMMemUimmAsmOperand<18,0,"Mips::GPRNMGPRegClassID",[MemNMGP7S2Parser]>;
-}
-
-def mem_nm_gp17s1 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMGP";
-  let DecoderMethod = "DecodeMemNM<18,false,Mips::GPRNMGPRegClassID>";
-  let OperandType = "OPERAND_NM_GPREL18";
-  let OperandNamespace = "NanoMips";
-  let ParserMatchClass = NMMemUimmAsmOperand<17,1,"Mips::GPRNMGPRegClassID",[MemNMGP7S2Parser]>;
-}
-
-def MemNMU12Parser : NMMemUimmAsmOperand<12,0,
-    "Mips::GPRNM32RegClassID",[MemNMGP19S2Parser]>;
-
-def mem_nmu12 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMImm12";
-  let DecoderMethod = "DecodeMemNM<12,false,Mips::GPRNM32RegClassID>";
-  let ParserMatchClass = MemNMU12Parser;
-}
-
-def MemNMS9Parser : NMMemSimmAsmOperand<9,0,
-    "Mips::GPRNM32RegClassID",[MemNMGP19S2Parser]>;
-
-def mem_nms9 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMImm9";
-  let DecoderMethod = "DecodeMemNM<9,true,Mips::GPRNM32RegClassID>";
-  let ParserMatchClass = MemNMS9Parser;
 }
 
 def mem_nmpcrel : mem_generic {

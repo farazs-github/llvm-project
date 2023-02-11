@@ -1779,7 +1779,13 @@ def LUI_NM : RegImmNM<"lui", simm32s12_nm, GPRNM32Opnd, imm32SExt20s12>, LUI_Enc
 
 def ALUIPC_NM : RegImmNM<"aluipc", simm32s12_nm, GPRNM32Opnd, imm32SExt20s12>, LUI_Enc<0b1>;
 
-def LEA_ADDiu_NM : EffectiveAddressNM<"addiu", GPRNM32Opnd>, InstSize32;
+def LEA_ADDiu_NM : EffectiveAddressNM<"addiu", GPRNM32Opnd>, _Pool_P32<0b00000> {
+  bits<5> rt;
+  bits<16> addr;
+  let Inst{25...21} = rt;
+  let Inst{20...16} = 0b00000;
+  let Inst{15...0} = addr;
+}
 
 def RDHWR_NM : ReadHardwareNM<GPRNM32Opnd, HWRegsOpnd>,
 	       _Pool_POOL32A0_0<0b011100> {

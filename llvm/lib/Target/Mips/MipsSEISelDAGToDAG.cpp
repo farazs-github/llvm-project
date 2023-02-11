@@ -578,27 +578,47 @@ bool MipsSEDAGToDAGISel::selectIntAddrUImm2s2(SDValue Addr, SDValue &Base,
 
 bool MipsSEDAGToDAGISel::selectIntAddrUImm19s2(SDValue Addr, SDValue &Base,
                                              SDValue &Offset) const {
-  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 19, 2);
+  bool Retval = selectAddrFrameIndexUOffset(Addr, Base, Offset, 19, 2);
+  if (Base == CurDAG->getRegister(Mips::GP_NM, MVT::i32))
+    return Retval;
+  else
+    return false;
 }
 
 bool MipsSEDAGToDAGISel::selectIntAddrUImm17s1(SDValue Addr, SDValue &Base,
                                              SDValue &Offset) const {
-  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 17, 1);
+  bool Retval = selectAddrFrameIndexUOffset(Addr, Base, Offset, 17, 1);
+  if (Base == CurDAG->getRegister(Mips::GP_NM, MVT::i32))
+    return Retval;
+  else
+    return false;
 }
 
 bool MipsSEDAGToDAGISel::selectIntAddrUImm18(SDValue Addr, SDValue &Base,
                                              SDValue &Offset) const {
-  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 18);
+  bool Retval = selectAddrFrameIndexUOffset(Addr, Base, Offset, 19);
+  if (Base == CurDAG->getRegister(Mips::GP_NM, MVT::i32))
+    return Retval;
+  else
+    return false;
 }
 
 bool MipsSEDAGToDAGISel::selectIntAddrUImm7s2(SDValue Addr, SDValue &Base,
                                              SDValue &Offset) const {
-  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 7, 2);
+  bool Retval = selectAddrFrameIndexUOffset(Addr, Base, Offset, 7, 2);
+  if (Base == CurDAG->getRegister(Mips::GP_NM, MVT::i32))
+    return Retval;
+  else
+    return false;
 }
 
 bool MipsSEDAGToDAGISel::selectIntAddrUImm5s2(SDValue Addr, SDValue &Base,
                                              SDValue &Offset) const {
-  return selectAddrFrameIndexUOffset(Addr, Base, Offset, 5, 2);
+  bool Retval = selectAddrFrameIndexUOffset(Addr, Base, Offset, 5, 2);
+  if (Base == CurDAG->getRegister(Mips::SP_NM, MVT::i32))
+    return Retval;
+  else
+    return false;
 }
 
 // A load/store 'x' indexed (reg + reg)

@@ -1492,9 +1492,9 @@ class LoadAddressPCRelNM<string opstr, RegisterOperand RO,
          [(set RO:$rt, Addr:$addr)]>;
 
 class LoadAddressGPRelNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexPattern Addr> :
-  InstNM<(outs RO:$rt), (ins GPRNMGPOpnd:$rs, MO:$addr),
+  InstNM<(outs RO:$rt), (ins RO:$rs, MO:$addr),
          !strconcat(opstr, "\t$rt, $rs, $addr"),
-         [(set RO:$rt, (add GPRNMGPOpnd:$rs, Addr:$addr))]>;
+         [(set RO:$rt, (add RO:$rs, Addr:$addr))]>;
 
 class LoadAddressAbsNM<string opstr, RegisterOperand RO, DAGOperand MO, ComplexPattern Addr> :
   InstNM<(outs RO:$rt), (ins MO:$addr),
@@ -1662,7 +1662,7 @@ def ADDIURS5_NM : AddImmediate<"addiu", simm4_nm, GPRNM16R5NZOpnd, GPRNM16R5NZOp
 }
 
 def ADDIUR1SP_NM : AddImmediate<"addiu", uimm8s2_nm, GPRNM16R3Opnd,
-				GPRNMSPOpnd, imm32ZExt8s2, add>,
+				GPRNM32Opnd, imm32ZExt8s2, add>,
 				_Pool_P16<0b01100>,
 				NoEncode<"$rs"> {
   bits<3> rt;
@@ -1739,7 +1739,7 @@ def ADDIUGP48_NM : LoadAddressGPRelNM<"addiu.b32", GPRNM48Opnd, sym32_gp_nm,
 
 def ADDIUB32_NM : MipsInstAlias<"addiu.b32 $rt, $rs, $addr",
 				(ADDIUGP48_NM GPRNM48Opnd:$rt,
-				GPRNMGPOpnd:$rs, sym32_gp_nm:$addr)>;
+				GPRNM32Opnd:$rs, sym32_gp_nm:$addr)>;
 def LA_NM : MipsInstAlias<"la $rt, $addr",
 			  (ADDIUPC48_NM GPRNM48Opnd:$rt, sym32_pc_nm:$addr)>;
 

@@ -526,6 +526,8 @@ public:
     Match_RequiresSrcRegPair,
     Match_RequiresFirstOpLT,
     Match_RequiresFirstOpGE,
+    Match_RequiresBaseGP,
+    Match_RequiresBaseSP,
 #define GET_OPERAND_DIAGNOSTIC_TYPES
 #include "MipsGenAsmMatcher.inc"
 #undef GET_OPERAND_DIAGNOSTIC_TYPES
@@ -6285,6 +6287,18 @@ unsigned MipsAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
     if (Inst.getOperand(0).getReg() < Inst.getOperand(1).getReg())
       return Match_RequiresFirstOpGE;
     return Match_Success;
+  case Mips::ADDIUGPB_NM:
+  case Mips::ADDIUGPW_NM:
+  case Mips::ADDIUGP48_NM:
+    if (Inst.getOperand(1).getReg() != Mips::GP_NM)
+      return Match_RequiresBaseGP;
+    return Match_Success;
+  case Mips::SWSP16_NM:
+  case Mips::LWSP16_NM:
+  case Mips::ADDIUR1SP_NM:
+    if (Inst.getOperand(1).getReg() != Mips::SP_NM)
+      return Match_RequiresBaseSP;
+    return Match_Success;
   }
 
   uint64_t TSFlags = getInstDesc(Inst.getOpcode()).TSFlags;
@@ -6516,6 +6530,10 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     return Error(ErrorStart, "size plus position are not in the range 33 .. 64",
                  SMRange(ErrorStart, ErrorEnd));
     }
+  case Match_RequiresBaseGP:
+    return Error(IDLoc, "expected $gp as base register");
+  case Match_RequiresBaseSP:
+    return Error(IDLoc, "expected $sp as base register");
   case Match_Sym32:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected symbol");

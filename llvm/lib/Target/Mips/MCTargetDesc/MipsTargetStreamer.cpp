@@ -868,6 +868,12 @@ MipsTargetELFStreamer::MipsTargetELFStreamer(MCStreamer &S,
   if (Features[Mips::FeatureNaN2008])
     EFlags |= ELF::EF_MIPS_NAN2008;
 
+  if (STI.getTargetTriple().getArch() == Triple::ArchType::nanomips) {
+    Pic = false;
+    PCRel = false;
+    Pid = false;
+  }
+
   MCA.setELFHeaderEFlags(EFlags);
 }
 
@@ -939,13 +945,25 @@ void MipsTargetELFStreamer::finish() {
   } else if (Features[Mips::FeatureMips64r2] || Features[Mips::FeatureMips64])
     EFlags |= ELF::EF_MIPS_32BITMODE;
 
-  // -mplt is not implemented but we should act as if it was
-  // given.
-  if (!Features[Mips::FeatureNoABICalls])
-    EFlags |= ELF::EF_MIPS_CPIC;
+  if (STI.getTargetTriple().getArch() != Triple::ArchType::nanomips) {
+    // -mplt is not implemented but we should act as if it was
+    // given.
+    if (!Features[Mips::FeatureNoABICalls])
+      EFlags |= ELF::EF_MIPS_CPIC;
 
-  if (Pic)
-    EFlags |= ELF::EF_MIPS_PIC | ELF::EF_MIPS_CPIC;
+    if (Pic)
+      EFlags |= ELF::EF_MIPS_PIC | ELF::EF_MIPS_CPIC;
+  }
+  else {
+    if (Pic)
+      EFlags |= ELF::EF_NANOMIPS_PIC;
+    if (Pid)
+      EFlags |= ELF::EF_NANOMIPS_PID;
+    if (PCRel)
+      EFlags |= ELF::EF_NANOMIPS_PCREL;
+    if (Features[Mips::FeatureRelax])
+      EFlags |= ELF::EF_NANOMIPS_LINKRELAX;
+  }
 
   MCA.setELFHeaderEFlags(EFlags);
 
@@ -1104,6 +1122,20 @@ void MipsTargetELFStreamer::emitDirectiveOptionPic2() {
   // what is stated in the SYSV ABI which consider the bits EF_MIPS_PIC and
   // EF_MIPS_CPIC to be mutually exclusive.
   Flags |= ELF::EF_MIPS_PIC | ELF::EF_MIPS_CPIC;
+  MCA.setELFHeaderEFlags(Flags);
+}
+
+void MipsTargetELFStreamer::emitDirectiveLinkRelax() {
+  MCAssembler &MCA = getStreamer().getAssembler();
+  unsigned Flags = MCA.getELFHeaderEFlags();
+  Flags |= ELF::EF_NANOMIPS_LINKRELAX;
+  MCA.setELFHeaderEFlags(Flags);
+}
+
+void MipsTargetELFStreamer::emitDirectiveModulePcRel() {
+  MCAssembler &MCA = getStreamer().getAssembler();
+  unsigned Flags = MCA.getELFHeaderEFlags();
+  Flags |= ELF::EF_NANOMIPS_PCREL;
   MCA.setELFHeaderEFlags(Flags);
 }
 

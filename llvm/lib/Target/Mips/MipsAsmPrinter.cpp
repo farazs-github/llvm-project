@@ -820,7 +820,7 @@ void MipsAsmPrinter::emitStartOfAsmFile(Module &M) {
   }
 
   if (IsNanoMips)
-    TS.emitDirectiveLinkRelax();
+   TS.emitDirectiveLinkRelax();
 
   if (!IsNanoMips)
     // NaN: At the moment we only support:

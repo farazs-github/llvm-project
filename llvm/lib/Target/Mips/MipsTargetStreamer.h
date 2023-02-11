@@ -318,6 +318,8 @@ class MipsTargetELFStreamer : public MipsTargetStreamer {
   bool MicroMipsEnabled;
   const MCSubtargetInfo &STI;
   bool Pic;
+  bool PCRel;
+  bool Pid;
 
 public:
   bool isMicroMipsEnabled() const { return MicroMipsEnabled; }
@@ -345,6 +347,8 @@ public:
   void emitDirectiveOptionPic0() override;
   void emitDirectiveOptionPic2() override;
   void emitDirectiveInsn() override;
+  void emitDirectiveLinkRelax() override;
+  void emitDirectiveModulePcRel() override;
   void emitFrame(unsigned StackReg, unsigned StackSize,
                  unsigned ReturnReg) override;
   void emitMask(unsigned CPUBitmask, int CPUTopSavedRegOff) override;

@@ -155,8 +155,7 @@ def FeatureRelax       : SubtargetFeature<"relax", "UseLinkerRelax",
 
 def FeatureNanoMips    : SubtargetFeature<"nanomips", "MipsArchVersion",
                                 "NanoMips",
-                                "NanoMips ISA Support [experimental]",
-				[FeatureRelax]>;
+                                "NanoMips ISA Support [experimental]">;
 def FeatureNMS1        : SubtargetFeature<"nms1", "MipsArchVersion",
                                 "NanoMips",
                                 "NanoMips ISA Support [experimental]">;

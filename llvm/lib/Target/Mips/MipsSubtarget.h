@@ -291,6 +291,7 @@ public:
   bool isABICalls() const { return !NoABICalls; }
   bool isFPXX() const { return IsFPXX; }
   bool isFP64bit() const { return IsFP64bit; }
+  bool useLinkerRelax() const { return UseLinkerRelax; }
   bool useOddSPReg() const { return UseOddSPReg; }
   bool noOddSPReg() const { return !UseOddSPReg; }
   bool isNaN2008() const { return IsNaN2008bit; }

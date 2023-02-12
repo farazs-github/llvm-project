@@ -6535,8 +6535,12 @@ bool MipsAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   case Match_RequiresBaseSP:
     return Error(IDLoc, "expected $sp as base register");
   case Match_Sym32:
+  case Match_Sym32PCRel:
     return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
                  "expected symbol");
+  case Match_Sym32GPRel:
+    return Error(RefineErrorLoc(IDLoc, Operands, ErrorInfo),
+                 "expected %gp_rel expression");
   }
 
   llvm_unreachable("Implement any new match types added!");

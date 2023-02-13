@@ -1473,7 +1473,10 @@ public:
       return false;
     if (isConstantMemOff())
       return isShiftedUInt<Bits, ShiftAmount>(getConstantMemOff());
-    return getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    if (ClassID == Mips::GPRNM32RegClassID)
+      return getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    else
+      return false;
   }
 
   template <unsigned Bits, unsigned ShiftAmount = 0,
@@ -1487,7 +1490,7 @@ public:
       return false;
     if (isConstantMemOff())
       return isShiftedInt<Bits, ShiftAmount>(getConstantMemOff());
-    return getMemOff()->evaluateAsRelocatable(Res, nullptr, nullptr);
+    return false;
   }
 
   bool isMemRx() const {

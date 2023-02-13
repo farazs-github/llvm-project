@@ -702,7 +702,7 @@ bool NMLoadStoreOpt::generatePCRelative(MachineBasicBlock &MBB) {
   for (auto Pair : Candidates) {
     auto *LA = Pair.first;
     auto *Use = Pair.second;
-    auto &Address = LA->getOperand(1);
+    auto &Address = LA->getOperand((LA->getOpcode() == Mips::ADDIUPC48_NM)? 1 : 2);
     auto Dst = Use->getOperand(0).getReg();
     int64_t Offset = Use->getOperand(2).getImm() + Address.getOffset();
 

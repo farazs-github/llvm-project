@@ -471,8 +471,8 @@ def addrgp18 : ComplexPattern<iPTR, 2, "selectIntAddrUImm18", [frameindex]>;
 def addrgp17s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm17s1", [frameindex]>;
 def addrgp7s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm7s2", [frameindex]>;
 def addrsp5s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm5s2", [frameindex]>;
-def addrpcrel : ComplexPattern<iPTR, 2, "selectAddrSym", [frameindex]>;
-def addrgprel : ComplexPattern<iPTR, 2, "selectAddrSym", [frameindex]>;
+def addrpcrel : ComplexPattern<iPTR, 1, "selectAddrSym", [frameindex]>;
+def addrgprel : ComplexPattern<iPTR, 1, "selectAddrSymGPRel", [frameindex]>;
 
 def Log2XForm : SDNodeXForm<imm, [{ return CurDAG->getTargetConstant(Log2_32(N->getZExtValue()),
                                                                    SDLoc(N), MVT::i32);

@@ -366,15 +366,28 @@ bool MipsSEDAGToDAGISel::selectAddrDefault(SDValue Addr, SDValue &Base,
   return true;
 }
 
-bool MipsSEDAGToDAGISel::selectAddrSym(SDValue Addr, SDValue &Base,
-				       SDValue &Offset) const {
-  return false;
-  if (Addr.getOpcode() != ISD::TargetExternalSymbol &&
-      Addr.getOpcode() != ISD::TargetGlobalAddress)
+bool MipsSEDAGToDAGISel::selectAddrSym(SDValue Addr, SDValue &Base) const {
+  SDValue Opnd0 = Addr;
+  if (isa<ConstantPoolSDNode>(Opnd0) || isa<GlobalAddressSDNode>(Opnd0) ||
+      isa<JumpTableSDNode>(Opnd0) || isa<MCSymbolSDNode>(Opnd0) ||
+      isa<BasicBlockSDNode>(Opnd0) ||
+      isa<ExternalSymbolSDNode>(Opnd0)) {
+      Base = Addr;
+      return true;
+    }
+  else
     return false;
-  Base = Addr;
-  Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), Addr.getValueType());
-  return true;
+}
+
+bool MipsSEDAGToDAGISel::selectAddrSymGPRel(SDValue Addr, SDValue &Base) const {
+  SDValue Opnd0 = Addr;
+  if (isa<GlobalAddressSDNode>(Opnd0) ||
+      isa<ExternalSymbolSDNode>(Opnd0)) {
+      Base = Addr;
+      return true;
+    }
+  else
+    return false;
 }
 
 bool MipsSEDAGToDAGISel::selectIntAddr(SDValue Addr, SDValue &Base,

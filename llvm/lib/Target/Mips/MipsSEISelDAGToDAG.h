@@ -53,8 +53,9 @@ private:
   bool selectAddrDefault(SDValue Addr, SDValue &Base,
                          SDValue &Offset) const override;
 
-  bool selectAddrSym(SDValue Addr, SDValue &Base,
-                     SDValue &Offset) const override;
+  bool selectAddrSym(SDValue Addr, SDValue &Base) const override;
+
+  bool selectAddrSymGPRel(SDValue Addr, SDValue &Base) const override;
 
   bool selectIntAddr(SDValue Addr, SDValue &Base,
                      SDValue &Offset) const override;

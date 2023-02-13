@@ -2393,8 +2393,7 @@ def : NMPat<(MipsFullAddr alignedglobaladdr:$in),
             (ADDIUPC48_NM  alignedglobaladdr:$in)>;
 
 def : NMPat<(MipsFullAddr tglobaladdr:$in),
-            (ADDIUGP48_NM GP_NM, tglobaladdr:$in)>;
-
+            (ADDIUPC48_NM tglobaladdr:$in)>;
 
 // Atomic load patterns.
 def : NMPat<(atomic_load_8 addr:$a), (LB_NM addr:$a)>;

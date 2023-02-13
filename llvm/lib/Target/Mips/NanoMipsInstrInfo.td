@@ -2286,8 +2286,8 @@ def LW4x4_NM : LoadMemoryNM16<"lw", GPRNM4Opnd, mem_nm2s2, load, addruimm2s2, II
 def SW4x4_NM : StoreMemoryNM4x4<"sw", GPRNM4Opnd, mem_nm2s2, store, addruimm2s2, II_SW>,
 	       LSMem4x4_Enc<0b11101>;
 
-def SWPC_NM : StorePCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Addr_Enc<0b01011>;
-def LWPC_NM : LoadPCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Addr_Enc<0b01111>;
+def SWPC_NM : StorePCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Addr_Enc<0b01111>;
+def LWPC_NM : LoadPCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Addr_Enc<0b01011>;
 
 let isMoveReg = 1 in {
 def MOVE16_NM : InstNM<(outs GPRNM32NZOpnd:$rt), (ins GPRNM32Opnd:$rs),

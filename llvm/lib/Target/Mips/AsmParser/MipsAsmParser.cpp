@@ -1960,7 +1960,7 @@ public:
       return false;
     volatile unsigned RegNo = RegIdx.Index;
     return ((RegNo == 0) ||
-	    (RegNo >= 5 && RegNo <= 7) ||
+	    (RegNo >= 4 && RegNo <= 7) ||
 	    (RegNo >= 17 && RegNo <= 19));
   }
 

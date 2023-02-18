@@ -1617,8 +1617,6 @@ public:
   bool isSym32GPRel() const {
     MCValue Res;
     bool Success;
-    if (Kind != k_Immediate)
-      return false;
 
     Success = getImm()->evaluateAsRelocatable(Res, nullptr, nullptr);
     if (Success && Res.getRefKind() == MipsMCExpr::MEK_GPREL)

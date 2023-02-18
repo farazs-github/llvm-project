@@ -365,7 +365,7 @@ def MemNM3S1Parser :
     NMMemUimmAsmOperand<3,1,"Mips::GPRNM3RegClassID",[MemNMSP5S2Parser]>;
 def MemNM2Parser :
     NMMemUimmAsmOperand<2,0,"Mips::GPRNM3RegClassID",[MemNMSP5S2Parser]>;
-def MemNM2S2Parser :
+def MemNM4S2Parser :
     NMMemUimmAsmOperand<2,2,"Mips::GPRNM4RegClassID",[MemNMSP5S2Parser]>;
 
 def mem_nm6s2 : mem_generic {
@@ -384,9 +384,9 @@ def mem_nm2 : mem_generic {
   let ParserMatchClass = MemNM2Parser;
 }
 
-def mem_nm2s2 : mem_generic {
-  let EncoderMethod = "getMemEncodingNMImm2S2";
-  let ParserMatchClass = MemNM2S2Parser;
+def mem_nm4s2 : mem_generic {
+  let EncoderMethod = "getMemEncodingNMImm4S2";
+  let ParserMatchClass = MemNM4S2Parser;
   let DecoderMethod = "DecodeMemNM4x4";
 }
 
@@ -465,7 +465,7 @@ def addrindexedlsl2 : ComplexPattern<iPTR, 2, "selectIntAddrIndexedLsl2", []>;
 def addruimm6s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm6s2", [frameindex]>;
 def addruimm3s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm3s1", [frameindex]>;
 def addruimm2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm2", [frameindex]>;
-def addruimm2s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm2s2", [frameindex]>;
+def addruimm4s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm4s2", [frameindex]>;
 def addrgp19s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm19s2", [frameindex]>;
 def addrgp18 : ComplexPattern<iPTR, 2, "selectIntAddrUImm18", [frameindex]>;
 def addrgp17s1 : ComplexPattern<iPTR, 2, "selectIntAddrUImm17s1", [frameindex]>;
@@ -2281,9 +2281,9 @@ def UASW_NM : MipsInstAlias<"uasw $rt, $addr",
 
 //def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
 
-def LW4x4_NM : LoadMemoryNM16<"lw", GPRNM4Opnd, mem_nm2s2, load, addruimm2s2, II_LW>,
+def LW4x4_NM : LoadMemoryNM16<"lw", GPRNM4Opnd, mem_nm4s2, load, addruimm4s2, II_LW>,
 	       LSMem4x4_Enc<0b01101>;
-def SW4x4_NM : StoreMemoryNM4x4<"sw", GPRNM4Opnd, mem_nm2s2, store, addruimm2s2, II_SW>,
+def SW4x4_NM : StoreMemoryNM4x4<"sw", GPRNM4Opnd, mem_nm4s2, store, addruimm4s2, II_SW>,
 	       LSMem4x4_Enc<0b11101>;
 
 def SWPC_NM : StorePCBase<GPRNM32Opnd, sym32_pc_nm, addrpcrel>, Op48_Addr_Enc<0b01111>;

@@ -255,7 +255,7 @@ public:
   unsigned getMemEncodingNMImm2(const MCInst &MI, unsigned OpNo,
                                  SmallVectorImpl<MCFixup> &Fixups,
                                  const MCSubtargetInfo &STI) const;
-  unsigned getMemEncodingNMImm2S2(const MCInst &MI, unsigned OpNo,
+  unsigned getMemEncodingNMImm4S2(const MCInst &MI, unsigned OpNo,
                                   SmallVectorImpl<MCFixup> &Fixups,
                                   const MCSubtargetInfo &STI) const;
   unsigned getMemEncodingNMGP(const MCInst &MI, unsigned OpNo,

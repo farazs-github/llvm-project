@@ -1159,10 +1159,10 @@ getMemEncodingNMImm2(const MCInst &MI, unsigned OpNo,
 }
 
 unsigned MipsMCCodeEmitter::
-getMemEncodingNMImm2S2(const MCInst &MI, unsigned OpNo,
+getMemEncodingNMImm4S2(const MCInst &MI, unsigned OpNo,
                       SmallVectorImpl<MCFixup> &Fixups,
                       const MCSubtargetInfo &STI) const {
-  // Base register is encoded in bits 7-4, offset is encoded in bits 3-0.
+  // Base register is encoded in bits 8-4, offset is encoded in bits 3-0.
   assert(MI.getOperand(OpNo).isReg());
   unsigned RegBits = getMachineOpValue(MI, MI.getOperand(OpNo), Fixups,
                                        STI) << 4;

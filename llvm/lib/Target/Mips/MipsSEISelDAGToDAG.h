@@ -118,7 +118,7 @@ private:
 
   bool selectIntAddrUImm2(SDValue Addr, SDValue &Base, SDValue &Offset) const override;
 
-  bool selectIntAddrUImm2s2(SDValue Addr, SDValue &Base, SDValue &Offset) const override;
+  bool selectIntAddrUImm4s2(SDValue Addr, SDValue &Base, SDValue &Offset) const override;
 
   bool selectIntAddrUImm19s2(SDValue Addr, SDValue &Base, SDValue &Offset) const override;
 

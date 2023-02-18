@@ -440,3 +440,20 @@ SelectInlineAsmMemoryOperand(const SDValue &Op, unsigned ConstraintID,
   }
   return true;
 }
+
+bool MipsDAGToDAGISel::selectOffsetGP18(SDValue Addr, SDValue &Offset) const {
+  llvm_unreachable("Unimplemented function.");
+  return false;
+}
+
+bool MipsDAGToDAGISel::selectOffsetGP19s2(SDValue Addr, SDValue &Offset) const {
+  llvm_unreachable("Unimplemented function.");
+  return false;
+}
+
+bool MipsDAGToDAGISel::selectOffsetGP(SDValue Addr, SDValue &Offset,
+				      unsigned OffsetBits,
+				      unsigned ShiftAmount) const {
+  llvm_unreachable("Unimplemented function.");
+  return false;
+}

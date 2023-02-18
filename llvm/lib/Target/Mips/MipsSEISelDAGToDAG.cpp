@@ -1609,6 +1609,33 @@ SelectInlineAsmMemoryOperand(const SDValue &Op, unsigned ConstraintID,
   return true;
 }
 
+bool MipsSEDAGToDAGISel::selectOffsetGP(
+    SDValue Addr, SDValue &Offset, unsigned OffsetBits,
+    unsigned ShiftAmount = 0) const {
+  if (Addr.getOpcode() == MipsISD::GPRel ||
+      isa<GlobalAddressSDNode>(Addr) ||
+      isa<ExternalSymbolSDNode>(Addr)) {
+    ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(0));
+    if (isUIntN(OffsetBits + ShiftAmount, CN->getZExtValue())) {
+      EVT ValTy = Addr.getValueType();
+      Offset =
+          CurDAG->getTargetConstant(CN->getZExtValue(), SDLoc(Addr), ValTy);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool MipsSEDAGToDAGISel::selectOffsetGP18(SDValue Addr,
+					  SDValue &Offset) const {
+  return selectOffsetGP(Addr, Offset, 18);
+}
+
+bool MipsSEDAGToDAGISel::selectOffsetGP19s2(SDValue Addr,
+					    SDValue &Offset) const {
+  return selectOffsetGP(Addr, Offset, 19, 2);
+}
+
 FunctionPass *llvm::createMipsSEISelDag(MipsTargetMachine &TM,
                                         CodeGenOpt::Level OptLevel) {
   return new MipsSEDAGToDAGISel(TM, OptLevel);

@@ -191,6 +191,14 @@ private:
   bool SelectInlineAsmMemoryOperand(const SDValue &Op,
                                     unsigned ConstraintID,
                                     std::vector<SDValue> &OutOps) override;
+
+  // Select a GP-relative offset expressions
+  virtual bool selectOffsetGP(SDValue Addr, SDValue &Offset,
+			    unsigned OffsetBits,
+			    unsigned ShiftAmount) const;
+  virtual bool selectOffsetGP18(SDValue Addr, SDValue &Offset) const;
+  virtual bool selectOffsetGP19s2(SDValue Addr, SDValue &Offset) const;
+
 };
 }
 

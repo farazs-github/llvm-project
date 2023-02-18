@@ -475,6 +475,8 @@ def addrgp7s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm7s2", [frameindex]>;
 def addrsp5s2 : ComplexPattern<iPTR, 2, "selectIntAddrUImm5s2", [frameindex]>;
 def addrpcrel : ComplexPattern<iPTR, 1, "selectAddrSym", [frameindex]>;
 def addrgprel : ComplexPattern<iPTR, 1, "selectAddrSymGPRel", [frameindex]>;
+def offsetgp19s2 : ComplexPattern<iPTR, 1, "selectOffsetGP19s2", [frameindex]>;
+def offsetgp18 : ComplexPattern<iPTR, 1, "selectOffsetGP18", [frameindex]>;
 
 def Log2XForm : SDNodeXForm<imm, [{ return CurDAG->getTargetConstant(Log2_32(N->getZExtValue()),
                                                                    SDLoc(N), MVT::i32);
@@ -1609,8 +1611,17 @@ def ROTR_NM : ShiftI_Desc<"rotr", uimm5_nm, GPRNM32Opnd, imm32ZExt5, rotr>,
 def EXT_NM : ExtBaseNM, ExtInsBase_Enc<0b1111>;
 def INS_NM : InsBaseNM, ExtInsBase_Enc<0b1110>;
 
-def ADDIUGPB_NM : AddImmediate<"addiu", uimm18_nm, GPRNM32Opnd,
-				GPRNM32Opnd, imm32ZExt18, add>,
+class AddImmediateGP<string opstr, Operand Od, RegisterOperand DRO,
+		     RegisterOperand SRO, ComplexPattern imm_type,
+		     SDPatternOperator OpNode = null_frag> :
+  InstNM<(outs DRO:$rt), (ins SRO:$rs, Od:$imm),
+	 !strconcat(opstr, "\t$rt, $rs, $imm"),
+	 [(set DRO:$rt, (OpNode SRO:$rs, imm_type:$imm))]> {
+  let isReMaterializable = 1;
+}
+
+def ADDIUGPB_NM : AddImmediateGP<"addiu", uimm18_nm, GPRNM32Opnd,
+				GPRNM32Opnd, offsetgp18, add>,
 				_Pool_P_GP_BH<0b011>, NoEncode<"$rs"> {
   bits<5> rt;
   bits<18> imm;
@@ -1619,8 +1630,8 @@ def ADDIUGPB_NM : AddImmediate<"addiu", uimm18_nm, GPRNM32Opnd,
   let DisableEncoding="$rs";
 }
 
-def ADDIUGPW_NM : AddImmediate<"addiu", uimm21s2_nm, GPRNM32Opnd,
-				GPRNM32Opnd, imm32ZExt21s2, add>,
+def ADDIUGPW_NM : AddImmediateGP<"addiu", uimm21s2_nm, GPRNM32Opnd,
+				GPRNM32Opnd, offsetgp19s2, add>,
 				_Pool_P_GP_W<0b00>, NoEncode<"$rs"> {
   bits<5> rt;
   bits<21> imm;

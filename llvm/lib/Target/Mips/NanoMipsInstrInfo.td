@@ -376,11 +376,13 @@ def mem_nm6s2 : mem_generic {
 
 def mem_nm3s1 : mem_generic {
   let EncoderMethod = "getMemEncodingNMImm3S1";
+  let DecoderMethod = "DecodeMemNM<3,false,Mips::GPRNM3RegClassID>";
   let ParserMatchClass = MemNM3S1Parser;
 }
 
 def mem_nm2 : mem_generic {
   let EncoderMethod = "getMemEncodingNMImm2";
+  let DecoderMethod = "DecodeMemNM<2,false,Mips::GPRNM3RegClassID>";
   let ParserMatchClass = MemNM2Parser;
 }
 

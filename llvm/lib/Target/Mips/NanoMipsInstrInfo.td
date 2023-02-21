@@ -1520,15 +1520,17 @@ class LoadImmediateNM<string opstr, RegisterOperand RO, Operand Od,
 
 
 // 16-bit register operations
-let FastISelShouldIgnore = 1, isCommutable=1 in {
+let FastISelShouldIgnore = 1 in {
 def NOT16_NM : ArithLogicR16U_Desc<"not", GPRNM16R3Opnd, not>,
 	       ArithLogicR16_Enc<0b00>;
+let isCommutable=1 in {
 def XOR16_NM : ArithLogicR16_Desc<"xor", GPRNM16R3Opnd, xor>,
 	       ArithLogicR16_Enc<0b01>;
 def AND16_NM : ArithLogicR16_Desc<"and", GPRNM16R3Opnd, and>,
 	       ArithLogicR16_Enc<0b10>;
 def OR16_NM  : ArithLogicR16_Desc<"or	", GPRNM16R3Opnd, or>,
 	       ArithLogicR16_Enc<0b11>;
+}
 }
 
 class ANDI16_Enc<bits<5> isel> : _Pool_P16<isel>

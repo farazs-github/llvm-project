@@ -3,7 +3,7 @@
 define i32 @test_div(i32 %a, i32 %b) {
 ; CHECK: div $a0, $a0, $a1
 ; CHECK: DIV_NM
-; CHECK: teq $zero, $a1, 7
+; CHECK: teq $a1, $zero, 7
 ; CHECK: TEQ_NM
   %div = sdiv i32 %a, %b
   ret i32 %div
@@ -12,7 +12,7 @@ define i32 @test_div(i32 %a, i32 %b) {
 define i32 @test_mod(i32 %a, i32 %b) {
 ; CHECK: mod $a0, $a0, $a1
 ; CHECK: MOD_NM
-; CHECK: teq $zero, $a1, 7
+; CHECK: teq $a1, $zero, 7
 ; CHECK: TEQ_NM
   %mod = srem i32 %a, %b
   ret i32 %mod
@@ -21,7 +21,7 @@ define i32 @test_mod(i32 %a, i32 %b) {
 define i32 @test_divu(i32 %a, i32 %b) {
 ; CHECK: divu $a0, $a0, $a1
 ; CHECK: DIVU_NM
-; CHECK: teq $zero, $a1, 7
+; CHECK: teq $a1, $zero, 7
 ; CHECK: TEQ_NM
   %div = udiv i32 %a, %b
   ret i32 %div
@@ -30,7 +30,7 @@ define i32 @test_divu(i32 %a, i32 %b) {
 define i32 @test_modu(i32 %a, i32 %b) {
 ; CHECK: modu $a0, $a0, $a1
 ; CHECK: MODU_NM
-; CHECK: teq $zero, $a1, 7
+; CHECK: teq $a1, $zero, 7
 ; CHECK: TEQ_NM
   %mod = urem i32 %a, %b
   ret i32 %mod

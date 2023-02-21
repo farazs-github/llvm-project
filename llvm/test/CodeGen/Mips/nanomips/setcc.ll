@@ -108,9 +108,9 @@ define i1 @test_slti(i32 %a) {
 define i1 @test_not_slti(i32 %a) {
 ; CHECK-NOT: slti $a0, $a0, 4096
 ; CHECK-NOT: SLTI_NM
-; CHECK: li $a1, 4096
-; CHECK: Li_NM
-; CHECK: slt $a0, $a0, $a1
+; CHECK: li $a3, 4096
+; CHECK: ADDIU_NM
+; CHECK: slt $a0, $a0, $a3
 ; CHECK: SLT_NM
   %cmp = icmp slt i32 %a, 4096
   ret i1 %cmp
@@ -128,9 +128,9 @@ define i1 @test_sltiu(i32 %a) {
 define i1 @test_not_sltiu(i32 %a) {
 ; CHECK-NOT: slti $a0, $a0, 4096
 ; CHECK-NOT: SLTI_NM
-; CHECK: li $a1, 4096
-; CHECK: Li_NM
-; CHECK: sltu $a0, $a0, $a1
+; CHECK: li $a3, 4096
+; CHECK: ADDIU_NM
+; CHECK: sltu $a0, $a0, $a3
 ; CHECK: SLTU_NM
   %cmp = icmp ult i32 %a, 4096
   ret i1 %cmp
@@ -148,9 +148,9 @@ define i1 @test_seqi(i32 %a) {
 define i1 @test_not_seqi(i32 %a) {
 ; CHECK-NOT: seqi $a0, $a0, 4096
 ; CHECK-NOT: SLTI_NM
-; CHECK: li $a1, 4096
-; CHECK: Li_NM
-; CHECK: xor $a0, $a0, $a1
+; CHECK: li $a3, 4096
+; CHECK: ADDIU_NM
+; CHECK: xor $a0, $a0, $a3
 ; CHECK: XOR_NM
 ; CHECK: sltiu $a0, $a0, 1
 ; CHECK: SLTIU_NM

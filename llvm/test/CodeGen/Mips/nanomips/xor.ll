@@ -2,7 +2,7 @@
 
 define i32 @test_xor(i32 %a, i32 %b) {
 ; CHECK: xor $a0, $a0, $a1
-; CHECK: XOR_NM
+; CHECK: XOR16_NM
   %xor = xor i32 %a, %b
   ret i32 %xor
 }
@@ -23,9 +23,9 @@ define i32 @test_ori1(i32 %a) {
 
 define i32 @test_ori2(i32 %a) {
 ; CHECK: li $a1, 4096
-; CHECK: Li_NM
+; CHECK: ADDIU_NM
 ; CHECK: xor $a0, $a0, $a1
-; CHECK: XOR_NM
+; CHECK: XOR16_NM
   %xorred = xor i32 %a, 4096
   ret i32 %xorred
 }

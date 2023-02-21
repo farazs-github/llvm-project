@@ -86,7 +86,7 @@ bool NMLoadStoreOpt::runOnMachineFunction(MachineFunction &Fn) {
 
 bool NMLoadStoreOpt::isStackPointerAdjustment(MachineInstr &MI,
                                               bool IsRestore) {
-  if (MI.getOpcode() != Mips::ADDiu_NM)
+  if (MI.getOpcode() != Mips::ADDIU_NM)
     return false;
   Register DstReg = MI.getOperand(0).getReg();
   Register SrcReg = MI.getOperand(1).getReg();
@@ -383,7 +383,7 @@ bool NMLoadStoreOpt::generateSaveOrRestore(MachineBasicBlock &MBB,
         // In case of save, the offset is subtracted from SP.
         if (!IsRestore)
           NewStackOffset = -NewStackOffset;
-        BuildMI(MBB, InsertBefore, DL, TII->get(Mips::ADDiu_NM), Mips::SP_NM)
+        BuildMI(MBB, InsertBefore, DL, TII->get(Mips::ADDIU_NM), Mips::SP_NM)
             .addReg(Mips::SP_NM)
             .addImm(NewStackOffset);
       }
@@ -574,7 +574,7 @@ static bool isValidUse(MachineInstr *MI, Register Reg) {
   case Mips::SWs9_NM:
   case Mips::LW_NM:
   case Mips::LWs9_NM:
-  case Mips::ADDiu_NM:
+  case Mips::ADDIU_NM:
   case Mips::LH16_NM:
   case Mips::LHU16_NM:
   case Mips::SH16_NM:
@@ -708,7 +708,7 @@ bool NMLoadStoreOpt::generatePCRelative(MachineBasicBlock &MBB) {
 
     assert(Address.isGlobal());
 
-    if (Use->getOpcode() == Mips::ADDiu_NM) {
+    if (Use->getOpcode() == Mips::ADDIU_NM) {
       // Move LA to its use to avoid extending the lifetime of Dst
       MBB.insert(MBBIter(Use),
                  MBB.remove(LA));

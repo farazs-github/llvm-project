@@ -1650,8 +1650,14 @@ def ADDIU_NM : AddImmediate<"addiu", uimm16_nm, GPRNM32NZOpnd, GPRNM32Opnd,
   let Inst{15...0} = imm;
 }
 
+def LI_NM : MipsInstAlias<"li $rt, $imm",
+			  (ADDIU_NM GPRNM32NZOpnd:$rt, ZERO_NM, uimm16_nm:$imm)>;
+
 def ADDIUNEG_NM : AddImmediate<"addiu", nimm12_nm, GPRNM32Opnd, GPRNM32Opnd,
                                imm32Neg12, add>, CondLogicI32_Enc<0b1000>;
+
+def LINEG_NM : MipsInstAlias<"li $rt, $imm",
+			     (ADDIUNEG_NM GPRNM32Opnd:$rt, ZERO_NM, nimm12_nm:$imm)>;
 
 def ADDIUR2_NM : AddImmediate<"addiu", uimm5s2_nm, GPRNM16R3Opnd, GPRNM16R3Opnd,
                               imm32ZExt5, add>, _Pool_P16_A2<0b0> {
@@ -1744,6 +1750,12 @@ def MOVEBALC_NM : InstNM<(outs GPRNM1R1Opnd:$rd),
 let isReMaterializable = 1 in {
 def LI16_NM : LoadImmediateNM<"li", GPRNM16R3Opnd, nimm7_nm, imm7M1To126>,
 	      LI16_Enc<0b11000>;
+}
+def : NMPat<(i32 imm32ZExt16:$imm), (ADDIU_NM ZERO_NM, imm:$imm)>;
+
+def : NMPat<(i32 imm32Neg12:$imm), (ADDIUNEG_NM ZERO_NM, imm:$imm)>;
+
+let isReMaterializable = 1 in {
 def LI48_NM : LoadAddressAbsNM<"li", GPRNM48Opnd, sym32_abs_nm,
 			       addrpcrel>, Op48_Imm_Enc<0b00000>;
 def ADDIUGP48_NM : LoadAddressGPRelNM<"addiu.b32", GPRNM48Opnd, sym32_gp_nm,

@@ -1386,16 +1386,6 @@ class SaveRestore32_Enc<bits<2> isel> : _Pool_PP_SR<isel> {
   let Inst{2} = regs{0};
 }
 
-def SAVE_NM : SaveRestore<"save", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b00>;
-def RESTORE_NM : SaveRestore<"restore", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b10>;
-def RESTOREJRC_NM : SaveRestore<"restore.jrc", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b11>;
-
-def SAVE_NOREG_NM : MipsInstAlias<"save $adj",
-				  (SAVE_NM uimm12s3_nm:$adj, 0)>;
-def RESTORE_NOREG_NM : MipsInstAlias<"restore $adj",
-				     (RESTORE_NM uimm12s3_nm:$adj, 0)>;
-def RESTOREJRC_NOREG_NM : MipsInstAlias<"restore.jrc $adj",
-					(RESTOREJRC_NM uimm12s3_nm:$adj, 0)>;
 
 class SaveRestore16_Enc<bits<1> isel> : _Pool_P16_SR<isel> {
   bits<8> adj;
@@ -1411,6 +1401,17 @@ def SAVE16_NOREG_NM : MipsInstAlias<"save $adj",
 				    (SAVE16_NM uimm8s4_nm:$adj, 0)>;
 def RESTOREJRC16_NOREG_NM : MipsInstAlias<"restore.jrc $adj",
 					  (RESTOREJRC16_NM uimm8s4_nm:$adj, 0)>;
+
+def SAVE_NM : SaveRestore<"save", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b00>;
+def RESTORE_NM : SaveRestore<"restore", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b10>;
+def RESTOREJRC_NM : SaveRestore<"restore.jrc", uimm12s3_nm, nmreglist>, SaveRestore32_Enc<0b11>;
+
+def SAVE_NOREG_NM : MipsInstAlias<"save $adj",
+				  (SAVE_NM uimm12s3_nm:$adj, 0)>;
+def RESTORE_NOREG_NM : MipsInstAlias<"restore $adj",
+				     (RESTORE_NM uimm12s3_nm:$adj, 0)>;
+def RESTOREJRC_NOREG_NM : MipsInstAlias<"restore.jrc $adj",
+					(RESTOREJRC_NM uimm12s3_nm:$adj, 0)>;
 
 class LoadMultipleNM<string opstr> :
     InstNM<(outs GPRNM32Opnd:$rt),
@@ -1518,6 +1519,31 @@ class LoadImmediateNM<string opstr, RegisterOperand RO, Operand Od,
 //===----------------------------------------------------------------------===//
 
 
+// 16-bit register operations
+let FastISelShouldIgnore = 1, isCommutable=1 in {
+def NOT16_NM : ArithLogicR16U_Desc<"not", GPRNM16R3Opnd, not>,
+	       ArithLogicR16_Enc<0b00>;
+def XOR16_NM : ArithLogicR16_Desc<"xor", GPRNM16R3Opnd, xor>,
+	       ArithLogicR16_Enc<0b01>;
+def AND16_NM : ArithLogicR16_Desc<"and", GPRNM16R3Opnd, and>,
+	       ArithLogicR16_Enc<0b10>;
+def OR16_NM  : ArithLogicR16_Desc<"or	", GPRNM16R3Opnd, or>,
+	       ArithLogicR16_Enc<0b11>;
+}
+
+class ANDI16_Enc<bits<5> isel> : _Pool_P16<isel>
+{
+  bits<3> rt;
+  bits<3> rs;
+  bits<4> imm;
+  let Inst{9...7} = rt;
+  let Inst{6...4} = rs;
+  let Inst{3...0} = imm;
+}
+
+def ANDI16_NM : ArithLogicINM<"andi", uimm4mask_nm, GPRNM16R3Opnd,
+                               imm4Mask, and>, ANDI16_Enc<0b11100>;
+
 // _POOL32A0_0 pool of instructions.
 def SLLV_NM  : ArithLogicR32_Desc<"sllv", GPRNM32Opnd, shl>,
 	       ArithLogicR32_Enc<0b000010>;
@@ -1566,6 +1592,9 @@ def MODU_NM  : DivMod<"modu", urem>,
 def SOV_NM   : ArithLogicR32_Desc<"sov", GPRNM32Opnd>,
 	       ArithLogicR32_Enc<0b111110>;
 
+def NOT_NM   : MipsInstAlias<"not $rt, $rs",
+			    (NOR_NM GPRNM32Opnd:$rt, GPRNM32Opnd:$rs, ZERO_NM)>;
+
 // 16-bit register operations
 let FastISelShouldIgnore = 1, isCommutable=1 in {
 def SUBu16_NM  : AddSubR16_Desc<"subu", GPRNM16R3Opnd, sub>,
@@ -1595,14 +1624,14 @@ def SEQI_NM  : CondLogicI32_Desc<"seqi", uimm12_nm, GPRNM32Opnd, imm32ZExt12, se
 	       CondLogicI32_Enc<0b0110>;
 
 // P.SHIFT pool of instructions
-def SLL_NM  : ShiftI_Desc<"sll", uimm5_nm, GPRNM32Opnd, imm32ZExt5, shl>,
-	      ShiftI32_Enc<0b0000>;
 def SLL16_NM  : ShiftI_Desc<"sll", uimm3shift_nm, GPRNM16R3Opnd, imm32ZExt3, shl>,
 	      ShiftI16_Enc<0b0>;
-def SRL_NM  : ShiftI_Desc<"srl", uimm5_nm, GPRNM32Opnd, imm32ZExt5, srl>,
-	      ShiftI32_Enc<0b0010>;
+def SLL_NM  : ShiftI_Desc<"sll", uimm5_nm, GPRNM32Opnd, imm32ZExt5, shl>,
+	      ShiftI32_Enc<0b0000>;
 def SRL16_NM  : ShiftI_Desc<"srl", uimm3shift_nm, GPRNM16R3Opnd, imm32ZExt3, srl>,
 	      ShiftI16_Enc<0b1>;
+def SRL_NM  : ShiftI_Desc<"srl", uimm5_nm, GPRNM32Opnd, imm32ZExt5, srl>,
+	      ShiftI32_Enc<0b0010>;
 def SRA_NM  : ShiftI_Desc<"sra", uimm5_nm, GPRNM32Opnd, imm32ZExt5, sra>,
 	      ShiftI32_Enc<0b0100>;
 def ROTR_NM : ShiftI_Desc<"rotr", uimm5_nm, GPRNM32Opnd, imm32ZExt5, rotr>,
@@ -1716,19 +1745,7 @@ def BYTEREVW_NM : ReverseNM<"byterevw", GPRNM32Opnd, bswap>;
 def TEQ_NM : Trap_Desc<"teq", GPRNM32Opnd, uimm5_nm>, Trap_Enc<0b0>;
 def TNE_NM : Trap_Desc<"tne", GPRNM32Opnd, uimm5_nm>, Trap_Enc<0b1>;
 
-def NOT16_NM : ArithLogicR16U_Desc<"not", GPRNM16R3Opnd, not>,
-	       ArithLogicR16_Enc<0b00>;
-def NOT_NM : MipsInstAlias<"not $rt, $rs",
-			    (NOR_NM GPRNM32Opnd:$rt, GPRNM32Opnd:$rs, ZERO_NM)>;
-def XOR16_NM : ArithLogicR16_Desc<"xor", GPRNM16R3Opnd>,
-	       ArithLogicR16_Enc<0b01>;
-def AND16_NM : ArithLogicR16_Desc<"and", GPRNM16R3Opnd>,
-	       ArithLogicR16_Enc<0b10>;
-def OR16_NM  : ArithLogicR16_Desc<"or	", GPRNM16R3Opnd>,
-	       ArithLogicR16_Enc<0b11>;
-
 def JRC_NM : IndirectBranchNM<"jrc", GPRNM32Opnd>, IndirectBranch16_Enc<0>;
-def JALRC16_NM : IndirectBranchNM<"jalrc", GPRNM32Opnd>, IndirectBranch16_Enc<1>;
 
 def MOVEBALC_NM : InstNM<(outs GPRNM1R1Opnd:$rd),
 			    (ins GPRNM4ZOpnd:$rt, calltarget21_nm:$addr),
@@ -1767,19 +1784,6 @@ def ADDIUB32_NM : MipsInstAlias<"addiu.b32 $rt, $rs, $addr",
 				GPRNM32Opnd:$rs, sym32_gp_nm:$addr)>;
 def LA_NM : MipsInstAlias<"la $rt, $addr",
 			  (ADDIUPC48_NM GPRNM48Opnd:$rt, sym32_pc_nm:$addr)>;
-
-class ANDI16_Enc<bits<5> isel> : _Pool_P16<isel>
-{
-  bits<3> rt;
-  bits<3> rs;
-  bits<4> imm;
-  let Inst{9...7} = rt;
-  let Inst{6...4} = rs;
-  let Inst{3...0} = imm;
-}
-
-def ANDI16_NM : ArithLogicINM<"andi", uimm4mask_nm, GPRNM16R3Opnd,
-                               imm4Mask, add>, ANDI16_Enc<0b11100>;
 
 // Arithmetic and logical instructions with 2 register operands and immediate.
 class LoadUpperINM<string opstr, Operand Od, RegisterOperand RO,
@@ -1851,6 +1855,7 @@ def PseudoIndirectBranchNM :
 
 
 let hasPostISelHook = 1, isCall = 1, isCTI = 1, Defs = [RA_NM] in {
+  def JALRC16_NM : IndirectBranchNM<"jalrc", GPRNM32Opnd>, IndirectBranch16_Enc<1>;
 
   def JALRC_NM : IndirectCallNM<"jalrc", GPRNM32Opnd, GPRNM32Opnd>,
 	         IndirectCallNM_Enc<0b0000>;
@@ -1959,17 +1964,17 @@ class BCBase<DAGOperand brtarget>
   let isCTI = 1;
 }
 
-class BC32_Enc<bits<1> isel> : _Pool_P_BAL<isel>
-{
-  bits<26> addr;
-  let Inst{24...0} = addr{25...1};
-}
-
 class BC16_Enc<bits<5> isel> : _Pool_P16<isel>
 {
   bits<11> addr;
   let Inst{9...1} = addr{9...1};
   let Inst{0} = addr{10};
+}
+
+class BC32_Enc<bits<1> isel> : _Pool_P_BAL<isel>
+{
+  bits<26> addr;
+  let Inst{24...0} = addr{25...1};
 }
 
 class B14_Enc<bits<3> isel> : _Pool_P_BR12<isel>

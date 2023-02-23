@@ -361,7 +361,7 @@ def GPRNM4 :
 // nanoMIPS "gpr4x4.zero" register encoding type.
 def GPRNM4Z :
   RegisterClass<"Mips", [i32], 32,
-                (add A0_NM, A1_NM, A2_NM, A3_NM, A4_NM, A5_NM, A6_NM, A7_NM,
+                (add A4_NM, A5_NM, A6_NM, ZERO_NM, A0_NM, A1_NM, A2_NM, A3_NM,
 		 S0_NM, S1_NM, S2_NM, S3_NM, S4_NM, S5_NM, S6_NM, S7_NM)>;
 
 // nanoMIPS non-zero gpr register encoding type.

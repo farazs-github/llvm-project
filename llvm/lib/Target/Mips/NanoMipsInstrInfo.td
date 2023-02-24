@@ -2146,10 +2146,10 @@ class TailCallRegBase : PseudoInstNM<(outs), (ins GPRNM32Opnd:$rs),
 }
 def TAILCALLREG_NM : TailCallRegBase;
 
-//def : NMPat<(MipsTailCall (i32 tglobaladdr:$dst)),
-//            (TAILCALL_NM tglobaladdr:$dst)>;
-//def : NMPat<(MipsTailCall (i32 texternalsym:$dst)),
-//            (TAILCALL_NM texternalsym:$dst)>;
+def : NMPat<(MipsTailCall (i32 tglobaladdr:$dst)),
+            (TAILCALL_NM tglobaladdr:$dst)>;
+def : NMPat<(MipsTailCall (i32 texternalsym:$dst)),
+            (TAILCALL_NM texternalsym:$dst)>;
 
 // '>-1' can be represented as '>=0'.
 def : NMPat<(brcond (i32 (setgt GPRNM32:$lhs, -1)), bb:$dst),

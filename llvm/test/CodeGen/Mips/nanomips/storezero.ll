@@ -83,7 +83,7 @@ define void @zerointunaligned2(i32* %num) {
 
 define void @zerointunaligned3(i32* %num) {
   %arrayidx = getelementptr inbounds i32, i32* %num, i32 10000
-; CHECK: uasw $zero, 0($a0)
+; CHECK: uasw $zero, 0($a3)
   store i32 0, i32* %arrayidx, align 2
   ret void
 }

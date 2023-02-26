@@ -2318,10 +2318,8 @@ def UALWM_NM : LoadMultipleNM<"ualwm">, LSMem_S9_Mult_Enc<0b0101>;
 def SWM_NM : StoreMultipleNM<"swm">, LSMem_S9_Mult_Enc<0b1100>;
 def UASWM_NM : StoreMultipleNM<"uaswm">, LSMem_S9_Mult_Enc<0b1101>;
 
-def UALW_NM : MipsInstAlias<"ualw $rt, $addr",
-			    (UALWM_NM GPRNM32Opnd:$rt, mem_nms9:$addr, 1)>;
-def UASW_NM : MipsInstAlias<"uasw $rt, $addr",
-			    (UASWM_NM GPRNM32Opnd:$rt, mem_nms9:$addr, 1)>;
+def UALW_NM :  UnalignedLoad<"ualw", NMUnalignedLW>, LSMem_S9_Enc<0b101, 0b0010>;
+def UASW_NM : UnalignedStore<"uasw", NMUnalignedSW>, LSMem_S9_Enc<0b101, 0b0011>;
 
 //def CACHE_NM : LSMem_S9_Enc<0b001, 0b0111>;
 
@@ -2410,9 +2408,9 @@ def : NMPat<(i32 (extloadi16 addrindexed:$addr)), (LHUX_NM addrindexed:$addr)>;
 
 // Catching out-of-range immediate unaligned loads/stores.
 def : NMPat<(i32 (NMUnalignedLW GPRNM32:$rs, GPRNM32:$src)),
-            (UALWM_NM GPRNM32:$rs, GPRNM32:$src, 1)>;
+            (UALW_NM GPRNM32:$rs, 0, GPRNM32:$src)>;
 def : NMPat<(NMUnalignedSW GPRNM32:$rt, GPRNM32:$rs),
-            (UASWM_NM GPRNM32:$rt, GPRNM32:$rs, 0, 1)>;
+            (UASW_NM GPRNM32:$rt, GPRNM32:$rs, 0)>;
 def : NMPat<(i32 (NMUnalignedLH GPRNM32:$rs, GPRNM32:$src)),
             (UALH_NM GPRNM32:$rs, 0, GPRNM32:$src)>;
 def : NMPat<(NMUnalignedSH GPRNM32:$rt, GPRNM32:$rs),

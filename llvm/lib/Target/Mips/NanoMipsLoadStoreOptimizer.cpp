@@ -407,7 +407,8 @@ bool NMLoadStoreOpt::isValidLoadStore(MachineInstr &MI, bool IsLoad) {
   unsigned Opcode = MI.getOpcode();
   if (IsLoad) {
     // TODO: Handle unaligned loads and stores.
-    if (Opcode == Mips::LW_NM || Opcode == Mips::LWs9_NM) {
+    if (Opcode == Mips::LW_NM || Opcode == Mips::LWs9_NM
+	|| Opcode == Mips::LW16_NM || Opcode == Mips::LW4x4_NM) {
       // TODO: Rt and Rs can be equal, but only if that is the last load of
       // the sequence.
       Register Rt = MI.getOperand(0).getReg();
@@ -416,7 +417,8 @@ bool NMLoadStoreOpt::isValidLoadStore(MachineInstr &MI, bool IsLoad) {
         return true;
     }
   } else {
-    if (Opcode == Mips::SW_NM || Opcode == Mips::SWs9_NM)
+    if (Opcode == Mips::SW_NM || Opcode == Mips::SWs9_NM
+	|| Opcode == Mips::SW16_NM || Opcode == Mips::SW4x4_NM)
       return true;
   }
   return false;

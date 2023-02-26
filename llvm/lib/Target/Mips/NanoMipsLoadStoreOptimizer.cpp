@@ -383,7 +383,7 @@ bool NMLoadStoreOpt::generateSaveOrRestore(MachineBasicBlock &MBB,
         // In case of save, the offset is subtracted from SP.
         if (!IsRestore)
           NewStackOffset = -NewStackOffset;
-        BuildMI(MBB, InsertBefore, DL, TII->get(Mips::ADDIU_NM), Mips::SP_NM)
+        BuildMI(MBB, InsertBefore, DL, TII->get(Mips::ADDIUNEG_NM), Mips::SP_NM)
             .addReg(Mips::SP_NM)
             .addImm(NewStackOffset);
       }
@@ -577,6 +577,7 @@ static bool isValidUse(MachineInstr *MI, Register Reg) {
   case Mips::LW_NM:
   case Mips::LWs9_NM:
   case Mips::ADDIU_NM:
+  case Mips::ADDIUNEG_NM:
   case Mips::LH16_NM:
   case Mips::LHU16_NM:
   case Mips::SH16_NM:

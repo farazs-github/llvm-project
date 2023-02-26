@@ -351,6 +351,11 @@ static DecodeStatus DecodeMemNM(MCInst &Inst,
 				uint64_t Address,
 				const void *Decoder);
 
+static DecodeStatus DecodeMemNMRX(MCInst &Inst,
+				  unsigned Insn,
+				  uint64_t Address,
+				  const void *Decoder);
+
 static DecodeStatus DecodeMemNM4x4(MCInst &Inst,
 				   unsigned Insn,
 				   uint64_t Address,
@@ -1903,6 +1908,22 @@ static DecodeStatus DecodeMemNM(MCInst &Inst,
 
   return MCDisassembler::Success;
 }
+
+static DecodeStatus DecodeMemNMRX(MCInst &Inst,
+				  unsigned Insn,
+				  uint64_t Address,
+				  const void *Decoder) {
+  unsigned Offset = getReg(Decoder, Mips::GPRNM32RegClassID,
+			   fieldFromInstruction(Insn, 0, 5));
+  unsigned Base = getReg(Decoder, Mips::GPRNM32RegClassID,
+			 fieldFromInstruction(Insn, 5, 5));
+
+  Inst.addOperand(MCOperand::createReg(Base));
+  Inst.addOperand(MCOperand::createImm(Offset));
+
+  return MCDisassembler::Success;
+}
+
 
 static DecodeStatus DecodeMemNM4x4(MCInst &Inst,
 				   unsigned Insn,

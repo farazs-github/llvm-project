@@ -190,7 +190,31 @@ printMemOperand(const MCInst *MI, int opNum, raw_ostream &O) {
     break;
   }
 
-  printOperand(MI, opNum+1, O);
+  // Index register is encoded as immediate value
+  // in case of nanoMIPS indexed instructions
+  switch (MI->getOpcode()) {
+    case Mips::LWX_NM:
+    case Mips::LWXS_NM:
+    case Mips::LBX_NM:
+    case Mips::LBUX_NM:
+    case Mips::LHX_NM:
+    case Mips::LHUX_NM:
+    case Mips::LHXS_NM:
+    case Mips::LHUXS_NM:
+    case Mips::SWX_NM:
+    case Mips::SWXS_NM:
+    case Mips::SBX_NM:
+    case Mips::SHX_NM:
+    case Mips::SHXS_NM:
+      if (!MI->getOperand(opNum+1).isReg()) {
+	printRegName(O, MI->getOperand(opNum+1).getImm());
+	break;
+      }
+      // Fall through
+    default:
+      printOperand(MI, opNum+1, O);
+      break;
+  }
   O << "(";
   printOperand(MI, opNum, O);
   O << ")";

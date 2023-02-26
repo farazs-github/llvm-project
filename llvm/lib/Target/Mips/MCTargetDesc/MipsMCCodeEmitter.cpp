@@ -976,16 +976,15 @@ getMemEncodingNMRX(const MCInst &MI, unsigned OpNo,
 		   const MCSubtargetInfo &STI) const {
   // Register is encoded in bits 9-5, offset is encoded in bits 4-0.
   assert(MI.getOperand(OpNo).isReg());
-  assert(MI.getOperand(OpNo+1).isReg());
-
   unsigned RegBits = getMachineOpValue(MI, MI.getOperand(OpNo), Fixups,
 				       STI) << 5;
-  unsigned OffBits = getMachineOpValue(MI, MI.getOperand(OpNo+1),
+  unsigned Reg = getMachineOpValue(MI, MI.getOperand(OpNo+1),
                                        Fixups, STI);
+  unsigned OffBits = Ctx.getRegisterInfo()->getEncodingValue(Reg);
+
 
   return RegBits | OffBits;
 }
-
 
 unsigned MipsMCCodeEmitter::
 getMemEncodingMMGPImm7Lsl2(const MCInst &MI, unsigned OpNo,

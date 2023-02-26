@@ -1126,14 +1126,6 @@ class MipsMemUimmAsmOperand<int Width, int Shift = 0> : AsmOperandClass {
                                           "MemUImm" # Width # "Lsl" # Shift);
 }
 
-def MipsMemRxAsmOperand : AsmOperandClass {
-  let Name = "MemRx";
-  let SuperClasses = [MipsMemAsmOperand];
-  let RenderMethod = "addMemOperands";
-  let ParserMethod = "parseMemOperand";
-  let PredicateMethod = "isMemRx";
-}
-
 def MipsInvertedImmoperand : AsmOperandClass {
   let Name = "InvNum";
   let RenderMethod = "addImmOperands";

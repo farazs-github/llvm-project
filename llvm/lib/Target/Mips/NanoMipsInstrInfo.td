@@ -30,7 +30,11 @@ def imm32_NM : IntImmLeaf<i32, [{
 }]>;
 def immFitsAddiu32 : IntImmLeaf<i32, [{
   int64_t N = Imm.getSExtValue();
-  return (N < -256 && N >= -4095) || (N > 4095 && N <= 65535);
+  return (N > 4095 && N <= 65535);
+}]>;
+def immFitsAddiuNeg : IntImmLeaf<i32, [{
+  int64_t N = Imm.getSExtValue();
+  return (N < -256 && N >= -4095);
 }]>;
 def imm32ZExt12 : IntImmLeaf<i32, [{ return isUInt<12>(Imm.getZExtValue()); }]>;
 def imm32ZExt12ANDI :
@@ -399,9 +403,18 @@ def mem_nmpcrel : mem_generic {
   let ParserMatchClass = MipsMemSimmAsmOperand<9>;
 }
 
+def NMMemRXAsmOperand : AsmOperandClass {
+  let Name = "NMMemRX";
+  let SuperClasses = [MipsMemAsmOperand];
+  let RenderMethod = "addNMMemOperands";
+  let ParserMethod = "parseMemNMRX";
+  let PredicateMethod = "isMemNMRX";
+}
+
 def mem_nmrx : mem_generic {
   let EncoderMethod = "getMemEncodingNMRX";
-  let ParserMatchClass = MipsMemRxAsmOperand;
+  let DecoderMethod = "DecodeMemNMRX";
+  let ParserMatchClass = NMMemRXAsmOperand;
 }
 
 foreach I = {4, 7, 10, 11, 14, 25} in
@@ -1042,10 +1055,9 @@ class LSMem_U12_Enc<bits<4> isel> : _Pool_P_LS_U12<isel>
 class LSMemX_Enc<bit scaled, bits<4> isel> : _Pool_PP_LSX<scaled, isel>
 {
   bits<5> rd;
-  bits<5> index;
-  bits<5> base;
-  let Inst{25...21} = base;
-  let Inst{20...16} = index;
+  bits<10> addr;
+  let Inst{25...21} = addr{9...5};
+  let Inst{20...16} = addr{4...0};
   let Inst{15...11} = rd;
 }
 
@@ -1185,11 +1197,10 @@ class LoadMemoryX<string opstr, DAGOperand MO,
                    SDPatternOperator OpNode = null_frag,
                    ComplexPattern Addr = addr,
                    InstrItinClass itin = NoItinerary> :
-  InstNM<(outs GPRNM32Opnd:$rd), (ins PtrRC:$base, PtrRC:$index),
-         !strconcat(opstr, "\t$rd, ${index}(${base})"),
-	 [],
+  InstNM<(outs GPRNM32Opnd:$rd), (ins MO:$addr),
+         !strconcat(opstr, "\t$rd, $addr"),
+	 [(set GPRNM32Opnd:$rd, (OpNode Addr:$addr))],
 	 itin> {
-  let DecoderMethod = "DecodeMem";
   let canFoldAsLoad = 1;
   let mayLoad = 1;
   string BaseOpcode = opstr;
@@ -1199,11 +1210,10 @@ class StoreMemoryX<string opstr, DAGOperand MO,
                     SDPatternOperator OpNode = null_frag,
                     ComplexPattern Addr = addr,
                     InstrItinClass itin> :
-    InstNM<(outs), (ins GPRNM32Opnd:$rd, PtrRC:$base, PtrRC:$index),
-    		   !strconcat(opstr, "\t$rd, ${index}(${base})"),
-           	   [],
+    InstNM<(outs), (ins GPRNM32Opnd:$rd, MO:$addr),
+		   !strconcat(opstr, "\t$rd, ${addr}"),
+		   [(OpNode GPRNM32Opnd:$rd, Addr:$addr)],
            	   itin> {
-  let DecoderMethod = "DecodeMem";
   let mayStore = 1;
   string BaseOpcode = opstr;
 }
@@ -2391,12 +2401,12 @@ def : NMPat<(store GPRNM32:$rt, GPRNM32:$rs),
 // Any-extending loads
 def : NMPat<(i32 (extloadi8 addruimm12:$addr)), (LBU_NM addruimm12:$addr)>;
 def : NMPat<(i32 (extloadi8 addrsimm9:$addr)), (LBUs9_NM addrsimm9:$addr)>;
-def : NMPat<(i32 (extloadi8 addrindexed:$addr)), (LBUX_NM addrindexed:$addr, 0)>;
+def : NMPat<(i32 (extloadi8 addrindexed:$addr)), (LBUX_NM addrindexed:$addr)>;
 def : NMPat<(i32 (extloadi16 addruimm12:$addr)), (LHU_NM addruimm12:$addr)>;
 def : NMPat<(i32 (extloadi16 addrsimm9:$addr)), (LHUs9_NM addrsimm9:$addr)>;
 def : NMPat<(i32 (extloadi16 addrindexedlsl1:$addr)),
-            (LHUXS_NM addrindexedlsl1:$addr, 0)>;
-def : NMPat<(i32 (extloadi16 addrindexed:$addr)), (LHUX_NM addrindexed:$addr, 0)>;
+            (LHUXS_NM addrindexedlsl1:$addr)>;
+def : NMPat<(i32 (extloadi16 addrindexed:$addr)), (LHUX_NM addrindexed:$addr)>;
 
 // Catching out-of-range immediate unaligned loads/stores.
 def : NMPat<(i32 (NMUnalignedLW GPRNM32:$rs, GPRNM32:$src)),

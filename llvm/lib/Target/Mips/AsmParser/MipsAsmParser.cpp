@@ -195,6 +195,7 @@ class MipsAsmParser : public MCTargetAsmParser {
   bool ParseDirective(AsmToken DirectiveID) override;
 
   OperandMatchResultTy parseMemOperand(OperandVector &Operands);
+  OperandMatchResultTy parseMemNMRX(OperandVector &Operands);
   OperandMatchResultTy
   matchAnyRegisterNameWithoutDollar(OperandVector &Operands,
                                     StringRef Identifier, SMLoc S);
@@ -1493,12 +1494,11 @@ public:
     return false;
   }
 
-  bool isMemRx() const {
+  bool isMemNMRX() const {
     if (!isMem())
       return false;
     if (!getMemBase()->isGPRAsmReg()
-	|| (getConstantMemOff() < 0)
-	|| (getConstantMemOff() > 31))
+	|| !MipsMCRegisterClasses[Mips::GPRNM32RegClassID].contains(getConstantMemOff()))
       return false;
     return true;
   }
@@ -7030,6 +7030,78 @@ MipsAsmParser::parseMemOperand(OperandVector &Operands) {
                                    getContext());
   }
 
+  Operands.push_back(MipsOperand::CreateMem(std::move(op), IdVal, S, E, *this));
+  return MatchOperand_Success;
+}
+
+// Parse register indexed memory operand - $rs($rt)
+OperandMatchResultTy
+MipsAsmParser::parseMemNMRX(OperandVector &Operands) {
+  MCAsmParser &Parser = getParser();
+  LLVM_DEBUG(dbgs() << "parseMemRx\n");
+  const MCExpr *IdVal = nullptr;
+  SMLoc S;
+  bool isParenExpr = false;
+  OperandMatchResultTy Res = MatchOperand_NoMatch;
+
+  S = Parser.getTok().getLoc();
+
+  if (getLexer().getKind() == AsmToken::LParen) {
+    Parser.Lex();
+    isParenExpr = true;
+  }
+  SmallVector<std::unique_ptr<MCParsedAsmOperand>, 1> Reg;
+  if ((Res = parseAnyRegister(Reg)) != MatchOperand_Success)
+    return Res;
+  else {
+    // Register encoded as immediate to fit struct MemOp
+    MipsOperand &RegOpnd = static_cast<MipsOperand &>(*Reg[0]);
+    IdVal = MCConstantExpr::create(RegOpnd.getGPRNM32Reg(), getContext());
+  }
+
+  if (Parser.getTok().isNot(AsmToken::LParen)) {
+    if (Parser.getTok().is(AsmToken::EndOfStatement)) {
+      SMLoc E =
+	SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
+
+      // Zero register assumed, add a memory operand with ZERO as its base.
+      // "Base" will be managed by k_Memory.
+      auto Base = MipsOperand::createGPRReg(0, "0", getContext().getRegisterInfo(), S, E, *this);
+      Operands.push_back(
+			 MipsOperand::CreateMem(std::move(Base), IdVal, S, E, *this));
+      return MatchOperand_Success;
+    }
+    else {
+      Error(Parser.getTok().getLoc(), "'(' expected");
+      return MatchOperand_ParseFail;
+    }
+  }
+  else
+    Parser.Lex(); // Eat the '(' token.
+
+  Res = parseAnyRegister(Operands);
+  if (Res != MatchOperand_Success)
+    return Res;
+
+  if (Parser.getTok().isNot(AsmToken::RParen)) {
+    Error(Parser.getTok().getLoc(), "')' expected");
+    return MatchOperand_ParseFail;
+  }
+
+  SMLoc E = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
+
+  Parser.Lex(); // Eat the ')' token.
+
+  if (!IdVal)
+    IdVal = MCConstantExpr::create(0, getContext());
+
+  // Replace the register operand with the memory operand.
+  std::unique_ptr<MipsOperand> op(
+      static_cast<MipsOperand *>(Operands.back().release()));
+  // Remove the register from the operands.
+  // "op" will be managed by k_Memory.
+  Operands.pop_back();
+  // Add the memory operand.
   Operands.push_back(MipsOperand::CreateMem(std::move(op), IdVal, S, E, *this));
   return MatchOperand_Success;
 }

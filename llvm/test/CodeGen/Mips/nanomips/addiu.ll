@@ -19,14 +19,14 @@ define i32 @test_addiu2(i32 %a) {
 }
 
 define i32 @test_addiu3(i32 %a) {
-; CHECK: addiu $a0, $a0, -4096 # <MCInst #{{.*}} ADDIUNEG_NM
-  %added = add i32 %a, -4096
+; CHECK: addiu $a0, $a0, -4095 # <MCInst #{{.*}} ADDIUNEG_NM
+  %added = add i32 %a, -4095
   ret i32 %added
 }
 
 define i32 @test_addiu4(i32 %a) {
-; CHECK: addiu $a0, $a0, -4097 # <MCInst #{{.*}} ADDIU48_NM
-  %added = add i32 %a, -4097
+; CHECK: addiu $a0, $a0, -4096 # <MCInst #{{.*}} ADDIU48_NM
+  %added = add i32 %a, -4096
   ret i32 %added
 }
 

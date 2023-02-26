@@ -40,7 +40,9 @@ def imm32ZExt5  : IntImmLeaf<i32, [{ return isUInt<5>(Imm.getZExtValue()); }]>;
 def imm32ZExt3  : IntImmLeaf<i32, [{ return Imm.getZExtValue() > 0 &&
 				  Imm.getZExtValue() <= 8;}]>;
 def imm32SExt12  : IntImmLeaf<i32, [{ return isInt<12>(Imm.getSExtValue()); }]>;
-def imm32Neg12  : IntImmLeaf<i32, [{ return isInt<13>(Imm.getSExtValue()) && Imm.getSExtValue() < 0; }]>;
+def imm32Neg12  : IntImmLeaf<i32, [{ return isInt<13>(Imm.getSExtValue()) &&
+    		  		    Imm.getSExtValue() < 0 &&
+				    Imm.getSExtValue() >= -4095; }]>;
 // True if (N + 1) fits in 12-bit field.
 def immZExt12Plus1 : PatLeaf<(imm), [{
   return isUInt<13>(N->getZExtValue()) && isUInt<12>(N->getZExtValue() + 1);
